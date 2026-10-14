@@ -26,8 +26,8 @@ const routes: Routes = [
   { path: 'appointments/:id/edit', component: AppointmentFormComponent, canActivate: [staffAuthGuard] },
   { path: 'questionnaires', component: QuestionnairesComponent, canActivate: [staffAuthGuard] },
   { path: 'questionnaires/:id', component: QuestionnaireDetailComponent, canActivate: [staffAuthGuard] },
-  { path: '', redirectTo: '/home', pathMatch: 'full' },
-  { path: '**', redirectTo: '/home' }
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  { path: '**', redirectTo: '/dashboard' }
 ];
 
 @NgModule({

@@ -11,7 +11,6 @@ import { StaffAuthInterceptor } from './auth/staff-auth.interceptor';
 import { DashboardComponent } from './shared/dashboard/dashboard.component';
 import { HeaderComponent } from './shared/header/header.component';
 import { FooterComponent } from './shared/footer/footer.component';
-import { SidebarComponent } from './shared/sidebar/sidebar.component';
 import { HomeComponent } from './components/home/home.component';
 import { QuestionnaireFormComponent } from './fhir/questionnaire-form/questionnaire-form.component';
 import { AccessLinkComponent } from './shared/access-link/access-link.component';
@@ -34,7 +33,6 @@ import { PatientQuestionnaireComponent } from './components/patient-questionnair
     DashboardComponent,
     HeaderComponent,
     FooterComponent,
-    SidebarComponent,
     HomeComponent,
     QuestionnaireFormComponent,
     AccessLinkComponent,
