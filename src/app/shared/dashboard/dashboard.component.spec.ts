@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { DashboardComponent } from './dashboard.component';
 import { HeaderComponent } from '../header/header.component';
@@ -24,7 +25,7 @@ describe('DashboardComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule],
+      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [DashboardComponent, HeaderComponent]
     })
     .compileComponents();
@@ -117,5 +118,36 @@ describe('DashboardComponent', () => {
     component.deletePatient(jane);
 
     httpMock.expectNone(`${base}/5`);
+  });
+
+  it('should render the Follow-up and Open alerts columns and link names to the patient page', () => {
+    init([{
+      ...jane,
+      activeFollowUp: {
+        id: 1, patientId: 5, specialty: 'VISCERAL_SURGERY', status: 'ACTIVE'
+      } as any,
+      unresolvedAlertCount: 3
+    }, { ...jane, id: 6, firstName: 'Bob' }]);
+
+    const headers = Array.from(fixture.nativeElement.querySelectorAll('th')).map((h: any) => h.textContent.trim());
+    expect(headers).toContain('Follow-up');
+    expect(headers).toContain('Open alerts');
+    const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('tbody tr'));
+    expect(rows[0].textContent).toContain('Visceral surgery (ACTIVE)');
+    expect(rows[0].textContent).toContain('3');
+    expect(rows[1].textContent).toContain('—');
+    expect(rows[0].querySelector('a')!.getAttribute('href')).toBe('/patients/5');
+  });
+
+  it('should explain a 409 on delete', () => {
+    spyOn(console, 'error');
+    init([jane]);
+    spyOn(window, 'confirm').and.returnValue(true);
+    component.deletePatient(jane);
+    httpMock.expectOne(`${base}/5`).flush(
+      { status: 409, error: 'PATIENT_HAS_RECORDS', message: 'x', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent)
+      .toContain('Patient has follow-up or appointment records and cannot be deleted.');
   });
 });

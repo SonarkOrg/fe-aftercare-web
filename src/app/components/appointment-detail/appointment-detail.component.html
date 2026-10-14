@@ -1,0 +1,52 @@
+<app-header></app-header>
+<main class="page">
+  <p *ngIf="loading">Loading…</p>
+  <div class="error-message" *ngIf="notFound">Appointment not found.</div>
+  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <ng-container *ngIf="appt as a">
+    <h2>Appointment <app-appointment-badge [appointment]="a"></app-appointment-badge></h2>
+    <section class="card">
+      <dl class="kv">
+        <dt>Patient</dt><dd><a [routerLink]="['/patients', a.patientId]">{{ a.patientFirstName }} {{ a.patientLastName }}</a></dd>
+        <dt>Type</dt><dd>{{ humanize(a.type) }}</dd>
+        <dt>Specialty</dt><dd>{{ humanize(a.specialty) }}</dd>
+        <dt>Date</dt><dd>{{ a.scheduledAt.substring(0, 10) }}</dd>
+        <dt>Time</dt><dd>{{ a.scheduledAt.substring(11, 16) }}</dd>
+        <dt>Duration</dt><dd>{{ a.durationMinutes }} min</dd>
+        <dt>Location</dt><dd>{{ a.location || '—' }}</dd>
+        <dt>Clinician</dt><dd>{{ a.clinician || '—' }}</dd>
+        <dt>Form</dt><dd>{{ a.questionnaireUrl }}|{{ a.questionnaireVersion }}</dd>
+      </dl>
+      <div class="actions">
+        <button type="button" id="mark-reviewed" *ngIf="a.status === 'NEEDS_REVIEW'" (click)="markReviewed()">Mark reviewed</button>
+        <button type="button" id="cancel-appt" class="btn-secondary" *ngIf="open"
+                (click)="setStatus('CANCELLED', 'Cancel this appointment?')">Cancel</button>
+        <button type="button" id="complete-appt" class="btn-secondary" *ngIf="open"
+                (click)="setStatus('COMPLETED', 'Mark this appointment as completed?')">Mark completed</button>
+        <button type="button" id="no-show-appt" class="btn-secondary" *ngIf="open"
+                (click)="setStatus('NO_SHOW', 'Mark this appointment as a no-show?')">Mark no-show</button>
+        <a class="btn-link" id="edit-appt" *ngIf="open" [routerLink]="['/appointments', a.id, 'edit']">Edit</a>
+        <button type="button" id="delete-appt" class="btn-danger" *ngIf="a.status === 'SCHEDULED' && !a.intake" (click)="delete()">Delete</button>
+      </div>
+    </section>
+
+    <section class="card intake">
+      <h3>Questionnaire</h3>
+      <ng-container *ngIf="a.intake as i; else noIntake">
+        <p>Submitted {{ i.submittedAt | date:'yyyy-MM-dd HH:mm' }}</p>
+        <ul class="flags" *ngIf="i.flags.length > 0; else noFlags">
+          <li *ngFor="let f of i.flags" class="flag">{{ f.label }} — {{ f.message }}</li>
+        </ul>
+        <ng-template #noFlags><p>No issues flagged.</p></ng-template>
+        <app-questionnaire-form *ngIf="questionnaire" mode="readonly" lang="en"
+                                [questionnaire]="questionnaire" [response]="i.response"></app-questionnaire-form>
+      </ng-container>
+      <ng-template #noIntake>
+        <p>Not submitted yet.</p>
+        <button type="button" id="regenerate-link" *ngIf="a.status === 'SCHEDULED'" (click)="regenerate()">Regenerate questionnaire link</button>
+        <app-access-link *ngIf="accessCode" [code]="accessCode"></app-access-link>
+      </ng-template>
+    </section>
+  </ng-container>
+</main>

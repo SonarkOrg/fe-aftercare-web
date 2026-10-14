@@ -1,0 +1,79 @@
+<ng-container *ngIf="mode === 'edit'; else readonlyView">
+  <div class="q-form">
+    <ng-container *ngFor="let it of visible; trackBy: trackId">
+      <ng-container [ngSwitch]="kind(it)">
+        <p *ngSwitchCase="'display'" class="q-display">{{ txt(it) }}</p>
+
+        <fieldset *ngSwitchCase="'boolean'" class="q-item" [attr.data-id]="it.linkId">
+          <legend>{{ txt(it) }}<span *ngIf="!it.required" class="q-optional"> {{ w('optional') }}</span></legend>
+          <p *ngFor="let h of helps(it)" class="q-help">{{ h }}</p>
+          <div class="q-buttons">
+            <button type="button" class="q-btn" [class.selected]="raw[it.linkId] === true"
+                    [attr.aria-pressed]="raw[it.linkId] === true" (click)="set(it, true)">{{ w('yes') }}</button>
+            <button type="button" class="q-btn" [class.selected]="raw[it.linkId] === false"
+                    [attr.aria-pressed]="raw[it.linkId] === false" (click)="set(it, false)">{{ w('no') }}</button>
+          </div>
+        </fieldset>
+
+        <fieldset *ngSwitchCase="'grid'" class="q-item" [attr.data-id]="it.linkId">
+          <legend>{{ txt(it) }}<span *ngIf="!it.required" class="q-optional"> {{ w('optional') }}</span></legend>
+          <p *ngFor="let h of helps(it)" class="q-help">{{ h }}</p>
+          <div class="q-buttons q-grid">
+            <button *ngFor="let n of range(it)" type="button" class="q-btn" [class.selected]="raw[it.linkId] === n"
+                    [attr.aria-pressed]="raw[it.linkId] === n" (click)="set(it, n)">{{ n }}</button>
+          </div>
+        </fieldset>
+
+        <div *ngSwitchCase="'number'" class="q-item" [attr.data-id]="it.linkId">
+          <label [for]="'q-' + it.linkId">{{ txt(it) }}<span *ngIf="!it.required" class="q-optional"> {{ w('optional') }}</span></label>
+          <p *ngFor="let h of helps(it)" class="q-help">{{ h }}</p>
+          <div class="q-number">
+            <input type="text" inputmode="decimal" autocomplete="off" [id]="'q-' + it.linkId"
+                   [attr.aria-invalid]="!!errors[it.linkId]" [attr.aria-describedby]="errors[it.linkId] ? 'err-' + it.linkId : null"
+                   [value]="str(it)" (input)="setText(it, $any($event.target).value)">
+            <span *ngIf="unit(it) as u" class="q-unit">{{ u }}</span>
+          </div>
+          <p *ngIf="errors[it.linkId] as e" class="q-error" role="alert" [id]="'err-' + it.linkId">{{ e }}</p>
+        </div>
+
+        <div *ngSwitchCase="'string'" class="q-item" [attr.data-id]="it.linkId">
+          <label [for]="'q-' + it.linkId">{{ txt(it) }}<span *ngIf="!it.required" class="q-optional"> {{ w('optional') }}</span></label>
+          <p *ngFor="let h of helps(it)" class="q-help">{{ h }}</p>
+          <input type="text" [id]="'q-' + it.linkId" [attr.maxlength]="it.maxLength"
+                 [attr.aria-invalid]="!!errors[it.linkId]" [attr.aria-describedby]="errors[it.linkId] ? 'err-' + it.linkId : null"
+                 [value]="str(it)" (input)="setText(it, $any($event.target).value)">
+          <p *ngIf="errors[it.linkId] as e" class="q-error" role="alert" [id]="'err-' + it.linkId">{{ e }}</p>
+        </div>
+
+        <div *ngSwitchCase="'text'" class="q-item" [attr.data-id]="it.linkId">
+          <label [for]="'q-' + it.linkId">{{ txt(it) }}<span *ngIf="!it.required" class="q-optional"> {{ w('optional') }}</span></label>
+          <p *ngFor="let h of helps(it)" class="q-help">{{ h }}</p>
+          <textarea rows="3" [id]="'q-' + it.linkId" [attr.maxlength]="it.maxLength"
+                    [attr.aria-invalid]="!!errors[it.linkId]" [attr.aria-describedby]="errors[it.linkId] ? 'err-' + it.linkId : null"
+                    [value]="str(it)" (input)="setText(it, $any($event.target).value)"></textarea>
+          <p *ngIf="errors[it.linkId] as e" class="q-error" role="alert" [id]="'err-' + it.linkId">{{ e }}</p>
+        </div>
+
+        <fieldset *ngSwitchCase="'choice'" class="q-item" [attr.data-id]="it.linkId">
+          <legend>{{ txt(it) }}<span *ngIf="!it.required" class="q-optional"> {{ w('optional') }}</span></legend>
+          <p *ngFor="let h of helps(it)" class="q-help">{{ h }}</p>
+          <div class="q-buttons q-stack">
+            <button *ngFor="let o of it.answerOption" type="button" class="q-btn"
+                    [class.selected]="raw[it.linkId] === o.valueCoding.code"
+                    [attr.aria-pressed]="raw[it.linkId] === o.valueCoding.code"
+                    (click)="set(it, o.valueCoding.code)">{{ optionLabel(o) }}</button>
+          </div>
+        </fieldset>
+      </ng-container>
+    </ng-container>
+  </div>
+</ng-container>
+
+<ng-template #readonlyView>
+  <dl class="q-readonly">
+    <ng-container *ngFor="let r of rows">
+      <dt>{{ r.label }}</dt>
+      <dd>{{ r.answered ? r.text : w('notAnswered') }}</dd>
+    </ng-container>
+  </dl>
+</ng-template>

@@ -1,0 +1,47 @@
+<app-header></app-header>
+<main class="page">
+  <div class="error-message" *ngIf="notFound">Form not found.</div>
+  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <ng-container *ngIf="def as d">
+    <h2>{{ d.title.en }}</h2>
+    <section class="card">
+      <dl class="kv">
+        <dt>URL</dt><dd class="mono">{{ d.url }}</dd>
+        <dt>Version</dt><dd>{{ d.version }}</dd>
+        <dt>Purpose</dt><dd>{{ humanize(d.purpose) }}</dd>
+        <dt>Specialty</dt><dd>{{ d.specialty ? humanize(d.specialty) : '—' }}</dd>
+        <dt>Appointment types</dt><dd>{{ d.appointmentTypes.length ? d.appointmentTypes.join(', ') : '—' }}</dd>
+        <dt>Status</dt><dd>{{ d.status }}</dd>
+      </dl>
+    </section>
+
+    <section class="card preview">
+      <h3>Preview</h3>
+      <div class="toggle">
+        <button type="button" id="lang-fr" [class.selected]="lang === 'fr'" (click)="lang = 'fr'">FR</button>
+        <button type="button" id="lang-en" [class.selected]="lang === 'en'" (click)="lang = 'en'">EN</button>
+      </div>
+      <p class="note">Preview — answers are not saved.</p>
+      <app-questionnaire-form mode="edit" [lang]="lang" [questionnaire]="d.questionnaire"></app-questionnaire-form>
+    </section>
+
+    <section class="card rules">
+      <h3>Rules</h3>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>linkId</th><th>Operator</th><th>Value</th><th>Outcome</th><th>Severity</th><th>Message (EN)</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of d.rules">
+            <td>{{ r.linkId }}</td>
+            <td>{{ r.operator }}</td>
+            <td>{{ ruleValue(r) }}</td>
+            <td>{{ r.outcome.type }}</td>
+            <td>{{ r.outcome.severity || '—' }}</td>
+            <td>{{ r.outcome.message.en }}</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </section>
+  </ng-container>
+</main>

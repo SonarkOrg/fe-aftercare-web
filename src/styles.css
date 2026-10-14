@@ -17,3 +17,93 @@ body{
     right: 0;
     margin: 0;
 }
+
+/* ---------- Shared staff UI ---------- */
+body { font-family: Roboto, Arial, sans-serif; color: #1c2430; }
+a { color: #1a6fb5; }
+
+.page { padding: 16px; max-width: 1100px; margin: 0 auto; }
+.page h2 { margin: 16px 0 12px; }
+.card { background: #fff; border: 1px solid #dde1e6; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; }
+.card h3 { margin-top: 0; }
+.table-wrap { overflow-x: auto; }
+.page table { width: 100%; border-collapse: collapse; background: #fff; }
+.page th, .page td { border: 1px solid #ccd2d9; padding: 8px; text-align: left; vertical-align: top; }
+.page th { background: #eef1f4; }
+.page button, .btn-link { padding: 8px 14px; cursor: pointer; border: 1px solid #1a6fb5; background: #1a6fb5; color: #fff; border-radius: 4px; font-size: 0.95rem; text-decoration: none; display: inline-block; }
+.page button.btn-secondary, .page .toggle button { background: #fff; color: #1a6fb5; }
+.page .toggle button.selected { background: #1a6fb5; color: #fff; }
+.page button.btn-danger { background: #b00020; border-color: #b00020; }
+.page button:disabled { cursor: not-allowed; opacity: 0.5; }
+.page .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.page .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.page .toggle { display: inline-flex; gap: 0; }
+.page .form-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+.page .form-group label { margin-bottom: 4px; }
+.page .form-group input, .page .form-group select, .page textarea, .page .toolbar input { padding: 6px; max-width: 400px; font-size: 1rem; }
+.page .error-message { color: #b00020; border: 1px solid #b00020; padding: 8px; margin-bottom: 16px; background: #fff; }
+.page .field-error { color: #b00020; font-size: 0.85rem; }
+.page .note { color: #55606e; font-size: 0.9rem; }
+.page .mono { font-family: monospace; font-size: 0.85rem; word-break: break-all; }
+.page ul.plain, .page ul.flags, .page ul.appt-list { list-style: none; padding: 0; margin: 8px 0; }
+.page .inline-check { display: inline-flex; gap: 6px; margin-bottom: 12px; }
+dl.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+dl.kv dt { color: #55606e; }
+dl.kv dd { margin: 0; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; font-weight: bold; white-space: nowrap; }
+.badge-muted { background: #e3e6ea; color: #444; }
+.badge-ok { background: #d4edda; color: #1e6b34; }
+.badge-warn { background: #ffe8b3; color: #7a5200; }
+.badge-alert { background: #f8d0d0; color: #9b1c1c; }
+.badge-info { background: #d6e8f7; color: #1a4f80; }
+
+.flag { background: #ffe8b3; border-left: 4px solid #e0a000; padding: 6px 10px; margin-bottom: 6px; }
+.metrics { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 20px; }
+.metric { background: #fff; border: 1px solid #dde1e6; border-radius: 6px; padding: 10px 16px; display: flex; flex-direction: column; min-width: 140px; }
+.metric-value { font-size: 1.6rem; font-weight: bold; }
+.metric-label { color: #55606e; font-size: 0.85rem; }
+.appt-list li { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; background: #fff; border: 1px solid #dde1e6; padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; }
+.appt-list .time { font-weight: bold; }
+.access-link .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.access-link input { flex: 1 1 280px; padding: 6px; font-family: monospace; }
+.resolve-row textarea { display: block; width: 100%; max-width: 600px; margin: 4px 0 8px; }
+.page .alert-table td.actions { display: table-cell; white-space: nowrap; }
+
+/* ---------- Questionnaire renderer ---------- */
+.q-form fieldset, .q-form .q-item { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; }
+.q-form legend, .q-form label { font-weight: bold; display: block; margin-bottom: 8px; padding: 0; }
+.q-optional { font-weight: normal; color: #55606e; }
+.q-display { margin: 0 0 20px; }
+.q-help { margin: 0 0 8px; color: #55606e; font-size: 0.9em; }
+.q-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.q-buttons.q-stack { flex-direction: column; }
+.page .q-form .q-btn, .q-btn { min-height: 48px; min-width: 48px; padding: 8px 16px; font-size: 1em; border: 2px solid #1a6fb5; background: #fff; color: #1a6fb5; border-radius: 8px; cursor: pointer; }
+.page .q-form .q-btn.selected, .q-btn.selected { background: #1a6fb5; color: #fff; }
+.q-grid .q-btn { flex: 0 0 auto; }
+.q-form input[type=text], .q-form textarea { width: 100%; box-sizing: border-box; min-height: 48px; padding: 8px; font-size: 1em; border: 2px solid #8a96a3; border-radius: 8px; font-family: inherit; }
+.q-number { display: flex; align-items: center; gap: 8px; }
+.q-number input { max-width: 200px; }
+.q-error { color: #b00020; margin: 4px 0 0; }
+.q-readonly { margin: 0; }
+.q-readonly dt { font-weight: bold; margin-top: 8px; }
+.q-readonly dd { margin: 2px 0 0; }
+@media (max-width: 480px) {
+  .q-btn { width: 100%; }
+  .q-grid .q-btn { width: auto; flex: 1 0 18%; }
+}
+
+/* ---------- Public patient page ---------- */
+.pq { max-width: 560px; margin: 0 auto; padding: 16px; font-size: 18px; line-height: 1.4; }
+.pq-top { display: flex; justify-content: flex-end; }
+.pq-lang { min-height: 44px; padding: 6px 14px; font-size: 1rem; border: 2px solid #1a6fb5; background: #fff; color: #1a6fb5; border-radius: 8px; cursor: pointer; }
+.pq-head h1 { font-size: 1.5rem; margin: 8px 0 4px; }
+.pq-sub { margin: 0; color: #55606e; }
+.pq-form-title { margin: 4px 0 20px; font-weight: bold; }
+.pq-msg { padding: 16px; border-radius: 8px; background: #fff; border: 1px solid #dde1e6; }
+.pq-done { background: #d4edda; border-color: #8fcb9f; }
+.pq-error, .pq-invalid { background: #fdecea; border-color: #e6a5a5; }
+.pq-btn { min-height: 48px; padding: 10px 20px; font-size: 1rem; border: 0; background: #1a6fb5; color: #fff; border-radius: 8px; cursor: pointer; }
+.pq-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pq-submit { width: 100%; margin-top: 8px; }
+.pq-emergency { margin-top: 32px; padding-top: 12px; border-top: 1px solid #dde1e6; font-size: 0.9rem; color: #55606e; }

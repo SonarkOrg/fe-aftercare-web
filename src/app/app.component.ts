@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { AuthService } from '@auth0/auth0-angular';
+import { StaffAuth } from './auth/staff-auth';
 
 @Component({
   selector: 'app-root',
@@ -9,6 +9,6 @@ import { AuthService } from '@auth0/auth0-angular';
 export class AppComponent {
   title = 'fe-aftercare-web';
 
-  // Instantiate AuthService at startup so it handles the Auth0 ?code=&state= callback before the '' -> /home redirect drops the query.
-  constructor(_auth: AuthService) { }
+  // Instantiate StaffAuth at startup so (in Auth0 mode) it handles the ?code=&state= callback before the '' -> /home redirect drops the query.
+  constructor(_auth: StaffAuth) { }
 }

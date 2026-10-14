@@ -1,0 +1,46 @@
+<div class="pq">
+  <div class="pq-top">
+    <button type="button" id="lang-toggle" class="pq-lang" [attr.lang]="lang === 'fr' ? 'en' : 'fr'" (click)="toggleLang()">{{ lang === 'fr' ? 'English' : 'Français' }}</button>
+  </div>
+
+  <main>
+    <p *ngIf="state === 'loading'" class="pq-msg" role="status">{{ t.loading }}</p>
+
+    <p *ngIf="state === 'invalid'" class="pq-msg pq-invalid" role="status" #statusMsg tabindex="-1">{{ t.invalid }}</p>
+
+    <div *ngIf="state === 'error' && !submitFailed" class="pq-msg pq-error" role="status">
+      <p>{{ t[errorKey] }}</p>
+      <button type="button" id="retry" class="pq-btn" (click)="retry()">{{ t.retry }}</button>
+    </div>
+
+    <p *ngIf="state === 'done'" class="pq-msg pq-done" role="status" #statusMsg tabindex="-1">{{ isCheckin ? t.doneCheckin : t.doneIntake }}</p>
+
+    <p *ngIf="state === 'already'" class="pq-msg pq-already" role="status" #statusMsg tabindex="-1">{{ isCheckin ? t.alreadyCheckin : t.alreadyIntake }}</p>
+
+    <ng-container *ngIf="formVisible && session as s">
+      <header class="pq-head">
+        <ng-container *ngIf="s.kind === 'FOLLOW_UP_CHECKIN'; else intakeHead">
+          <h1>{{ t.checkinTitle }}</h1>
+          <p class="pq-sub" *ngIf="s.checkIn">{{ s.checkIn.checkInDate }}</p>
+        </ng-container>
+        <ng-template #intakeHead>
+          <h1>{{ t.intakeTitle }}</h1>
+          <p class="pq-sub" *ngIf="s.appointment">
+            {{ s.appointment.scheduledAt.substring(0, 10) }} {{ s.appointment.scheduledAt.substring(11, 16) }}<ng-container *ngIf="s.appointment.location"> — {{ s.appointment.location }}</ng-container>
+          </p>
+        </ng-template>
+        <p class="pq-form-title">{{ title }}</p>
+      </header>
+      <app-questionnaire-form mode="edit" [lang]="lang" [questionnaire]="s.questionnaire" (responseChange)="current = $event"></app-questionnaire-form>
+      <div *ngIf="state === 'error'" class="pq-msg pq-error" role="alert">
+        <p>{{ t[errorKey] }}</p>
+        <button type="button" id="retry-submit" class="pq-btn" (click)="retry()">{{ t.retry }}</button>
+      </div>
+      <button type="button" id="submit" class="pq-btn pq-submit" [disabled]="current === null || state === 'submitting'" (click)="submit()">
+        {{ state === 'submitting' ? t.submitting : t.submit }}
+      </button>
+    </ng-container>
+  </main>
+
+  <footer class="pq-emergency">{{ t.emergency }}</footer>
+</div>

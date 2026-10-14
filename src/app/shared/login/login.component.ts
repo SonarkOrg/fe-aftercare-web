@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { AuthService } from '@auth0/auth0-angular';
+import { StaffAuth } from '../../auth/staff-auth';
 
 @Component({
   selector: 'app-login',
@@ -8,15 +8,13 @@ import { AuthService } from '@auth0/auth0-angular';
 })
 export class LoginComponent {
 
-  constructor(public auth: AuthService) { }
+  constructor(public auth: StaffAuth) { }
 
   login() {
-    this.auth.loginWithRedirect({ appState: { target: '/dashboard' } });
+    this.auth.login('/dashboard');
   }
 
   logout() {
-    this.auth.logout({
-      logoutParams: { returnTo: window.location.origin }
-    });
+    this.auth.logout();
   }
 }

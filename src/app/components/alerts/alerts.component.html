@@ -1,0 +1,11 @@
+<app-header></app-header>
+<main class="page">
+  <h2>Alerts</h2>
+  <label class="inline-check">
+    <input type="checkbox" [checked]="showResolved" (change)="toggleResolved($any($event.target).checked)"> Show resolved
+  </label>
+  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <p *ngIf="loading">Loading…</p>
+  <app-alert-table *ngIf="alerts.length > 0" [alerts]="alerts" [showPatient]="true" (changed)="load()"></app-alert-table>
+  <p *ngIf="!loading && !errorMessage && alerts.length === 0">{{ showResolved ? 'No resolved alerts.' : 'No open alerts.' }}</p>
+</main>

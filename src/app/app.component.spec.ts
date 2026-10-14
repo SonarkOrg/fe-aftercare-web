@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { AuthService } from '@auth0/auth0-angular';
 import { AppComponent } from './app.component';
+import { StaffAuth } from './auth/staff-auth';
 
 describe('AppComponent', () => {
   const authFactory = jasmine.createSpy('authFactory').and.returnValue({});
@@ -15,7 +15,7 @@ describe('AppComponent', () => {
       declarations: [
         AppComponent
       ],
-      providers: [{ provide: AuthService, useFactory: authFactory }]
+      providers: [{ provide: StaffAuth, useFactory: authFactory }]
     }).compileComponents();
   });
 
@@ -25,7 +25,7 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should instantiate AuthService on creation', () => {
+  it('should instantiate StaffAuth on creation', () => {
     TestBed.createComponent(AppComponent);
     expect(authFactory).toHaveBeenCalledTimes(1);
   });

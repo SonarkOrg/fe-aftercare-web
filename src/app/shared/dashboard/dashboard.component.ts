@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { PatientService } from '../../Services/Patient.service';
 import { Patient } from '../../models/patient.model';
+import { humanize } from '../link.util';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,6 +25,7 @@ export class DashboardComponent {
   errorMessage: string | null = null;
   saving = false;
   patients: Patient[] = [];
+  humanize = humanize;
 
   constructor(private patientService: PatientService) { }
 
@@ -44,7 +46,7 @@ export class DashboardComponent {
         error: (error) => {
           this.saving = false;
           this.errorMessage = 'Error adding patient.';
-          console.error('Add patient error:', error);
+          console.error('Add patient error', error?.status);
         }
       });
   }
@@ -58,7 +60,7 @@ export class DashboardComponent {
         },
         error: (error) => {
           this.errorMessage = 'Could not load patients.';
-          console.error('Fetch patients error:', error);
+          console.error('Fetch patients error', error?.status);
         }
       });
   }
@@ -74,8 +76,10 @@ export class DashboardComponent {
           this.loadPatients(); // Reload patient list after deleting
         },
         error: (error) => {
-          this.errorMessage = 'Error deleting patient.';
-          console.error('Delete patient error:', error);
+          this.errorMessage = error?.status === 409
+            ? 'Patient has follow-up or appointment records and cannot be deleted.'
+            : 'Error deleting patient.';
+          console.error('Delete patient error', error?.status);
         }
       });
   }

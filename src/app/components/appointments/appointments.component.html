@@ -1,0 +1,43 @@
+<app-header></app-header>
+<main class="page">
+  <h2>Appointments</h2>
+  <div class="toolbar">
+    <button type="button" id="prev" (click)="shift(-1)">Previous</button>
+    <input type="date" aria-label="Date" [value]="date" (change)="setDate($any($event.target).value)">
+    <button type="button" id="next" (click)="shift(1)">Next</button>
+    <span class="toggle">
+      <button type="button" id="view-day" [class.selected]="view === 'day'" (click)="setView('day')">Day</button>
+      <button type="button" id="view-week" [class.selected]="view === 'week'" (click)="setView('week')">Week</button>
+    </span>
+    <a class="btn-link" routerLink="/appointments/new">New appointment</a>
+  </div>
+  <p class="range">{{ range.from }}<ng-container *ngIf="range.to !== range.from"> to {{ range.to }}</ng-container></p>
+
+  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <section class="metrics" *ngIf="metrics as m">
+    <div class="metric"><span class="metric-value">{{ m.total }}</span><span class="metric-label">Appointments</span></div>
+    <div class="metric"><span class="metric-value">{{ completionPercent }}</span><span class="metric-label">Questionnaires completed</span></div>
+    <div class="metric"><span class="metric-value">{{ m.needsReview }}</span><span class="metric-label">Needs review</span></div>
+    <div class="metric"><span class="metric-value">{{ m.questionnaireMissing }}</span><span class="metric-label">Questionnaire missing</span></div>
+    <div class="metric"><span class="metric-value">{{ m.cancelled + m.noShow }}</span><span class="metric-label">Cancelled / no-show</span></div>
+  </section>
+
+  <p *ngIf="loading">Loading…</p>
+  <p *ngIf="!loading && !errorMessage && count === 0">No appointments.</p>
+
+  <section *ngFor="let g of groups" class="day-group">
+    <h3>{{ g.date }}</h3>
+    <ul class="appt-list">
+      <li *ngFor="let a of g.items">
+        <span class="time">{{ time(a) }}</span>
+        <span class="duration">{{ a.durationMinutes }} min</span>
+        <a [routerLink]="['/appointments', a.id]">{{ a.patientFirstName }} {{ a.patientLastName }}</a>
+        <span class="type">{{ humanize(a.type) }}</span>
+        <span class="clinician">{{ a.clinician }}</span>
+        <span class="location">{{ a.location }}</span>
+        <app-appointment-badge [appointment]="a"></app-appointment-badge>
+      </li>
+    </ul>
+  </section>
+</main>

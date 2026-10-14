@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
+  devAuth: true,
   apiUrl: 'http://localhost:8080/api',
   auth0: {
     domain: 'YOUR_AUTH0_DOMAIN',

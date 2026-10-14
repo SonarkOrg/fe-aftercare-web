@@ -1,0 +1,85 @@
+<app-header></app-header>
+<main class="page">
+  <p *ngIf="loading">Loading…</p>
+  <div class="error-message" *ngIf="notFound">Patient not found.</div>
+  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="error-message" *ngIf="actionError">{{ actionError }}</div>
+
+  <ng-container *ngIf="patient">
+    <h2>{{ patient.firstName }} {{ patient.lastName }}</h2>
+    <section class="card demographics">
+      <dl class="kv">
+        <dt>Email</dt><dd>{{ patient.email }}</dd>
+        <dt>Phone</dt><dd>{{ patient.phone }}</dd>
+        <dt>Gender</dt><dd>{{ patient.gender }}</dd>
+        <dt>City</dt><dd>{{ patient.address.city }}, {{ patient.address.state }} {{ patient.address.zip }}</dd>
+      </dl>
+    </section>
+
+    <section class="card follow-up-card">
+      <h3>Follow-up</h3>
+      <ng-container *ngIf="current as f">
+        <dl class="kv">
+          <dt>Specialty</dt><dd>{{ humanize(f.specialty) }}</dd>
+          <dt>Form</dt><dd>{{ f.questionnaireUrl }}|{{ f.questionnaireVersion }}</dd>
+          <dt>Discharge</dt><dd>{{ f.dischargeDate }}</dd>
+          <dt>End</dt><dd>{{ f.endDate }}</dd>
+          <dt>Status</dt><dd>{{ f.status }}</dd>
+        </dl>
+        <div class="actions">
+          <button type="button" id="regenerate-link" *ngIf="f.status === 'ACTIVE'" (click)="regenerate(f)">Regenerate check-in link</button>
+          <button type="button" id="close-follow-up" class="btn-secondary" (click)="close(f)">Close follow-up</button>
+        </div>
+      </ng-container>
+      <p *ngIf="!current">No active follow-up.</p>
+      <app-access-link *ngIf="accessCode" [code]="accessCode"></app-access-link>
+      <div *ngIf="canEnroll" class="enroll">
+        <h4>Enroll in follow-up</h4>
+        <app-follow-up-form [patientId]="patientId" (created)="onEnrolled($event)"></app-follow-up-form>
+      </div>
+    </section>
+
+    <section class="card check-ins">
+      <h3>Check-ins</h3>
+      <p *ngIf="checkIns.length === 0">No check-ins yet.</p>
+      <div class="table-wrap" *ngIf="checkIns.length > 0">
+      <table>
+        <thead><tr><th>Date</th><th>Submitted</th><th>Answers</th></tr></thead>
+        <tbody>
+          <ng-container *ngFor="let c of checkIns">
+            <tr>
+              <td>{{ c.checkInDate }}</td>
+              <td>{{ c.submittedAt | date:'yyyy-MM-dd HH:mm' }}</td>
+              <td><button type="button" class="btn-toggle" (click)="toggle(c)">{{ expanded.has(c.id) ? 'Hide' : 'Show' }}</button></td>
+            </tr>
+            <tr *ngIf="expanded.has(c.id)" class="answers-row">
+              <td colspan="3">
+                <app-questionnaire-form *ngIf="defs[c.questionnaireDefinitionId] as q" mode="readonly" lang="en"
+                                        [questionnaire]="q" [response]="c.response"></app-questionnaire-form>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+      </div>
+    </section>
+
+    <section class="card alerts">
+      <h3>Alerts</h3>
+      <p *ngIf="alerts.length === 0">No alerts.</p>
+      <app-alert-table *ngIf="alerts.length > 0" [alerts]="alerts" [showPatient]="false" (changed)="reload()"></app-alert-table>
+    </section>
+
+    <section class="card appointments">
+      <h3>Appointments</h3>
+      <a class="btn-link" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
+      <p *ngIf="appointments.length === 0">No appointments.</p>
+      <ul class="plain" *ngIf="appointments.length > 0">
+        <li *ngFor="let a of appointments">
+          <a [routerLink]="['/appointments', a.id]">{{ date(a) }} {{ time(a) }}</a>
+          — {{ humanize(a.type) }} <app-appointment-badge [appointment]="a"></app-appointment-badge>
+        </li>
+      </ul>
+    </section>
+  </ng-container>
+</main>
