@@ -1,0 +1,78 @@
+<app-header></app-header>
+
+<main class="dashboard">
+  <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+
+  <section class="patients-section">
+    <h2>Patients</h2>
+    <table *ngIf="patients.length > 0; else noPatients">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Gender</th>
+          <th>City</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of patients">
+          <td>{{ p.firstName }} {{ p.lastName }}</td>
+          <td>{{ p.email }}</td>
+          <td>{{ p.phone }}</td>
+          <td>{{ p.gender }}</td>
+          <td>{{ p.address.city }}</td>
+          <td>
+            <button type="button" (click)="deletePatient(p)">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noPatients>
+      <p *ngIf="!errorMessage">No patients yet.</p>
+    </ng-template>
+  </section>
+
+  <section class="form-section">
+    <h2>Add patient</h2>
+    <form (ngSubmit)="addPatient()">
+      <div class="form-group">
+        <label for="new-firstName">First Name:</label>
+        <input type="text" id="new-firstName" name="firstName" [(ngModel)]="patient.firstName" required>
+      </div>
+      <div class="form-group">
+        <label for="new-lastName">Last Name:</label>
+        <input type="text" id="new-lastName" name="lastName" [(ngModel)]="patient.lastName" required>
+      </div>
+      <div class="form-group">
+        <label for="new-email">Email:</label>
+        <input type="email" id="new-email" name="email" [(ngModel)]="patient.email" required>
+      </div>
+      <div class="form-group">
+        <label for="new-phone">Phone:</label>
+        <input type="tel" id="new-phone" name="phone" [(ngModel)]="patient.phone" required>
+      </div>
+      <div class="form-group">
+        <label for="new-gender">Gender:</label>
+        <select id="new-gender" name="gender" [(ngModel)]="patient.gender" required>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="new-city">City:</label>
+        <input type="text" id="new-city" name="city" [(ngModel)]="patient.address.city" required>
+      </div>
+      <div class="form-group">
+        <label for="new-state">State:</label>
+        <input type="text" id="new-state" name="state" [(ngModel)]="patient.address.state" required>
+      </div>
+      <div class="form-group">
+        <label for="new-zip">Zip Code:</label>
+        <input type="text" id="new-zip" name="zip" [(ngModel)]="patient.address.zip" required>
+      </div>
+      <button type="submit" [disabled]="!isFormValid() || saving">Add Patient</button>
+    </form>
+  </section>
+</main>
