@@ -35,8 +35,6 @@
 .prow--head .prow__meta > span { min-width: 0; }
 .prow.is-clickable { cursor: pointer; }
 .prow.is-clickable:hover { background: #f8faf6; }
-.prow--critical { box-shadow: inset 4px 0 0 var(--critical-dot); }
-.prow--attention { box-shadow: inset 4px 0 0 var(--warning-dot); }
 .prow__person { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .prow__id { min-width: 0; }
 .prow__name { display: block; font: 600 14px/1.3 var(--font-text); color: var(--ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -125,7 +123,7 @@ a.appt-row__when { color: var(--ink); text-decoration: none; }
 .week__gutter { position: relative; font: 400 12px/1 var(--font-text); color: var(--muted); }
 .week__hour { position: absolute; right: 8px; transform: translateY(-50%); }
 .week__hour:first-child { transform: none; top: 2px !important; }
-.week-day { position: relative; border-left: 1px solid var(--line); min-width: 0;
+.week-day { position: relative; box-shadow: inset 1px 0 0 var(--line); min-width: 0;
   background-image: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent 96px),
     repeating-linear-gradient(to bottom, transparent 0, transparent 47px, #eef0ec 47px, #eef0ec 48px, transparent 48px, transparent 96px); }
 .week-day.is-today { background-color: #f6f8f3; }

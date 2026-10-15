@@ -1,0 +1,171 @@
+/* ==========================================================================
+   Glass layer (applied on top of the v2 design; layout/typography untouched).
+   Surfaces become frosted white over a soft ambient sage / mint / sky backdrop.
+   Alphas are tuned so --ink / --muted keep >= 4.5:1 over the worst backdrop spot.
+   The public /q/:code page uses .pq-* classes only and is not touched here.
+   ========================================================================== */
+:root {
+  --glass-blur: saturate(160%) blur(24px);
+  --glass-blur-sm: saturate(160%) blur(20px);
+  --glass-hi: inset 0 0 0 1px rgba(255, 255, 255, .7);
+  --glass-shadow: 0 1px 2px rgba(10, 30, 3, .04), 0 8px 24px rgba(10, 30, 3, .06), 0 24px 48px -16px rgba(10, 30, 3, .08);
+  --glass-shadow-sm: 0 1px 2px rgba(10, 30, 3, .04), 0 4px 14px rgba(10, 30, 3, .06);
+  --glass-shadow-pop: 0 2px 4px rgba(10, 30, 3, .06), 0 16px 40px rgba(10, 30, 3, .14), 0 32px 64px -24px rgba(10, 30, 3, .18);
+  --g-card: rgba(255, 255, 255, .68);
+  --g-card-warm: rgba(255, 255, 255, .62);
+  --g-bar: rgba(255, 255, 255, .62);
+  --g-tile: rgba(255, 255, 255, .5);
+  --g-row: rgba(255, 255, 255, .58);
+  --g-hover: rgba(255, 255, 255, .82);
+  --g-pop: rgba(255, 255, 255, .84);
+  --g-field: rgba(255, 255, 255, .86);
+  --g-active: rgba(243, 246, 242, .85);
+}
+
+/* ---------- ambient backdrop (staff shell and home only; /q has none) ---------- */
+body:has(.app-top, .public-center)::before,
+body:has(.app-top, .public-center)::after {
+  content: ""; position: fixed; left: -10vw; right: -10vw; top: -12vh; height: 124vh; z-index: -1; pointer-events: none;
+  filter: blur(36px); will-change: transform;
+}
+body:has(.app-top, .public-center)::before {
+  background:
+    radial-gradient(42vw 42vw at 12% 14%, rgba(157, 196, 128, .55), transparent 70%),
+    radial-gradient(38vw 38vw at 88% 22%, rgba(150, 205, 235, .5), transparent 70%),
+    radial-gradient(34vw 34vw at 70% 82%, rgba(160, 222, 196, .5), transparent 70%);
+}
+body:has(.app-top, .public-center)::after {
+  background:
+    radial-gradient(36vw 36vw at 30% 78%, rgba(171, 214, 190, .5), transparent 70%),
+    radial-gradient(30vw 30vw at 55% 40%, rgba(186, 208, 232, .38), transparent 70%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    body:has(.app-top, .public-center)::before { animation: ambient-a linear both; animation-timeline: scroll(root); }
+    body:has(.app-top, .public-center)::after { animation: ambient-b linear both; animation-timeline: scroll(root); }
+  }
+}
+@keyframes ambient-a { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(2vw, -9vh, 0); } }
+@keyframes ambient-b { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-3vw, 7vh, 0); } }
+
+/* ---------- sticky top bar: frosted strip so content blurs beneath ---------- */
+.app-top::before {
+  content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: -14px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(234, 238, 232, .66) 0%, rgba(234, 238, 232, .5) 70%, rgba(234, 238, 232, 0) 100%);
+  -webkit-backdrop-filter: saturate(160%) blur(20px); backdrop-filter: saturate(160%) blur(20px);
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 14px), transparent 100%);
+}
+.top-nav, .icon-btn {
+  background: var(--g-bar); box-shadow: var(--glass-hi), var(--glass-shadow-sm);
+}
+.top-nav__item:hover, .icon-btn:hover { background: var(--g-hover); }
+.user-pill { background: rgba(10, 30, 3, .9); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22), var(--glass-shadow-sm); }
+.brand { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .4), var(--glass-shadow-sm); }
+.icon-btn__dot { box-shadow: 0 0 0 2px rgba(255, 255, 255, .9); }
+
+/* ---------- frosted surfaces ---------- */
+.card, .table-card, .top-nav, .icon-btn, .pill-group, .tabs, .banner, .sage-panel,
+.menu-pop, .row-menu, .drawer, .week__head, .toolbar .btn--icon, .sort-ctl .btn--icon,
+.search-pill input, select.select, .toolbar input[type=date], .btn--secondary, .btn--outline-pill {
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+}
+.tile, .mini, .row, .prow, .kpi, .chev, .empty__glyph, .kpi__icon, .seg-marker__pin, .badge, .count-pill {
+  -webkit-backdrop-filter: var(--glass-blur-sm); backdrop-filter: var(--glass-blur-sm);
+}
+
+.card { background: var(--g-card); box-shadow: var(--glass-hi), var(--glass-shadow); }
+.card--warm { background: var(--g-card-warm); }
+.table-card { background: var(--g-card); box-shadow: var(--glass-hi), var(--glass-shadow); }
+.pill-group, .tabs { background: var(--g-bar); box-shadow: var(--glass-hi), var(--glass-shadow-sm); }
+.sage-panel { background: rgba(205, 215, 185, .62); box-shadow: var(--glass-hi), var(--glass-shadow-sm); }
+.banner { box-shadow: var(--glass-hi); }
+.banner { background: rgba(239, 239, 239, .72); }
+.banner--error { background: rgba(253, 233, 229, .78); }
+.banner--info { background: rgba(229, 246, 253, .78); }
+.banner--dev, .banner--warning { background: rgba(250, 240, 210, .8); }
+
+/* nested tiles, rows */
+.tile, .mini { background: var(--g-tile); box-shadow: var(--glass-hi), 0 1px 2px rgba(10, 30, 3, .03), 0 6px 16px rgba(10, 30, 3, .04); }
+a.tile:hover { background: var(--g-hover); }
+.row, .prow { background: var(--g-row); box-shadow: var(--glass-hi), 0 1px 2px rgba(10, 30, 3, .03), 0 4px 12px rgba(10, 30, 3, .04); }
+.prow--head { background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+a.row:hover, .row--link:hover, .prow.is-clickable:hover { background: var(--g-hover); }
+.access-link .row { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.kpi { box-shadow: var(--glass-hi), 0 1px 2px rgba(10, 30, 3, .03), 0 6px 16px rgba(10, 30, 3, .04); }
+.kpi:nth-child(4n+1) { background: linear-gradient(90deg, rgba(243, 245, 232, .72), rgba(233, 239, 219, .66)); }
+.kpi:nth-child(4n+2) { background: linear-gradient(90deg, rgba(231, 238, 217, .72), rgba(223, 234, 220, .66)); }
+.kpi:nth-child(4n+3) { background: linear-gradient(90deg, rgba(220, 233, 223, .72), rgba(220, 233, 233, .66)); }
+.kpi:nth-child(4n+4) { background: linear-gradient(90deg, rgba(220, 233, 236, .72), rgba(230, 239, 244, .66)); }
+.kpi__icon { background: rgba(255, 255, 255, .8); }
+.seg-marker__pin { background: rgba(255, 255, 255, .92); }
+.chev, .empty__glyph, .drawer__header .btn--icon { background: rgba(255, 255, 255, .6); }
+.chev:hover { background: var(--g-hover); }
+.badge, .count-pill, .pill-group__count { background: rgba(214, 226, 200, .6); }
+.search-pill > app-icon, .select-wrap > app-icon { z-index: 1; }
+.progress { background: rgba(10, 30, 3, .07); }
+.appt + .appt { border-top-color: rgba(10, 30, 3, .08); }
+.table th, .table td { border-bottom-color: rgba(10, 30, 3, .08); }
+.table--hover tbody tr:hover td { background: rgba(255, 255, 255, .6); }
+.week__head { background: var(--g-card); border-bottom-color: rgba(10, 30, 3, .08); }
+.week-day.is-today { background-color: rgba(255, 255, 255, .42); }
+.mini .bc-pill, .card--warm .bc-pill { stroke: rgba(255, 255, 255, .6); }
+.bc-pill { stroke: rgba(255, 255, 255, .7); }
+.skeleton { background: linear-gradient(90deg, rgba(255, 255, 255, .45) 25%, rgba(255, 255, 255, .7) 37%, rgba(255, 255, 255, .45) 63%); background-size: 400% 100%; }
+
+/* controls */
+.top-nav__item:hover, .pill-group__item:hover, .tab:hover, .btn--ghost:hover, .btn--secondary:hover, .row-menu__item:hover { background: var(--g-active); }
+.btn--secondary { background: var(--g-bar); box-shadow: var(--glass-hi); border-color: rgba(10, 30, 3, .1); }
+.btn--outline-pill { border-color: rgba(10, 30, 3, .22); }
+.toolbar .btn--icon, .sort-ctl .btn--icon { background: var(--g-bar); box-shadow: var(--glass-hi); }
+.search-pill input, .toolbar input[type=date] { background: var(--g-field); }
+select.select { background-color: var(--g-field); }
+.menu-pop .search-pill input { background: var(--g-field); }
+
+/* drawers, menus, popovers */
+.menu-pop, .row-menu { background: var(--g-pop); box-shadow: var(--glass-hi), var(--glass-shadow-pop); }
+.drawer { background: var(--g-pop); box-shadow: var(--glass-hi), var(--glass-shadow-pop); }
+.drawer__footer { background: transparent; border-top-color: rgba(10, 30, 3, .08); }
+.drawer-backdrop { background: rgba(10, 30, 3, .28); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.chart-tip { box-shadow: var(--glass-shadow-pop); }
+
+/* ---------- optional scroll reveal (CSS only; never hides content without support) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .card, .table-card {
+      animation: glass-reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 30%;
+    }
+  }
+}
+@keyframes glass-reveal { from { opacity: .7; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ---------- solid fallback when backdrop-filter is unavailable ---------- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --g-card: #fbfbfb; --g-card-warm: #f7f7f5; --g-bar: #ffffff; --g-tile: #f1f1f1; --g-row: #ffffff;
+    --g-hover: #f8faf6; --g-pop: #ffffff; --g-field: #ffffff; --g-active: #f3f6f2;
+  }
+  .app-top::before { background: var(--canvas); }
+  .sage-panel { background: var(--sage-200); }
+  .banner { background: var(--neutral-bg); }
+  .banner--error { background: var(--critical-bg); } .banner--info { background: var(--info-bg); }
+  .banner--dev, .banner--warning { background: var(--warning-bg); }
+  .kpi:nth-child(4n+1) { background: linear-gradient(90deg, #f3f5e8, #e9efdb); }
+  .kpi:nth-child(4n+2) { background: linear-gradient(90deg, #e7eed9, #dfeadc); }
+  .kpi:nth-child(4n+3) { background: linear-gradient(90deg, #dce9df, #dce9e9); }
+  .kpi:nth-child(4n+4) { background: linear-gradient(90deg, #dce9ec, #e6eff4); }
+  .kpi__icon, .seg-marker__pin, .chev, .empty__glyph { background: #fff; }
+  .badge, .count-pill, .pill-group__count { background: var(--sage-50); }
+  .drawer-backdrop { background: rgba(10, 30, 3, .4); }
+}
+
+/* backdrop-filter makes each surface a stacking context: lift the one that owns an open popover */
+.card:has(.row-menu), .row:has(.row-menu), .prow:has(.row-menu) { position: relative; z-index: 6; }
+
+/* text sitting directly on the ambient backdrop (no card) uses a deeper muted tone for AA */
+.hero__sub, .hero__date, .profile-hero__meta, .toolbar .note, .app-footer { color: #3f4b3b; }
+
+/* glass backdrops are slightly darker than the v2 flat cards: nudge muted text and links one step deeper */
+body:has(.app-top, .public-center) { --muted: #505c4b; --ink-2: #49563f; }
+:where(body:has(.app-top, .public-center)) a { color: var(--sage-700); }
+:where(body:has(.app-top, .public-center)) a:hover { color: #46592f; }
