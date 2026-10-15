@@ -1,0 +1,4 @@
+:host { display: block; position: relative; }
+:host([variant="micro"]) { display: inline-block; }
+.trend__plot { position: relative; }
+.chart-tip { position: absolute; transform: translate(-50%, calc(-100% - 6px)); z-index: 2; pointer-events: none; }

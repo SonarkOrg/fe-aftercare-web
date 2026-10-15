@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { StaffAuth } from '../../auth/staff-auth';
 
+import { IconComponent } from '../icon/icon.component';
 import { LoginComponent } from './login.component';
 
 describe('LoginComponent', () => {
@@ -16,7 +17,7 @@ describe('LoginComponent', () => {
       logout: jasmine.createSpy('logout')
     };
     TestBed.configureTestingModule({
-      declarations: [LoginComponent],
+      declarations: [LoginComponent, IconComponent],
       providers: [{ provide: StaffAuth, useValue: authMock }]
     });
     fixture = TestBed.createComponent(LoginComponent);

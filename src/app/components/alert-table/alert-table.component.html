@@ -1,42 +1,39 @@
-<div class="error-message" *ngIf="message">{{ message }}</div>
-<div class="table-wrap">
-<table class="alert-table">
-  <thead>
-    <tr>
-      <th>Severity</th>
-      <th *ngIf="showPatient">Patient</th>
-      <th>Question</th>
-      <th>Answer</th>
-      <th>Message</th>
-      <th>Created</th>
-      <th>Status</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <ng-container *ngFor="let a of alerts">
-      <tr>
-        <td><span class="badge" [ngClass]="a.severity === 'HIGH' ? 'badge-alert' : 'badge-warn'">{{ a.severity }}</span></td>
-        <td *ngIf="showPatient"><a [routerLink]="['/patients', a.patientId]">{{ a.patientFirstName }} {{ a.patientLastName }}</a></td>
-        <td>{{ a.questionLabel }}</td>
-        <td>{{ display(a) }}</td>
-        <td>{{ a.message }}</td>
-        <td>{{ a.createdAt | date:'yyyy-MM-dd HH:mm' }}</td>
-        <td>{{ a.status }}</td>
-        <td class="actions">
-          <button type="button" class="btn-ack" *ngIf="a.status === 'OPEN'" [disabled]="busy" (click)="acknowledge(a)">Acknowledge</button>
-          <button type="button" class="btn-resolve" *ngIf="a.status !== 'RESOLVED'" [disabled]="busy" (click)="startResolve(a)">Resolve</button>
-        </td>
-      </tr>
-      <tr *ngIf="resolvingId === a.id" class="resolve-row">
-        <td [attr.colspan]="showPatient ? 8 : 7">
-          <label for="resolve-note-{{ a.id }}">Resolution note (required)</label>
-          <textarea id="resolve-note-{{ a.id }}" rows="2" maxlength="1000" [(ngModel)]="note" name="note-{{ a.id }}"></textarea>
-          <button type="button" class="btn-confirm" [disabled]="!note.trim() || busy" (click)="confirmResolve(a)">Confirm resolve</button>
-          <button type="button" class="btn-secondary" (click)="cancelResolve()">Cancel</button>
-        </td>
-      </tr>
-    </ng-container>
-  </tbody>
-</table>
-</div>
+<div class="banner banner--error error-message" *ngIf="message"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ message }}</span></div>
+<section class="card card--list alert-table" aria-label="Alerts">
+  <ul class="rows">
+    <li *ngFor="let a of alerts" class="alert-item">
+      <div class="row row--expand alert-row" [class.row-open]="a.status === 'OPEN'" [class.alert-row--solo]="!showPatient">
+        <div class="alert-row__who">
+          <span class="tone-circle" [ngClass]="'tone-' + severityChip(a.severity).tone" aria-hidden="true">{{ severityChip(a.severity).glyph }}</span>
+          <div class="row__main">
+            <a *ngIf="showPatient" class="row__name" [routerLink]="['/patients', a.patientId]">{{ a.patientFirstName }} {{ a.patientLastName }}</a>
+            <div class="row__name" *ngIf="!showPatient">{{ a.createdAt | date:'MMM d, HH:mm' }}</div>
+            <div class="row__sub" [title]="a.createdAt"><ng-container *ngIf="showPatient">{{ a.createdAt | date:'MMM d, HH:mm' }}</ng-container></div>
+          </div>
+        </div>
+        <div class="alert-row__q">
+          <div class="alert-row__label cell-q">{{ a.questionLabel }}</div>
+          <div class="row__sub alert-row__answer">Answer <strong>{{ display(a) }}</strong> · {{ a.message }}</div>
+        </div>
+        <div class="alert-row__chips">
+          <app-status-chip [spec]="severityChip(a.severity)"></app-status-chip>
+          <app-status-chip [spec]="statusChip(a.status)"></app-status-chip>
+        </div>
+        <div class="alert-row__actions actions">
+          <button type="button" class="btn btn--primary btn--sm btn-ack" *ngIf="a.status === 'OPEN'" [disabled]="busy" (click)="acknowledge(a)">Acknowledge</button>
+          <button type="button" class="btn btn--secondary btn--sm btn-resolve" *ngIf="a.status !== 'RESOLVED'" [disabled]="busy" (click)="startResolve(a)">Resolve</button>
+        </div>
+        <div class="row__actions resolve-row" *ngIf="resolvingId === a.id">
+          <div class="resolve-form">
+            <label for="resolve-note-{{ a.id }}">Resolution note (required)</label>
+            <textarea id="resolve-note-{{ a.id }}" rows="2" maxlength="1000" [(ngModel)]="note" name="note-{{ a.id }}"></textarea>
+            <div class="btn-row">
+              <button type="button" class="btn btn--primary btn--sm btn-confirm" [disabled]="!note.trim() || busy" (click)="confirmResolve(a)">Confirm resolve</button>
+              <button type="button" class="btn btn--ghost btn--sm btn-secondary" (click)="cancelResolve()">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ul>
+</section>

@@ -4,6 +4,7 @@ import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefi
 import { Lang } from '../../fhir/fhir.util';
 import { QuestionnaireDefinitionDetail, RuleJson } from '../../models/questionnaire-definition.model';
 import { humanize } from '../../shared/link.util';
+import { ChipSpec, severityChip } from '../../shared/status';
 
 @Component({
   selector: 'app-questionnaire-detail',
@@ -15,6 +16,8 @@ export class QuestionnaireDetailComponent implements OnInit {
   notFound = false;
   errorMessage: string | null = null;
   humanize = humanize;
+  severityChip = severityChip;
+  reviewChip: ChipSpec = { tone: 'serious', glyph: '◆', label: 'Needs review' };
 
   constructor(private route: ActivatedRoute, private service: QuestionnaireDefinitionService) {}
 

@@ -6,7 +6,7 @@ import { apiErrorOf } from '../../models/api-error.model';
 import { Appointment, AppointmentType, AppointmentWithCode } from '../../models/appointment.model';
 import { Specialty } from '../../models/follow-up.model';
 import { Patient } from '../../models/patient.model';
-import { humanize, todayLocalIsoDate } from '../../shared/link.util';
+import { humanize, businessToday } from '../../shared/link.util';
 
 @Component({
   selector: 'app-appointment-form',
@@ -19,7 +19,7 @@ export class AppointmentFormComponent implements OnInit {
   patientId: number | null = null;
   type: AppointmentType = 'GENERAL_CONSULT';
   specialty: Specialty = 'VISCERAL_SURGERY';
-  date = todayLocalIsoDate();
+  date = businessToday();
   time = '08:00';
   durationMinutes = 30;
   location = '';

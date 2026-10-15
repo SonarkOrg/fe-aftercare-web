@@ -34,6 +34,7 @@ export interface CreateFollowUpRequest {
 
 export interface CheckIn {
   id: number;
+  patientId?: number;
   followUpId: number;
   checkInDate: string;
   submittedAt: string;

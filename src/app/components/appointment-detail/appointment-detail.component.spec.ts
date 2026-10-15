@@ -1,3 +1,4 @@
+import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
@@ -6,8 +7,6 @@ import { environment } from '../../../environments/environment';
 import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questionnaire-form.component';
 import { AppointmentDetail } from '../../models/appointment.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
-import { AppointmentBadgeComponent } from '../../shared/appointment-badge/appointment-badge.component';
-import { HeaderComponent } from '../../shared/header/header.component';
 import { FULL_Q, appointmentDetail } from '../../testing/fixtures';
 import { AppointmentDetailComponent } from './appointment-detail.component';
 
@@ -34,7 +33,7 @@ describe('AppointmentDetailComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
-      declarations: [AppointmentDetailComponent, AppointmentBadgeComponent, QuestionnaireFormComponent, AccessLinkComponent, HeaderComponent],
+      declarations: [AppointmentDetailComponent, QuestionnaireFormComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '4' }) } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -65,8 +64,8 @@ describe('AppointmentDetailComponent', () => {
     expect(el.textContent).toContain('Clinic A');
     expect(el.textContent).toContain('Dr. Roy');
     expect(el.textContent).toContain('https://aftercare.example/fhir/Questionnaire/pre-consult|1');
-    expect(el.querySelector('.badge')!.textContent).toBe('Needs review');
-    expect(el.querySelector('.flag')!.textContent).toBe('Do you have a fever? — Recent illness or fever');
+    expect(el.querySelector('.chip__label')!.textContent).toBe('Needs review');
+    expect(el.querySelector('.flag')!.textContent).toContain('Do you have a fever? — Recent illness or fever');
     const dl = el.querySelector('dl.q-readonly')!;
     expect(dl.textContent).toContain('Pain level?');
     expect(dl.textContent).toContain('6');

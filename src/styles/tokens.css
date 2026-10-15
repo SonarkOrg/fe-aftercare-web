@@ -1,0 +1,80 @@
+:root {
+  /* surfaces (measured from the reference frames, see visual spec v2) */
+  --canvas: #eaeaea;
+  --card: #fbfbfb;
+  --card-warm: #f7f7f5;
+  --tile: #f1f1f1;
+  --surface: #ffffff;
+  --surface-raised: #fcfcfc;
+  /* text */
+  --ink: #0a1e03;
+  --ink-2: #54624f;
+  --muted: #5c6857;
+  /* lines */
+  --line: #e5e7e2;
+  --line-soft: #ebedeb;
+  --field-border: #858f81;
+  /* sage scale */
+  --sage-50: #f3f6f2;
+  --sage-100: #eef2e6;
+  --sage-150: #f6f8f1;
+  --sage-200: #cdd7b9;
+  --sage-400: #85a764;
+  --sage-500: #739553;
+  --sage-600: #5f7c46;
+  --sage-700: #57713f;
+  --brand-1: #8aa571;
+  --brand-2: #6f8957;
+  --ring-track: #d9d9d9;
+  --hatch-a: #dfe0de;
+  --hatch-b: #f1f1f1;
+  --bell-dot: #f84d36;
+  /* status tones: bg / fg (text) / dot (glyph). Status is ALWAYS glyph + word. */
+  --critical-bg: #fde9e5; --critical-fg: #a12a17; --critical-dot: #e0432c;
+  --serious-bg: #eceffa;  --serious-fg: #4b54a0;  --serious-dot: #6f79c0;
+  --warning-bg: #faf0d2;  --warning-fg: #7a5600;  --warning-dot: #b07d00;
+  --good-bg: #ebf3df;     --good-fg: #3f5f28;     --good-dot: #5f8443;
+  --info-bg: #e5f6fd;     --info-fg: #1b5d7a;     --info-dot: #2a8bb6;
+  --neutral-bg: #efefef;  --neutral-fg: #555d52;  --neutral-dot: #7d8579;
+  /* strong fills: chart pills and the limit line only */
+  --critical-strong: #b93a26;
+  --critical-bar-1: #f4cfc6;
+  --critical-bar-2: #fae2dc;
+  /* v1 aliases so existing class names keep working */
+  --critical: var(--critical-strong); --serious: #6f79c0; --warning: #b07d00; --good: #5f8443; --info: #2a8bb6; --neutral: #7d8579;
+  --color-primary: var(--sage-600);
+  --color-primary-hover: var(--sage-700);
+  --color-primary-subtle: var(--sage-50);
+  --color-page: var(--canvas);
+  --color-surface: var(--card);
+  --color-border: var(--line);
+  --color-border-input: var(--field-border);
+  --text: var(--ink);
+  --text-2: var(--ink-2);
+  --text-muted: var(--muted);
+  /* spacing */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px;
+  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
+  /* radii */
+  --r-card: 24px; --r-ctl: 16px; --r-active: 14px; --r-select: 12px; --r-sm: 8px; --r-bar: 12px; --r-pill: 999px;
+  --radius-sm: 6px; --radius-md: 12px; --radius-lg: 24px; --radius-pill: 999px;
+  /* elevation: none on cards. Floating things only. */
+  --shadow-pin: 0 2px 6px rgba(10, 30, 3, .10);
+  --shadow-3: 0 12px 32px rgba(10, 30, 3, .18);
+  /* type (faces are bundled locally via @fontsource-variable) */
+  --font-display: 'Urbanist Variable', Urbanist, system-ui, sans-serif;
+  --font-text: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-text);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-xs: 12px; --fs-sm: 13px; --fs-base: 14px; --fs-md: 16px; --fs-lg: 18px; --fs-xl: 23px; --fs-2xl: 28px;
+  --lh: 1.45; --fw-regular: 400; --fw-semibold: 600; --fw-bold: 700;
+  /* layout */
+  --content-max: 1440px; --target-min: 44px;
+}
+/* DRAFT, NOT SHIPPED (D3). Activated only by <html data-theme="dark">, which nothing sets. */
+:root[data-theme="dark"] {
+  --canvas: #0f160c; --card: #172112; --card-warm: #1b2616; --tile: #202c1a; --surface: #1d2918;
+  --ink: #eef3ea; --ink-2: #b9c6b3; --muted: #a3b09d; --line: #2c3a25; --line-soft: #2c3a25; --field-border: #7d8d76;
+  --critical-fg: #fca5a5; --critical-bg: #3a1618; --serious-fg: #c3c8f5; --serious-bg: #1f2447; --warning-fg: #fcd34d; --warning-bg: #3a2c0a;
+  --good-fg: #b5dc9a; --good-bg: #1c2e12; --info-fg: #93c5fd; --info-bg: #10243d; --neutral-fg: #cbd5c7; --neutral-bg: #26301f;
+}

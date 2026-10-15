@@ -1,0 +1,38 @@
+* { box-sizing: border-box; }
+html { font-size: 14px; }
+body {
+  margin: 0; background: var(--canvas); color: var(--ink);
+  font: 400 14px/1.45 var(--font-text); -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); margin: 0; color: var(--ink); }
+h1 { font-size: 36px; font-weight: 600; line-height: 1.1; letter-spacing: -.02em; }
+h2 { font-size: 23px; font-weight: 600; line-height: 1.2; }
+h3 { font-size: 18px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; }
+a { color: var(--sage-600); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+a:hover { color: var(--sage-700); }
+p { margin: 0; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;
+}
+.mono { font-family: var(--font-mono); }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* on dark or green fills the ring also gets a white halo so it reads on both sides */
+.user-pill:focus-visible, .top-nav__item[aria-current=page]:focus-visible, .btn--primary:focus-visible, .btn--accent:focus-visible,
+.pill-group__item[aria-pressed=true]:focus-visible, .tab[aria-selected=true]:focus-visible, .today-pill:focus-visible { box-shadow: 0 0 0 4px #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+input, select, textarea {
+  font: 400 14px/1.3 var(--font-text); min-height: 44px; padding: 0 14px; border: 1px solid var(--field-border);
+  border-radius: 12px; background: #fff; color: var(--ink);
+}
+textarea { padding: 10px 14px; min-height: 0; }
+input[type=checkbox], input[type=radio] { min-height: 0; }
+select { padding-right: 34px; }

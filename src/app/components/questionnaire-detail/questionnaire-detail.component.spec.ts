@@ -1,10 +1,10 @@
+import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questionnaire-form.component';
-import { HeaderComponent } from '../../shared/header/header.component';
 import { FULL_Q } from '../../testing/fixtures';
 import { QuestionnaireDetailComponent } from './questionnaire-detail.component';
 
@@ -17,7 +17,7 @@ describe('QuestionnaireDetailComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
-      declarations: [QuestionnaireDetailComponent, QuestionnaireFormComponent, HeaderComponent],
+      declarations: [QuestionnaireDetailComponent, QuestionnaireFormComponent, ...SHARED_DECLARATIONS],
       providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '2' }) } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -44,16 +44,16 @@ describe('QuestionnaireDetailComponent', () => {
 
   it('renders metadata, an interactive preview with a note, and the rules table', () => {
     init();
-    expect(el.querySelector('h2')!.textContent).toBe('Test check-in');
+    expect(el.querySelector('h1')!.textContent).toBe('Test check-in');
     expect(el.textContent).toContain('Preview — answers are not saved.');
     expect(el.querySelector('app-questionnaire-form .q-btn')).not.toBeNull();
     expect(el.querySelector('#submit')).toBeNull();
     const rows = Array.from(el.querySelectorAll('.rules tbody tr'))
       .map(r => Array.from(r.querySelectorAll('td')).map(td => td.textContent!.trim()).join(' | '));
     expect(rows.length).toBe(3);
-    expect(rows[0]).toBe('PAIN | >= | 7 | ALERT | HIGH | Severe pain');
-    expect(rows[1]).toBe('MOBILITY | in | bedbound | ALERT | MEDIUM | Bedbound');
-    expect(rows[2]).toBe('FEVER | equals-true | — | NEEDS_REVIEW | — | Fever');
+    expect(rows[0]).toBe('PAIN | >= | 7 | ALERT | ▲High | Severe pain');
+    expect(rows[1]).toBe('MOBILITY | in | bedbound | ALERT | ●Medium | Bedbound');
+    expect(rows[2]).toBe('FEVER | equals-true | — | NEEDS_REVIEW | ◆Needs review | Fever');
   });
 
   it('toggles the preview language', () => {

@@ -1,10 +1,13 @@
-<app-header></app-header>
-<main class="page">
-  <div class="error-message" *ngIf="notFound">Form not found.</div>
-  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+<div class="page">
+  <a class="back-link" routerLink="/questionnaires"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>Forms</a>
+  <section class="hero" *ngIf="def as hd">
+    <div><h1 class="hero__title">{{ hd.title.en }}</h1></div>
+  </section>
+  <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> Form not found.</span></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
   <ng-container *ngIf="def as d">
-    <h2>{{ d.title.en }}</h2>
     <section class="card">
+      <div class="card__header"><h2 class="card__title">Details</h2></div>
       <dl class="kv">
         <dt>URL</dt><dd class="mono">{{ d.url }}</dd>
         <dt>Version</dt><dd>{{ d.version }}</dd>
@@ -16,27 +19,33 @@
     </section>
 
     <section class="card preview">
-      <h3>Preview</h3>
-      <div class="toggle">
-        <button type="button" id="lang-fr" [class.selected]="lang === 'fr'" (click)="lang = 'fr'">FR</button>
-        <button type="button" id="lang-en" [class.selected]="lang === 'en'" (click)="lang = 'en'">EN</button>
+      <div class="card__header"><h2 class="card__title">Preview</h2>
+        <div class="pill-group toggle" role="group" aria-label="Preview language">
+          <button type="button" id="lang-fr" class="pill-group__item" [class.selected]="lang === 'fr'" [attr.aria-pressed]="lang === 'fr'" (click)="lang = 'fr'">FR</button>
+          <button type="button" id="lang-en" class="pill-group__item" [class.selected]="lang === 'en'" [attr.aria-pressed]="lang === 'en'" (click)="lang = 'en'">EN</button>
+        </div>
       </div>
       <p class="note">Preview — answers are not saved.</p>
       <app-questionnaire-form mode="edit" [lang]="lang" [questionnaire]="d.questionnaire"></app-questionnaire-form>
     </section>
 
     <section class="card rules">
-      <h3>Rules</h3>
-      <div class="table-wrap">
-      <table>
-        <thead><tr><th>linkId</th><th>Operator</th><th>Value</th><th>Outcome</th><th>Severity</th><th>Message (EN)</th></tr></thead>
+      <div class="card__header"><h2 class="card__title">Rules</h2></div>
+      <div class="table-scroll">
+      <table class="table">
+        <caption class="sr-only">Alert rules</caption>
+        <thead><tr><th scope="col">linkId</th><th scope="col">Operator</th><th scope="col">Value</th><th scope="col">Outcome</th><th scope="col">Severity</th><th scope="col">Message (EN)</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of d.rules">
             <td>{{ r.linkId }}</td>
             <td>{{ r.operator }}</td>
             <td>{{ ruleValue(r) }}</td>
             <td>{{ r.outcome.type }}</td>
-            <td>{{ r.outcome.severity || '—' }}</td>
+            <td>
+              <app-status-chip *ngIf="r.outcome.severity; else reviewOrNone" size="sm" [spec]="severityChip(r.outcome.severity)"></app-status-chip>
+              <ng-template #reviewOrNone><app-status-chip *ngIf="r.outcome.type === 'NEEDS_REVIEW'; else none" size="sm" [spec]="reviewChip"></app-status-chip></ng-template>
+              <ng-template #none>—</ng-template>
+            </td>
             <td>{{ r.outcome.message.en }}</td>
           </tr>
         </tbody>
@@ -44,4 +53,4 @@
       </div>
     </section>
   </ng-container>
-</main>
+</div>

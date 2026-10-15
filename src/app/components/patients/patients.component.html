@@ -1,0 +1,180 @@
+<div class="page">
+  <section class="hero">
+    <div>
+      <h1 class="hero__title">Patients</h1>
+      <p class="hero__sub" *ngIf="!loading && !errorMessage">{{ rows.length }} patients · {{ activeCount }} in active follow-up</p>
+    </div>
+    <div class="hero__actions">
+      <button type="button" id="open-add-patient" class="btn btn--accent" #addBtn (click)="openDrawer(addBtn)"><app-icon name="plus" [size]="16"></app-icon>Add patient</button>
+    </div>
+  </section>
+
+  <div class="banner banner--info" role="status" *ngIf="notice"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ notice }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage">
+    <span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span>
+    <button type="button" class="btn btn--secondary btn--sm" (click)="retry()">Retry</button>
+  </div>
+  <div class="banner banner--error error-message" *ngIf="actionError">
+    <span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ actionError }}</span>
+  </div>
+
+  <div class="toolbar" *ngIf="!errorMessage">
+    <div class="search-pill">
+      <app-icon name="search" [size]="16"></app-icon>
+      <input type="search" id="patient-search" aria-label="Search by name" placeholder="Search by name" [value]="query" (input)="setQuery($any($event.target).value)">
+    </div>
+    <div class="pill-group" role="group" aria-label="Filter patients by status">
+      <button *ngFor="let f of filters" type="button" class="pill-group__item" [attr.data-filter]="f.key" [attr.aria-pressed]="statusFilter === f.key"
+              [attr.aria-label]="f.label + ', ' + count(f.key)" (click)="setStatus(f.key)">
+        <span class="glyph" *ngIf="f.glyph" aria-hidden="true">{{ f.glyph }}</span>{{ f.label }}
+        <span class="pill-group__count" aria-hidden="true">{{ count(f.key) }}</span>
+      </button>
+    </div>
+    <span class="toolbar__spacer"></span>
+    <div class="sort-ctl" role="group" aria-label="Sort patients">
+      <label for="sort-key" class="muted">Sort</label>
+      <select id="sort-key" class="select" [ngModel]="sortKey" (ngModelChange)="sortBy($event)">
+        <option *ngFor="let o of sortOptions" [ngValue]="o.key">{{ o.label }}</option>
+      </select>
+      <button type="button" id="sort-dir" class="btn btn--secondary btn--icon" [attr.aria-label]="sortDirLabel" [attr.data-dir]="sortDir" (click)="toggleSortDir()">
+        <app-icon [name]="sortDir === 'asc' ? 'arrow-up' : 'arrow-down'" [size]="16"></app-icon>
+      </button>
+    </div>
+  </div>
+  <p class="sr-only" aria-live="polite">{{ visible.length }} of {{ rows.length }} patients shown, sorted by {{ sortLabel }}, {{ sortDir === 'asc' ? 'ascending' : 'descending' }}</p>
+
+  <div *ngIf="loading" aria-busy="true">
+    <span class="sr-only">Loading…</span>
+    <div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3, 4, 5]"></div>
+  </div>
+
+  <div class="card empty" *ngIf="!loading && !errorMessage && rows.length === 0">
+    <span class="empty__glyph" aria-hidden="true">—</span>
+    <p class="empty__title">No patients yet.</p>
+    <p class="empty__text">Add the first patient to start follow-ups.</p>
+    <button type="button" class="btn btn--primary" (click)="openDrawer($any($event.target))">Add patient</button>
+  </div>
+
+  <div class="card empty" *ngIf="!loading && !errorMessage && rows.length > 0 && visible.length === 0">
+    <span class="empty__glyph" aria-hidden="true">—</span>
+    <p class="empty__title">No patients match these filters.</p>
+    <button type="button" class="btn btn--ghost" (click)="clearFilters()">Clear filters</button>
+  </div>
+
+  <section class="card card--list patient-list" *ngIf="!loading && visible.length > 0" aria-label="Patients">
+    <div class="prow prow--head" aria-hidden="true">
+      <span>Patient</span><span>Status</span>
+      <span class="prow__meta"><span>Follow-up</span><span class="c-last">Last check-in</span><span>Pain</span><span class="c-next">Next appointment</span></span>
+      <span></span>
+    </div>
+    <ul class="rows">
+      <li *ngFor="let r of visible" class="prow is-clickable" [class.prow--critical]="r.status === 'CRITICAL'" [class.prow--attention]="r.status === 'ATTENTION'" (click)="rowClick(r, $event)">
+        <div class="prow__person">
+          <app-avatar [id]="r.patient.id" [initials]="r.initials" size="md"></app-avatar>
+          <div class="prow__id">
+            <a class="prow__name" [routerLink]="['/patients', r.patient.id]">{{ r.name }}</a>
+            <div class="row__sub">{{ r.patient.email }}</div>
+          </div>
+        </div>
+        <div class="prow__status">
+          <span class="sr-only">Status: </span>
+          <app-status-chip [spec]="chipOf(r.status)"></app-status-chip>
+          <div class="row__sub prow__reason" [title]="r.reasons.join(' · ')">{{ r.reasons[0] }}</div>
+        </div>
+        <div class="prow__meta">
+          <div class="c-fu">
+            <span class="sr-only">Follow-up: </span>
+            <ng-container *ngIf="r.followUp && r.followUp.status === 'ACTIVE' && r.day; else noDay">
+              <span class="num">Day {{ r.day.day }} of {{ r.day.total }}</span>
+              <div class="progress" role="progressbar" aria-label="Follow-up progress" aria-valuemin="0" [attr.aria-valuemax]="r.day.total" [attr.aria-valuenow]="r.day.day"><span [style.width.%]="(r.day.day / r.day.total) * 100"></span></div>
+            </ng-container>
+            <ng-template #noDay>{{ r.followUp && r.followUp.status === 'EXPIRED' ? 'Ended ' + r.followUp.endDate : '—' }}</ng-template>
+          </div>
+          <div class="c-last">
+            <span class="sr-only">Last check-in: </span>
+            <span *ngIf="r.lastCheckInDate; else dash" [title]="r.lastCheckInDate">{{ relativeDay(r.lastCheckInDate, today) }}</span>
+          </div>
+          <div class="c-pain">
+            <span class="sr-only">Pain: </span>
+            <ng-container *ngIf="r.lastPain !== null; else dash">
+              <span class="pain-val num">{{ r.lastPain }}</span>
+              <ng-container *ngIf="atOrAbove(r)"><span class="pain-flag" aria-hidden="true">▲</span><span class="sr-only">, at or above alert threshold</span></ng-container>
+              <app-trend-chart variant="micro" label="Pain" [points]="recent(r)" [totalDays]="r.day ? r.day.total : 7" [threshold]="r.painThreshold" [todayDay]="r.day ? r.day.day : null"></app-trend-chart>
+            </ng-container>
+          </div>
+          <div class="c-next">
+            <span class="sr-only">Next appointment: </span>
+            <ng-container *ngIf="r.nextAppointment as a; else none">
+              <span class="num">{{ a.scheduledAt.substring(0, 10) | date:'EEE d MMM' }} · {{ a.scheduledAt.substring(11, 16) }}</span>
+              <div class="row__sub">{{ humanize(a.type) }}</div>
+            </ng-container>
+            <ng-template #none>None in 30 days</ng-template>
+          </div>
+        </div>
+        <div class="prow__actions">
+          <a class="btn btn--secondary btn--sm" [routerLink]="['/patients', r.patient.id]">Open</a>
+          <button type="button" class="btn btn--ghost-danger btn--sm btn--icon" [attr.aria-label]="'Delete ' + r.name" (click)="deletePatient(r.patient)"><app-icon name="trash" [size]="16"></app-icon></button>
+        </div>
+      </li>
+    </ul>
+  </section>
+  <ng-template #dash>—</ng-template>
+</div>
+
+<ng-container *ngIf="drawerOpen">
+  <div class="drawer-backdrop" (click)="closeDrawer()"></div>
+  <div class="drawer" #drawerEl role="dialog" aria-modal="true" aria-labelledby="add-patient-title">
+    <form (ngSubmit)="addPatient()">
+      <div class="drawer__header">
+        <h2 id="add-patient-title">Add patient</h2>
+        <button type="button" class="btn btn--ghost btn--icon" aria-label="Close" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
+      </div>
+      <div class="drawer__body">
+        <div class="banner banner--error error-message" *ngIf="addError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ addError }}</span></div>
+        <div class="grid-form">
+          <div class="form-group">
+            <label for="new-firstName">First Name:</label>
+            <input type="text" id="new-firstName" name="firstName" [(ngModel)]="patient.firstName" required>
+          </div>
+          <div class="form-group">
+            <label for="new-lastName">Last Name:</label>
+            <input type="text" id="new-lastName" name="lastName" [(ngModel)]="patient.lastName" required>
+          </div>
+          <div class="form-group">
+            <label for="new-email">Email:</label>
+            <input type="email" id="new-email" name="email" [(ngModel)]="patient.email" required>
+          </div>
+          <div class="form-group">
+            <label for="new-phone">Phone:</label>
+            <input type="tel" id="new-phone" name="phone" [(ngModel)]="patient.phone" required>
+          </div>
+          <div class="form-group span-2">
+            <label for="new-gender">Gender:</label>
+            <select id="new-gender" name="gender" [(ngModel)]="patient.gender" required>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-form grid-form--3">
+          <div class="form-group">
+            <label for="new-city">City:</label>
+            <input type="text" id="new-city" name="city" [(ngModel)]="patient.address.city" required>
+          </div>
+          <div class="form-group">
+            <label for="new-state">State:</label>
+            <input type="text" id="new-state" name="state" [(ngModel)]="patient.address.state" required>
+          </div>
+          <div class="form-group">
+            <label for="new-zip">Zip Code:</label>
+            <input type="text" id="new-zip" name="zip" [(ngModel)]="patient.address.zip" required>
+          </div>
+        </div>
+      </div>
+      <div class="drawer__footer">
+        <button type="button" class="btn btn--secondary" (click)="closeDrawer()">Cancel</button>
+        <button type="submit" class="btn btn--primary" [disabled]="!isFormValid() || saving">Add patient</button>
+      </div>
+    </form>
+  </div>
+</ng-container>

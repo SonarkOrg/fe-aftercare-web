@@ -1,10 +1,9 @@
+import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { AppointmentMetrics } from '../../models/appointment.model';
-import { AppointmentBadgeComponent } from '../../shared/appointment-badge/appointment-badge.component';
-import { HeaderComponent } from '../../shared/header/header.component';
 import { appointment } from '../../testing/fixtures';
 import { AppointmentsComponent } from './appointments.component';
 
@@ -23,7 +22,7 @@ describe('AppointmentsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
-      declarations: [AppointmentsComponent, AppointmentBadgeComponent, HeaderComponent]
+      declarations: [AppointmentsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AppointmentsComponent);
@@ -51,7 +50,7 @@ describe('AppointmentsComponent', () => {
   it('loads the day range by default', () => {
     fixture.detectChanges();
     flush('2026-10-14', '2026-10-14');
-    expect(el.querySelector('#view-day')!.classList).toContain('selected');
+    expect(el.querySelector('#view-day')!.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('week view runs Monday to Sunday', () => {
@@ -93,7 +92,7 @@ describe('AppointmentsComponent', () => {
     fixture.detectChanges();
     expect(component.count).toBe(1);
     expect(component.metrics!.total).toBe(9);
-    expect(Array.from(el.querySelectorAll('.day-group h3')).map(h => h.textContent)).toEqual(['2026-10-15']);
+    expect(Array.from(el.querySelectorAll('.board-group h3')).map(h => h.textContent!.trim())).toEqual(['Scheduled · awaiting questionnaire 1']);
   });
 
   it('clears groups and metrics when a load fails', () => {
@@ -109,42 +108,103 @@ describe('AppointmentsComponent', () => {
     expect(component.errorMessage).toBeTruthy();
   });
 
-  it('renders the metrics card: 67% for 0.6667 and a dash for null', () => {
+  it('renders the KPI strip: 67% for 0.6667 and a dash for null', () => {
     fixture.detectChanges();
     flush('2026-10-14', '2026-10-14');
     const card = el.querySelector('.metrics')!.textContent!;
-    expect(card).toContain('67%');
-    expect(card).toContain('Appointments');
     expect(card).toContain('Questionnaires completed');
     expect(card).toContain('Needs review');
     expect(card).toContain('Questionnaire missing');
     expect(card).toContain('Cancelled / no-show');
-    const values = Array.from(el.querySelectorAll('.metric-value')).map(v => v.textContent);
-    expect(values).toEqual(['3', '67%', '1', '1', '2']);
+    expect(card).toContain('2 of 2 before the visit');
+    expect(card).toContain('1 cancelled · 1 no-show');
+    const values = Array.from(el.querySelectorAll('.tile__value')).map(v => v.textContent!.replace(/\s+/g, ' ').trim());
+    expect(values).toEqual(['67%', '1 / 3', '1 / 3', '2 / 3']);
+    expect(Array.from(el.querySelectorAll('.tile__label')).map(l => l.textContent!.trim())[0]).toBe('Questionnaires completed');
+    expect(el.querySelector('.metrics .card__title')!.textContent).toBe('Today');
+    expect(el.querySelector('.helper-line')!.textContent).toContain('roughly 10 minutes');
+    expect(el.querySelector('.helper-line')!.textContent).toContain('estimate: 5 min each');
 
     click('next');
-    flush('2026-10-15', '2026-10-15', [], { completionRate: null });
-    expect(el.querySelectorAll('.metric-value')[1].textContent).toBe('—');
+    flush('2026-10-15', '2026-10-15', [], { completionRate: null, questionnairesCompleted: 0 });
+    expect(el.querySelectorAll('.tile__value')[0].textContent!.trim()).toBe('—');
+    expect(el.querySelector('.helper-line')!.textContent).toContain('No questionnaires completed ahead of time');
   });
 
-  it('groups appointments by date and renders time, patient, type, clinician, location and badge', () => {
+  it('day view: readiness board groups, order, chips and a collapsed closed group', () => {
     fixture.detectChanges();
     flush('2026-10-14', '2026-10-14', [
-      appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00', status: 'NEEDS_REVIEW' }),
+      appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00', status: 'NEEDS_REVIEW', flagCount: 2 }),
       appointment({ id: 2, scheduledAt: '2026-10-14T11:00:00', status: 'SCHEDULED', questionnaireMissing: true }),
-      appointment({ id: 3, scheduledAt: '2026-10-15T09:00:00', status: 'COMPLETED' })
+      appointment({ id: 3, scheduledAt: '2026-10-14T09:00:00', status: 'COMPLETED' })
     ]);
-    expect(Array.from(el.querySelectorAll('.day-group h3')).map(h => h.textContent)).toEqual(['2026-10-14', '2026-10-15']);
-    const first = el.querySelector('.appt-list li')!;
-    expect(first.querySelector('.time')!.textContent).toBe('08:30');
-    expect(first.textContent).toContain('30 min');
+    expect(Array.from(el.querySelectorAll('.board-group h3')).map(h => h.textContent!.trim()))
+      .toEqual(['Needs review 1', 'Questionnaire missing 1']);
+    const closed = el.querySelector('details.board-closed') as HTMLDetailsElement;
+    expect(closed.open).toBeFalse();
+    expect(closed.querySelector('summary')!.textContent).toContain('Completed, cancelled & no-show');
+    expect(closed.querySelector('summary .badge')!.textContent).toBe('1');
+    const first = el.querySelector('.appt-card')!;
+    expect(first.textContent).toContain('08:30–09:00');
     expect(first.textContent).toContain('Jane Doe');
     expect(first.textContent).toContain('Pre op consult');
     expect(first.textContent).toContain('Dr. Roy');
     expect(first.textContent).toContain('Clinic A');
+    expect(first.textContent).toContain('2 flag(s)');
     expect(first.querySelector('a')!.getAttribute('href')).toBe('/appointments/1');
-    expect(Array.from(el.querySelectorAll('.badge')).map(b => b.textContent)).toEqual(['Needs review', 'Questionnaire missing', 'Completed']);
+    expect(Array.from(el.querySelectorAll('.appt-card .chip__label')).map(b => b.textContent))
+      .toContain('Needs review');
     expect(el.textContent).not.toContain('No appointments.');
+  });
+
+  it('Mark reviewed posts and reloads', () => {
+    fixture.detectChanges();
+    flush('2026-10-14', '2026-10-14', [appointment({ id: 1, status: 'NEEDS_REVIEW' })]);
+    (el.querySelector('.btn-reviewed') as HTMLButtonElement).click();
+    http.expectOne(`${api}/1/review`).flush(appointment({ id: 1, status: 'READY' }));
+    flush('2026-10-14', '2026-10-14', [appointment({ id: 1, status: 'READY' })]);
+    expect(el.querySelector('[data-group=ready]')).not.toBeNull();
+  });
+
+  it('week view renders 7 day columns and positions blocks', () => {
+    fixture.detectChanges();
+    flush('2026-10-14', '2026-10-14');
+    click('view-week');
+    flush('2026-10-12', '2026-10-18', [appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00', status: 'NEEDS_REVIEW' })]);
+    expect(el.querySelectorAll('.week-day').length).toBe(7);
+    const block = el.querySelector('.week-block') as HTMLElement;
+    expect(block.style.top).toBe('144px');
+    expect(block.style.height).toBe('48px');
+    expect(block.textContent).toContain('Needs review');
+    expect(block.textContent).toContain('08:30');
+    expect(block.textContent).toContain('Jane Doe');
+    expect(block.querySelector('.week-block__glyph')!.textContent).toBe('◆');
+    expect(block.getAttribute('href')).toBe('/appointments/1');
+    expect(el.textContent).toContain('Oct 12 – Oct 18, 2026');
+  });
+
+  it('week view: back-to-back 15-minute blocks sit in separate lanes and none is shorter than 44px', () => {
+    fixture.detectChanges();
+    flush('2026-10-14', '2026-10-14');
+    click('view-week');
+    flush('2026-10-12', '2026-10-18', [
+      appointment({ id: 1, scheduledAt: '2026-10-14T09:00:00', durationMinutes: 15 }),
+      appointment({ id: 2, scheduledAt: '2026-10-14T09:15:00', durationMinutes: 15 })]);
+    const blocks = Array.from(el.querySelectorAll('.week-block')) as HTMLElement[];
+    expect(blocks.length).toBe(2);
+    expect(blocks.every(b => parseFloat(b.style.height) >= 44)).toBeTrue();
+    expect(blocks[0].style.left).not.toBe(blocks[1].style.left);
+    expect(blocks[0].style.width).toBe('calc(50% - 2px)');
+  });
+
+  it('week view: the agenda uses human headings and today is a pill with screen-reader text', () => {
+    fixture.detectChanges();
+    flush('2026-10-14', '2026-10-14');
+    click('view-week');
+    flush('2026-10-12', '2026-10-18', [appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00' })]);
+    expect(el.querySelector('.agenda .card__title--sm')!.textContent).toContain('Wednesday 14 October');
+    expect(el.querySelector('.hero__sub')!.textContent).toContain('Oct 12 – Oct 18, 2026');
+    expect(el.querySelector('h1')!.textContent).toBe('Appointments');
   });
 
   it('shows the empty state', () => {

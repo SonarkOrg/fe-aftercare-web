@@ -8,8 +8,14 @@ import { AppComponent } from './app.component';
 import { LoginComponent } from './shared/login/login.component';
 import { staffAuthProviders } from './auth/staff-auth.providers';
 import { StaffAuthInterceptor } from './auth/staff-auth.interceptor';
-import { DashboardComponent } from './shared/dashboard/dashboard.component';
-import { HeaderComponent } from './shared/header/header.component';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { PatientsComponent } from './components/patients/patients.component';
+import { ShellComponent } from './shell/shell.component';
+import { StatusChipComponent } from './shared/status-chip/status-chip.component';
+import { IconComponent } from './shared/icon/icon.component';
+import { AvatarComponent } from './shared/avatar/avatar.component';
+import { RingTileComponent } from './shared/ring-tile/ring-tile.component';
+import { TrendChartComponent } from './shared/trend-chart/trend-chart.component';
 import { FooterComponent } from './shared/footer/footer.component';
 import { HomeComponent } from './components/home/home.component';
 import { QuestionnaireFormComponent } from './fhir/questionnaire-form/questionnaire-form.component';
@@ -30,8 +36,14 @@ import { PatientQuestionnaireComponent } from './components/patient-questionnair
   declarations: [
     AppComponent,
     LoginComponent,
+    ShellComponent,
     DashboardComponent,
-    HeaderComponent,
+    PatientsComponent,
+    StatusChipComponent,
+    IconComponent,
+    TrendChartComponent,
+    AvatarComponent,
+    RingTileComponent,
     FooterComponent,
     HomeComponent,
     QuestionnaireFormComponent,

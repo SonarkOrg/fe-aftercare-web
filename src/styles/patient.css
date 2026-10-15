@@ -1,0 +1,38 @@
+/* ---------- Questionnaire renderer ---------- */
+.q-form fieldset, .q-form .q-item { border: 0; padding: 0; margin: 0 0 24px; min-width: 0; }
+.q-form legend, .q-form label { font-weight: bold; display: block; margin-bottom: 8px; padding: 0; }
+.q-optional { font-weight: normal; color: var(--muted); }
+.q-display { margin: 0 0 20px; }
+.q-help { margin: 0 0 8px; color: var(--muted); font-size: 0.9em; }
+.q-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.q-buttons.q-stack { flex-direction: column; }
+.q-btn, .page .q-form .q-btn { min-height: 48px; min-width: 48px; padding: 8px 16px; font: inherit; font-size: 1em; border: 2px solid var(--sage-600); background: #fff; color: var(--sage-600); border-radius: 12px; cursor: pointer; }
+.q-btn.selected, .page .q-form .q-btn.selected { background: var(--sage-600); color: #fff; }
+.q-grid .q-btn { flex: 0 0 auto; }
+.q-form input[type=text], .q-form textarea { width: 100%; box-sizing: border-box; min-height: 48px; padding: 8px; font-size: 1em; border: 2px solid var(--field-border); border-radius: 12px; font-family: inherit; background: #fff; }
+.q-number { display: flex; align-items: center; gap: 8px; }
+.q-number input { max-width: 200px; }
+.q-error { color: var(--critical-fg); margin: 4px 0 0; }
+.q-readonly { margin: 0; }
+.q-readonly dt { font-weight: bold; margin-top: 8px; }
+.q-readonly dd { margin: 2px 0 0; }
+@media (max-width: 480px) {
+  .q-btn { width: 100%; }
+  .q-grid .q-btn { width: auto; flex: 1 0 18%; }
+}
+
+/* ---------- Public patient page ----------
+   Sizes are in px (not rem) so the staff-UI root size can never shrink this page. */
+.pq { box-sizing: content-box; max-width: 560px; margin: 0 auto; padding: 16px; font-size: 18px; line-height: 1.4; font-family: var(--font-text); }
+.pq-top { display: flex; justify-content: flex-end; }
+.pq-lang { min-height: 44px; padding: 6px 14px; font: inherit; font-size: 16px; font-family: var(--font-display); border: 2px solid var(--sage-600); background: #fff; color: var(--sage-600); border-radius: 12px; cursor: pointer; }
+.pq-head h1 { font-family: var(--font-display); font-size: 24px; font-weight: 700; line-height: 1.2; letter-spacing: 0; margin: 8px 0 4px; }
+.pq-sub { margin: 0; color: var(--muted); }
+.pq-form-title { margin: 4px 0 20px; font-weight: bold; }
+.pq-msg { padding: 16px; border-radius: 16px; background: var(--card); }
+.pq-done { background: var(--good-bg); color: var(--good-fg); }
+.pq-error, .pq-invalid { background: var(--critical-bg); color: var(--critical-fg); }
+.pq-btn { min-height: 48px; padding: 10px 20px; font: inherit; font-size: 16px; font-family: var(--font-display); font-weight: 600; border: 0; background: var(--ink); color: #fff; border-radius: 12px; cursor: pointer; }
+.pq-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pq-submit { width: 100%; margin-top: 8px; }
+.pq-emergency { margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14.4px; color: var(--muted); }

@@ -1,8 +1,8 @@
 <div class="access-link">
   <div class="row">
     <input #linkInput type="text" readonly [value]="link" aria-label="Patient link">
-    <button type="button" (click)="copy(linkInput)">Copy link</button>
-    <span *ngIf="message" class="copy-message">{{ message }}</span>
+    <button type="button" class="btn btn--secondary" (click)="copy(linkInput)"><app-icon name="copy" [size]="16"></app-icon>Copy link</button>
+    <span *ngIf="message" class="copy-message" role="status">{{ message }}</span>
   </div>
   <p class="note">Give this link to the patient. It is shown only once; regenerate it if lost.</p>
 </div>

@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AlertService } from '../../Services/Alert.service';
 import { AppointmentService } from '../../Services/Appointment.service';
@@ -7,11 +7,25 @@ import { FollowUpService } from '../../Services/FollowUp.service';
 import { PatientService } from '../../Services/Patient.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
+import { answerOf } from '../../fhir/fhir.util';
 import { Alert } from '../../models/alert.model';
 import { Appointment } from '../../models/appointment.model';
 import { CheckIn, FollowUp, FollowUpWithCode } from '../../models/follow-up.model';
 import { Patient } from '../../models/patient.model';
-import { humanize } from '../../shared/link.util';
+import { QuestionnaireDefinitionDetail } from '../../models/questionnaire-definition.model';
+import { SeriesPoint } from '../../shared/care.model';
+import { businessNow, businessToday, humanize, relativeDay } from '../../shared/link.util';
+import {
+  PAIN_LINK, TEMPERATURE_LINK, alertThreshold, buildSeries, chartTodayDay, computeStatus, followUpDay
+} from '../../shared/patient-status';
+import { ChipSpec, appointmentChip, patientStatusChip, severityChip } from '../../shared/status';
+import { ThresholdState } from '../../shared/trend-chart/trend-chart.component';
+import { PageTitleService } from '../../shell/page-title.service';
+
+export type ProfileTab = 'overview' | 'checkins' | 'alerts' | 'appointments';
+const TABS: ProfileTab[] = ['overview', 'checkins', 'alerts', 'appointments'];
+
+export interface ChartSpec { linkId: string; label: string; unit: string; domain: [number, number] | 'auto'; points: SeriesPoint[]; threshold: number | null }
 
 @Component({
   selector: 'app-patient-detail',
@@ -32,6 +46,21 @@ export class PatientDetailComponent implements OnInit {
   expanded = new Set<number>();
   defs: Record<number, FhirQuestionnaire> = {};
   humanize = humanize;
+  relativeDay = relativeDay;
+  severityChip = severityChip;
+  appointmentChip = appointmentChip;
+  /** Whether the alert thresholds behind the charts loaded, are loading, or failed. */
+  thresholdState: ThresholdState = 'loading';
+  today = businessToday();
+  tabs = TABS;
+  tab: ProfileTab = 'overview';
+  def: QuestionnaireDefinitionDetail | null = null;
+  charts: ChartSpec[] = [];
+  chartTotal = 7;
+  chartToday: number | null = null;
+  painThreshold: number | null = null;
+
+  @ViewChildren('tabBtn') tabButtons?: QueryList<ElementRef<HTMLButtonElement>>;
 
   constructor(
     private route: ActivatedRoute,
@@ -39,12 +68,122 @@ export class PatientDetailComponent implements OnInit {
     private followUpService: FollowUpService,
     private alertService: AlertService,
     private appointmentService: AppointmentService,
-    private definitions: QuestionnaireDefinitionService
+    private definitions: QuestionnaireDefinitionService,
+    private router: Router,
+    private titles: PageTitleService
   ) {}
 
   ngOnInit(): void {
     this.patientId = Number(this.route.snapshot.paramMap.get('id'));
+    const t = this.route.snapshot.queryParamMap?.get('tab') as ProfileTab | null;
+    if (t && TABS.includes(t)) {
+      this.tab = t;
+    }
     this.reload();
+  }
+
+  /* ---------- derived data ---------- */
+
+  /** The follow-up the charts describe: the current one, else the most recent. */
+  get chartFollowUp(): FollowUp | undefined {
+    return this.current ?? [...this.followUps].sort((a, b) => b.dischargeDate.localeCompare(a.dischargeDate) || b.id - a.id)[0];
+  }
+
+  get currentCheckIns(): CheckIn[] {
+    const f = this.current;
+    return f ? this.checkIns.filter(c => c.followUpId === f.id) : [];
+  }
+
+  get unresolved(): Alert[] {
+    return this.alerts.filter(a => a.status === 'OPEN' || a.status === 'ACKNOWLEDGED');
+  }
+
+  get openHigh(): number {
+    return this.alerts.filter(a => a.status === 'OPEN' && a.severity === 'HIGH').length;
+  }
+
+  get statusChip(): ChipSpec {
+    return patientStatusChip(computeStatus({ followUp: this.current, alerts: this.alerts, checkIns: this.currentCheckIns, today: this.today }).status);
+  }
+
+  get day() {
+    return followUpDay(this.current, this.today);
+  }
+
+  get lastCheckInDate(): string | null {
+    return this.checkIns.reduce<string | null>((m, c) => (m === null || c.checkInDate > m ? c.checkInDate : m), null);
+  }
+
+  get nextAppointment(): Appointment | null {
+    const now = businessNow();
+    return this.appointments
+      .filter(a => ['SCHEDULED', 'READY', 'NEEDS_REVIEW'].includes(a.status) && a.scheduledAt >= now)
+      .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))[0] ?? null;
+  }
+
+  get recentAlerts(): Alert[] {
+    return this.unresolved.slice(0, 3);
+  }
+
+  get checkInCount(): number {
+    return this.checkIns.length;
+  }
+
+  private recomputeCharts(): void {
+    const f = this.chartFollowUp;
+    this.charts = [];
+    if (!f) {
+      return;
+    }
+    const rules = this.def?.rules ?? [];
+    const items = new Set((this.def?.questionnaire.item ?? []).map(i => i.linkId));
+    const mine = this.checkIns.filter(c => c.followUpId === f.id);
+    const specs: ChartSpec[] = [];
+    if (!this.def || items.has(PAIN_LINK)) {
+      specs.push({ linkId: PAIN_LINK, label: 'Pain (0–10)', unit: '', domain: [0, 10], points: buildSeries(f, mine, PAIN_LINK), threshold: alertThreshold(rules, PAIN_LINK) });
+    }
+    if (this.def && items.has(TEMPERATURE_LINK)) {
+      specs.push({ linkId: TEMPERATURE_LINK, label: 'Temperature (°C)', unit: '°C', domain: 'auto', points: buildSeries(f, mine, TEMPERATURE_LINK), threshold: alertThreshold(rules, TEMPERATURE_LINK) });
+    }
+    this.charts = specs;
+    this.painThreshold = alertThreshold(rules, PAIN_LINK);
+    this.chartTotal = f.durationDays;
+    this.chartToday = chartTodayDay(f, mine.some(c => c.checkInDate === this.today), this.today);
+  }
+
+  numeric(c: CheckIn, linkId: string): number | null {
+    const v = answerOf(c.response, linkId);
+    return typeof v === 'number' ? v : null;
+  }
+
+  painAlert(c: CheckIn): boolean {
+    const v = this.numeric(c, PAIN_LINK);
+    return v !== null && this.painThreshold !== null && v >= this.painThreshold;
+  }
+
+  /* ---------- tabs ---------- */
+
+  selectTab(t: ProfileTab, focus = false): void {
+    this.tab = t;
+    this.router.navigate([], { queryParams: { tab: t === 'overview' ? null : t }, queryParamsHandling: 'merge', replaceUrl: true });
+    if (focus) {
+      setTimeout(() => this.tabButtons?.get(TABS.indexOf(t))?.nativeElement.focus());
+    }
+  }
+
+  onTabKey(e: KeyboardEvent): void {
+    const i = TABS.indexOf(this.tab);
+    let next = -1;
+    switch (e.key) {
+      case 'ArrowRight': next = (i + 1) % TABS.length; break;
+      case 'ArrowLeft': next = (i + TABS.length - 1) % TABS.length; break;
+      case 'Home': next = 0; break;
+      case 'End': next = TABS.length - 1; break;
+    }
+    if (next >= 0) {
+      e.preventDefault();
+      this.selectTab(TABS[next], true);
+    }
   }
 
   get current(): FollowUp | undefined {
@@ -71,6 +210,9 @@ export class PatientDetailComponent implements OnInit {
         this.alerts = r.alerts;
         this.appointments = r.appointments;
         this.loading = false;
+        this.titles.set(`${r.patient.firstName} ${r.patient.lastName}`);
+        this.recomputeCharts();
+        this.loadDefinition();
       },
       error: err => {
         this.loading = false;
@@ -79,6 +221,27 @@ export class PatientDetailComponent implements OnInit {
         } else {
           this.errorMessage = 'Could not load patient.';
         }
+      }
+    });
+  }
+
+  private loadDefinition(): void {
+    const f = this.chartFollowUp;
+    if (!f) {
+      this.def = null;
+      this.thresholdState = 'known';
+      return;
+    }
+    this.thresholdState = 'loading';
+    this.definitions.get(f.questionnaireDefinitionId).subscribe({
+      next: d => {
+        this.def = d;
+        this.thresholdState = 'known';
+        this.recomputeCharts();
+      },
+      error: () => {
+        this.thresholdState = 'failed'; // charts render without thresholds and say so
+        console.warn('Could not load the form definition; charts are shown without alert thresholds.');
       }
     });
   }

@@ -34,4 +34,13 @@ describe('QuestionnaireDefinitionService', () => {
     service.get(2).subscribe();
     http.expectOne(`${api}/2`).flush({ id: 2 });
   });
+
+  it('evicts a failed get so the next call retries', () => {
+    let errored = false;
+    service.get(5).subscribe({ error: () => (errored = true) });
+    http.expectOne(`${api}/5`).flush('x', { status: 500, statusText: 'err' });
+    expect(errored).toBeTrue();
+    service.get(5).subscribe();
+    http.expectOne(`${api}/5`).flush({ id: 5 });
+  });
 });

@@ -1,6 +1,9 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AlertCountService } from '../../Services/AlertCount.service';
 import { AlertService } from '../../Services/Alert.service';
 import { Alert } from '../../models/alert.model';
+import { initials } from '../../shared/link.util';
+import { alertStatusChip, severityChip } from '../../shared/status';
 
 @Component({
   selector: 'app-alert-table',
@@ -16,7 +19,11 @@ export class AlertTableComponent {
   busy = false;
   message: string | null = null;
 
-  constructor(private alertService: AlertService) {}
+  severityChip = severityChip;
+  statusChip = alertStatusChip;
+  initialsOf = initials;
+
+  constructor(private alertService: AlertService, private alertCount: AlertCountService) {}
 
   display(a: Alert): string {
     if (a.answerValue === 'true') {
@@ -52,6 +59,7 @@ export class AlertTableComponent {
       next: () => {
         this.busy = false;
         this.resolvingId = null;
+        this.alertCount.refresh();
         this.changed.emit();
       },
       error: err => {

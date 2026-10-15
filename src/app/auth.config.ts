@@ -5,6 +5,7 @@ export const staffApiAllowedList = [
   `${environment.apiUrl}/patients`, `${environment.apiUrl}/patients/*`,
   `${environment.apiUrl}/follow-ups/*`,
   `${environment.apiUrl}/alerts`, `${environment.apiUrl}/alerts/*`,
+  `${environment.apiUrl}/check-ins`,
   `${environment.apiUrl}/appointments`, `${environment.apiUrl}/appointments/*`,
   `${environment.apiUrl}/questionnaires`, `${environment.apiUrl}/questionnaires/*`,
 ];

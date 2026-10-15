@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
   devAuth: false,
+  clinicName: 'Aftercare clinic',
   apiUrl: 'https://YOUR_API_HOST/api',
   auth0: {
     domain: 'YOUR_AUTH0_DOMAIN',

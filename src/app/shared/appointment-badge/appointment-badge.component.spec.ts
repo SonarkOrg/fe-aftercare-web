@@ -1,38 +1,39 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppointmentStatus } from '../../models/appointment.model';
+import { StatusChipComponent } from '../status-chip/status-chip.component';
 import { AppointmentBadgeComponent } from './appointment-badge.component';
 
 describe('AppointmentBadgeComponent', () => {
   let fixture: ComponentFixture<AppointmentBadgeComponent>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ declarations: [AppointmentBadgeComponent] }).compileComponents();
+    await TestBed.configureTestingModule({ declarations: [AppointmentBadgeComponent, StatusChipComponent] }).compileComponents();
     fixture = TestBed.createComponent(AppointmentBadgeComponent);
   });
 
   const rows: [AppointmentStatus, boolean, string, string][] = [
-    ['CANCELLED', false, 'Cancelled', 'badge-muted'],
-    ['COMPLETED', false, 'Completed', 'badge-muted'],
-    ['NO_SHOW', false, 'No-show', 'badge-muted'],
-    ['NEEDS_REVIEW', false, 'Needs review', 'badge-warn'],
-    ['READY', false, 'Ready', 'badge-ok'],
-    ['SCHEDULED', true, 'Questionnaire missing', 'badge-alert'],
-    ['SCHEDULED', false, 'Awaiting questionnaire', 'badge-info']
+    ['CANCELLED', false, 'Cancelled', 'chip--neutral'],
+    ['COMPLETED', false, 'Completed', 'chip--neutral'],
+    ['NO_SHOW', false, 'No-show', 'chip--neutral'],
+    ['NEEDS_REVIEW', false, 'Needs review', 'chip--serious'],
+    ['READY', false, 'Ready', 'chip--good'],
+    ['SCHEDULED', true, 'Questionnaire missing', 'chip--warning'],
+    ['SCHEDULED', false, 'Awaiting questionnaire', 'chip--info']
   ];
 
   for (const [status, missing, label, cls] of rows) {
     it(`${status}${missing ? ' + missing' : ''} -> ${label}`, () => {
       fixture.componentRef.setInput('appointment', { status, questionnaireMissing: missing });
       fixture.detectChanges();
-      const badge = fixture.nativeElement.querySelector('.badge') as HTMLElement;
-      expect(badge.textContent).toBe(label);
-      expect(badge.classList).toContain(cls);
+      const chip = fixture.nativeElement.querySelector('.chip') as HTMLElement;
+      expect(chip.querySelector('.chip__label')!.textContent).toBe(label);
+      expect(chip.classList).toContain(cls);
     });
   }
 
   it('questionnaireMissing does not override a later status', () => {
     fixture.componentRef.setInput('appointment', { status: 'CANCELLED', questionnaireMissing: true });
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.badge').textContent).toBe('Cancelled');
+    expect(fixture.nativeElement.querySelector('.chip__label').textContent).toBe('Cancelled');
   });
 });

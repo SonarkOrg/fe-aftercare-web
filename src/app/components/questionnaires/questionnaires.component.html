@@ -1,11 +1,16 @@
-<app-header></app-header>
-<main class="page">
-  <h2>Forms</h2>
-  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
-  <p *ngIf="loading">Loading…</p>
-  <div class="table-wrap" *ngIf="definitions.length > 0">
-  <table>
-    <thead><tr><th>Title</th><th>Purpose</th><th>Specialty / appointment types</th><th>Version</th><th>Status</th><th>URL</th></tr></thead>
+<div class="page">
+  <section class="hero">
+    <div>
+      <h1 class="hero__title">Forms</h1>
+      <p class="hero__sub">Questionnaires sent to patients after discharge.</p>
+    </div>
+  </section>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
+  <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
+  <div class="table-card" *ngIf="definitions.length > 0">
+  <table class="table table--hover">
+    <caption class="sr-only">Forms</caption>
+    <thead><tr><th scope="col">Title</th><th scope="col">Purpose</th><th scope="col">Specialty / appointment types</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">URL</th></tr></thead>
     <tbody>
       <tr *ngFor="let d of definitions">
         <td><a [routerLink]="['/questionnaires', d.id]">{{ d.title.en }}</a></td>
@@ -18,5 +23,5 @@
     </tbody>
   </table>
   </div>
-  <p *ngIf="!loading && !errorMessage && definitions.length === 0">No forms.</p>
-</main>
+  <div class="card empty" *ngIf="!loading && !errorMessage && definitions.length === 0"><p class="empty__title">No forms.</p></div>
+</div>

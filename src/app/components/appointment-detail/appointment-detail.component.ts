@@ -4,7 +4,8 @@ import { AppointmentService } from '../../Services/Appointment.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
 import { AppointmentDetail, AppointmentStatusRequest } from '../../models/appointment.model';
-import { humanize } from '../../shared/link.util';
+import { humanize, initials } from '../../shared/link.util';
+import { PageTitleService } from '../../shell/page-title.service';
 
 @Component({
   selector: 'app-appointment-detail',
@@ -19,12 +20,14 @@ export class AppointmentDetailComponent implements OnInit {
   notFound = false;
   errorMessage: string | null = null;
   humanize = humanize;
+  initials = initials;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private appointments: AppointmentService,
-    private definitions: QuestionnaireDefinitionService
+    private definitions: QuestionnaireDefinitionService,
+    private titles: PageTitleService
   ) {}
 
   ngOnInit(): void {
@@ -42,6 +45,7 @@ export class AppointmentDetailComponent implements OnInit {
       next: a => {
         this.appt = a;
         this.loading = false;
+        this.titles.set(`Appointment · ${a.patientFirstName} ${a.patientLastName}`);
         if (a.intake) {
           this.definitions.get(a.intake.questionnaireDefinitionId).subscribe({
             next: d => (this.questionnaire = d.questionnaire),

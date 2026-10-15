@@ -1,8 +1,8 @@
+import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
-import { HeaderComponent } from '../../shared/header/header.component';
 import { QuestionnairesComponent } from './questionnaires.component';
 
 describe('QuestionnairesComponent', () => {
@@ -12,7 +12,7 @@ describe('QuestionnairesComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule],
-      declarations: [QuestionnairesComponent, HeaderComponent]
+      declarations: [QuestionnairesComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(QuestionnairesComponent);

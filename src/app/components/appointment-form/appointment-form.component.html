@@ -1,57 +1,63 @@
-<app-header></app-header>
-<main class="page">
-  <h2>{{ editId === null ? 'New appointment' : 'Edit appointment' }}</h2>
-
+<div class="page page--narrow">
+  <a class="back-link" routerLink="/appointments"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>Appointments</a>
+  <section class="hero">
+    <div><h1 class="hero__title">{{ editId === null ? 'New appointment' : 'Edit appointment' }}</h1></div>
+  </section>
   <section *ngIf="created as c" class="card created">
     <p>Appointment created.</p>
     <app-access-link [code]="c.accessCode"></app-access-link>
-    <a class="btn-link" id="go-to-appointment" [routerLink]="['/appointments', c.appointment.id]">Go to appointment</a>
+    <div class="btn-row"><a class="btn btn--primary" id="go-to-appointment" [routerLink]="['/appointments', c.appointment.id]">Go to appointment</a></div>
   </section>
 
-  <div class="error-message" id="load-error" *ngIf="!loaded && error">{{ error }}</div>
+  <div class="banner banner--error error-message" id="load-error" *ngIf="!loaded && error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ error }}</span></div>
 
-  <form *ngIf="!created && loaded" (ngSubmit)="submit()">
-    <div class="form-group">
-      <label for="ap-patient">Patient</label>
-      <select id="ap-patient" name="patientId" [(ngModel)]="patientId" [disabled]="editId !== null" required>
-        <option [ngValue]="null" disabled>Select a patient</option>
-        <option *ngFor="let p of patients" [ngValue]="p.id">{{ p.firstName }} {{ p.lastName }}</option>
-      </select>
+  <form *ngIf="!created && loaded" class="card" (ngSubmit)="submit()">
+    <div class="grid-form form-2col">
+      <div class="form-group span-2">
+        <label for="ap-patient">Patient</label>
+        <select id="ap-patient" name="patientId" [(ngModel)]="patientId" [disabled]="editId !== null" required>
+          <option [ngValue]="null" disabled>Select a patient</option>
+          <option *ngFor="let p of patients" [ngValue]="p.id">{{ p.firstName }} {{ p.lastName }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="ap-type">Type</label>
+        <select id="ap-type" name="type" [(ngModel)]="type">
+          <option *ngFor="let t of types" [value]="t">{{ humanize(t) }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="ap-specialty">Specialty</label>
+        <select id="ap-specialty" name="specialty" [(ngModel)]="specialty">
+          <option *ngFor="let s of specialties" [value]="s">{{ humanize(s) }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="ap-date">Date</label>
+        <input id="ap-date" type="date" name="date" [(ngModel)]="date" required>
+      </div>
+      <div class="form-group">
+        <label for="ap-time">Time</label>
+        <input id="ap-time" type="time" step="300" name="time" [(ngModel)]="time" required>
+      </div>
+      <div class="form-group">
+        <label for="ap-duration">Duration (minutes)</label>
+        <input id="ap-duration" type="number" min="5" max="480" name="durationMinutes" [(ngModel)]="durationMinutes" required>
+      </div>
+      <div class="form-group">
+        <label for="ap-location">Location</label>
+        <input id="ap-location" type="text" maxlength="255" name="location" [(ngModel)]="location">
+      </div>
+      <div class="form-group span-2">
+        <label for="ap-clinician">Clinician</label>
+        <input id="ap-clinician" type="text" maxlength="255" name="clinician" [(ngModel)]="clinician">
+      </div>
     </div>
-    <div class="form-group">
-      <label for="ap-type">Type</label>
-      <select id="ap-type" name="type" [(ngModel)]="type">
-        <option *ngFor="let t of types" [value]="t">{{ humanize(t) }}</option>
-      </select>
+    <div class="banner banner--error error-message" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ error }}</span></div>
+    <ul class="banner banner--error error-message" *ngIf="fieldErrorList.length"><li *ngFor="let e of fieldErrorList">▲ {{ e }}</li></ul>
+    <div class="btn-row">
+      <button type="submit" class="btn btn--primary" [disabled]="saving">{{ editId === null ? 'Create appointment' : 'Save changes' }}</button>
+      <a class="btn btn--secondary" routerLink="/appointments">Cancel</a>
     </div>
-    <div class="form-group">
-      <label for="ap-specialty">Specialty</label>
-      <select id="ap-specialty" name="specialty" [(ngModel)]="specialty">
-        <option *ngFor="let s of specialties" [value]="s">{{ humanize(s) }}</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="ap-date">Date</label>
-      <input id="ap-date" type="date" name="date" [(ngModel)]="date" required>
-    </div>
-    <div class="form-group">
-      <label for="ap-time">Time</label>
-      <input id="ap-time" type="time" step="300" name="time" [(ngModel)]="time" required>
-    </div>
-    <div class="form-group">
-      <label for="ap-duration">Duration (minutes)</label>
-      <input id="ap-duration" type="number" min="5" max="480" name="durationMinutes" [(ngModel)]="durationMinutes" required>
-    </div>
-    <div class="form-group">
-      <label for="ap-location">Location</label>
-      <input id="ap-location" type="text" maxlength="255" name="location" [(ngModel)]="location">
-    </div>
-    <div class="form-group">
-      <label for="ap-clinician">Clinician</label>
-      <input id="ap-clinician" type="text" maxlength="255" name="clinician" [(ngModel)]="clinician">
-    </div>
-    <div class="error-message" *ngIf="error">{{ error }}</div>
-    <ul class="error-message" *ngIf="fieldErrorList.length"><li *ngFor="let e of fieldErrorList">{{ e }}</li></ul>
-    <button type="submit" [disabled]="saving">{{ editId === null ? 'Create appointment' : 'Save changes' }}</button>
   </form>
-</main>
+</div>

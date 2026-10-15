@@ -1,31 +1,16 @@
 import { Component, Input } from '@angular/core';
 import { AppointmentStatus } from '../../models/appointment.model';
+import { appointmentChip } from '../status';
 
 @Component({
   selector: 'app-appointment-badge',
-  template: `<span class="badge" [ngClass]="cls">{{ label }}</span>`
+  template: `<app-status-chip [spec]="chip" [size]="size"></app-status-chip>`
 })
 export class AppointmentBadgeComponent {
   @Input() appointment!: { status: AppointmentStatus; questionnaireMissing: boolean };
+  @Input() size: 'sm' | 'md' = 'md';
 
-  get label(): string {
-    return this.pick()[0];
-  }
-
-  get cls(): string {
-    return this.pick()[1];
-  }
-
-  private pick(): [string, string] {
-    const a = this.appointment;
-    switch (a.status) {
-      case 'CANCELLED': return ['Cancelled', 'badge-muted'];
-      case 'COMPLETED': return ['Completed', 'badge-muted'];
-      case 'NO_SHOW': return ['No-show', 'badge-muted'];
-      case 'NEEDS_REVIEW': return ['Needs review', 'badge-warn'];
-      case 'READY': return ['Ready', 'badge-ok'];
-      default:
-        return a.questionnaireMissing ? ['Questionnaire missing', 'badge-alert'] : ['Awaiting questionnaire', 'badge-info'];
-    }
+  get chip() {
+    return appointmentChip(this.appointment);
   }
 }

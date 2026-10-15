@@ -1,43 +1,139 @@
-<app-header></app-header>
-<main class="page">
-  <h2>Appointments</h2>
+<div class="page">
+  <section class="hero">
+    <div>
+      <h1 class="hero__title">Appointments</h1>
+      <p class="hero__sub range">
+        <ng-container *ngIf="view === 'day'">{{ rangeFrom | date:'fullDate' }}</ng-container>
+        <ng-container *ngIf="view === 'week'">{{ rangeFrom | date:'MMM d' }} – {{ rangeTo | date:'MMM d, y' }}</ng-container>
+      </p>
+    </div>
+    <div class="hero__actions">
+      <a class="btn btn--accent" routerLink="/appointments/new"><app-icon name="plus" [size]="16"></app-icon>New appointment</a>
+    </div>
+  </section>
+
   <div class="toolbar">
-    <button type="button" id="prev" (click)="shift(-1)">Previous</button>
+    <button type="button" id="prev" class="btn btn--icon" [attr.aria-label]="view === 'week' ? 'Previous week' : 'Previous day'" (click)="shift(-1)"><app-icon name="chevron-left"></app-icon></button>
     <input type="date" aria-label="Date" [value]="date" (change)="setDate($any($event.target).value)">
-    <button type="button" id="next" (click)="shift(1)">Next</button>
-    <span class="toggle">
-      <button type="button" id="view-day" [class.selected]="view === 'day'" (click)="setView('day')">Day</button>
-      <button type="button" id="view-week" [class.selected]="view === 'week'" (click)="setView('week')">Week</button>
-    </span>
-    <a class="btn-link" routerLink="/appointments/new">New appointment</a>
+    <button type="button" id="next" class="btn btn--icon" [attr.aria-label]="view === 'week' ? 'Next week' : 'Next day'" (click)="shift(1)"><app-icon name="chevron-right"></app-icon></button>
+    <button type="button" id="today" class="btn btn--secondary" (click)="setToday()">Today</button>
+    <div class="pill-group" role="group" aria-label="View">
+      <button type="button" id="view-day" class="pill-group__item" [attr.aria-pressed]="view === 'day'" (click)="setView('day')">Day</button>
+      <button type="button" id="view-week" class="pill-group__item" [attr.aria-pressed]="view === 'week'" (click)="setView('week')">Week</button>
+    </div>
   </div>
-  <p class="range">{{ range.from }}<ng-container *ngIf="range.to !== range.from"> to {{ range.to }}</ng-container></p>
 
-  <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
+  <div class="banner banner--error error-message" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ actionError }}</span></div>
+  <p class="sr-only" aria-live="polite">{{ live }}</p>
 
-  <section class="metrics" *ngIf="metrics as m">
-    <div class="metric"><span class="metric-value">{{ m.total }}</span><span class="metric-label">Appointments</span></div>
-    <div class="metric"><span class="metric-value">{{ completionPercent }}</span><span class="metric-label">Questionnaires completed</span></div>
-    <div class="metric"><span class="metric-value">{{ m.needsReview }}</span><span class="metric-label">Needs review</span></div>
-    <div class="metric"><span class="metric-value">{{ m.questionnaireMissing }}</span><span class="metric-label">Questionnaire missing</span></div>
-    <div class="metric"><span class="metric-value">{{ m.cancelled + m.noShow }}</span><span class="metric-label">Cancelled / no-show</span></div>
+  <div class="card metrics" *ngIf="loading && !metrics" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--tile"></div></div>
+  <section class="card metrics" *ngIf="metrics as m" aria-labelledby="metrics-title">
+    <div class="card__head"><h2 id="metrics-title" class="card__title">{{ metricsTitle }}</h2></div>
+    <div class="tiles">
+      <app-ring-tile label="Questionnaires&#10;completed" icon="check-circle" [value]="completionPercent" [ratioOverride]="completionRatio" [sub]="m.questionnairesCompleted + ' of ' + doneBeforeVisit + ' before the visit'"></app-ring-tile>
+      <app-ring-tile label="Needs&#10;review" icon="alert-triangle" [value]="m.needsReview" [total]="m.total" sub="Flagged answers to check"></app-ring-tile>
+      <app-ring-tile label="Questionnaire&#10;missing" icon="clipboard" [value]="m.questionnaireMissing" [total]="m.total" sub="Due within 48 h, not answered"></app-ring-tile>
+      <app-ring-tile label="Cancelled /&#10;no-show" icon="x-circle" [value]="m.cancelled + m.noShow" [total]="m.total" [sub]="m.cancelled + ' cancelled · ' + m.noShow + ' no-show'"></app-ring-tile>
+    </div>
+    <p class="helper-line">
+      <span aria-hidden="true">ℹ</span>
+      <span *ngIf="m.questionnairesCompleted > 0">Patients completed {{ m.questionnairesCompleted }} questionnaire(s) ahead of time, roughly {{ m.questionnairesCompleted * minutesPerIntake }} minutes of intake questions the desk did not have to ask (estimate: {{ minutesPerIntake }} min each).</span>
+      <span *ngIf="m.questionnairesCompleted === 0">No questionnaires completed ahead of time in this period.</span>
+    </p>
   </section>
 
-  <p *ngIf="loading">Loading…</p>
-  <p *ngIf="!loading && !errorMessage && count === 0">No appointments.</p>
+  <div *ngIf="loading" aria-busy="true" class="loading-block"><span class="sr-only">Loading…</span><div class="skeleton skeleton--card" *ngFor="let i of [1, 2, 3]"></div></div>
+  <div class="card empty" *ngIf="!loading && !errorMessage && count === 0">
+    <span class="empty__glyph" aria-hidden="true">—</span>
+    <p class="empty__title">No appointments.</p>
+    <a class="btn btn--primary" routerLink="/appointments/new">New appointment</a>
+  </div>
 
-  <section *ngFor="let g of groups" class="day-group">
-    <h3>{{ g.date }}</h3>
-    <ul class="appt-list">
-      <li *ngFor="let a of g.items">
-        <span class="time">{{ time(a) }}</span>
-        <span class="duration">{{ a.durationMinutes }} min</span>
-        <a [routerLink]="['/appointments', a.id]">{{ a.patientFirstName }} {{ a.patientLastName }}</a>
-        <span class="type">{{ humanize(a.type) }}</span>
-        <span class="clinician">{{ a.clinician }}</span>
-        <span class="location">{{ a.location }}</span>
-        <app-appointment-badge [appointment]="a"></app-appointment-badge>
-      </li>
-    </ul>
-  </section>
-</main>
+  <!-- Day view: readiness board -->
+  <div class="board" *ngIf="view === 'day' && !loading">
+    <ng-container *ngFor="let g of board">
+      <section class="card card--list board-group" *ngIf="!g.collapsed" [attr.data-group]="g.key">
+        <div class="card__head"><h3 class="card__title--sm">{{ g.title }} <span class="badge">{{ g.items.length }}</span></h3></div>
+        <ul class="rows">
+          <li *ngFor="let a of g.items"><ng-container *ngTemplateOutlet="card; context: { $implicit: a, key: g.key, actions: true }"></ng-container></li>
+        </ul>
+      </section>
+      <details class="card card--list board-closed" *ngIf="g.collapsed" [attr.data-group]="g.key">
+        <summary class="card__head"><span class="card__title--sm">{{ g.title }} <span class="badge">{{ g.items.length }}</span></span><app-icon name="chevron-down" [size]="16"></app-icon></summary>
+        <ul class="rows">
+          <li *ngFor="let a of g.items"><ng-container *ngTemplateOutlet="card; context: { $implicit: a, key: g.key, actions: true }"></ng-container></li>
+        </ul>
+      </details>
+    </ng-container>
+  </div>
+
+  <!-- Week view: calendar grid (>= 900px) and agenda (< 900px) -->
+  <ng-container *ngIf="view === 'week' && !loading && week as w">
+    <div class="week card card--flush" role="group" aria-label="Week calendar">
+      <div class="week__scroll">
+        <div class="week__head">
+          <div></div>
+          <div class="week-dayhead" *ngFor="let d of w.days" [class.is-today]="d.isToday">
+            <span class="today-pill" *ngIf="d.isToday">{{ d.label }}<span class="sr-only"> (Today)</span></span>
+            <ng-container *ngIf="!d.isToday">{{ d.label }}</ng-container>
+          </div>
+        </div>
+        <div class="week__body">
+          <div class="week__gutter" [style.height.px]="(w.endHour - w.startHour) * w.hourPx">
+            <span class="week__hour" *ngFor="let h of hours(w)" [style.top.px]="(h - w.startHour) * w.hourPx">{{ h < 10 ? '0' : '' }}{{ h }}:00</span>
+          </div>
+          <div class="week-day" *ngFor="let d of w.days" [class.is-today]="d.isToday" [style.height.px]="(w.endHour - w.startHour) * w.hourPx">
+            <a *ngFor="let b of d.blocks" class="week-block tone-{{ appointmentChip(b.appt).tone }}" [routerLink]="['/appointments', b.appt.id]"
+               [style.top.px]="b.top" [style.height.px]="b.height" [style.left]="'calc(' + b.leftPct + '% + 1px)'" [style.width]="'calc(' + b.widthPct + '% - 2px)'"
+               [title]="time(b.appt) + ' ' + b.appt.patientFirstName + ' ' + b.appt.patientLastName + ' · ' + appointmentChip(b.appt).label">
+              <span class="week-block__line"><span class="week-block__glyph" aria-hidden="true">{{ appointmentChip(b.appt).glyph }}</span><strong>{{ time(b.appt) }}</strong><span class="week-block__chip">{{ appointmentChip(b.appt).label }}</span></span>
+              <span class="week-block__name">{{ b.appt.patientFirstName }} {{ b.appt.patientLastName }}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="agenda" *ngIf="count > 0">
+      <section class="card card--list" *ngFor="let g of groups">
+        <div class="card__head"><h3 class="card__title--sm">{{ g.date | date:'EEEE d MMMM' }} <span class="badge">{{ g.items.length }}</span></h3></div>
+        <ul class="rows">
+          <li *ngFor="let a of g.items"><ng-container *ngTemplateOutlet="card; context: { $implicit: a, key: 'agenda', actions: false }"></ng-container></li>
+        </ul>
+      </section>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #card let-a let-key="key" let-actions="actions">
+  <article class="row row--expand appt-card arow">
+    <div class="arow__time"><span class="appt__time">{{ time(a) }}</span><small>–{{ endOf(a) }}</small></div>
+    <div class="row__main arow__main">
+      <a class="row__name appt-card__name" [routerLink]="['/appointments', a.id]">{{ a.patientFirstName }} {{ a.patientLastName }}</a>
+      <div class="row__sub appt-card__meta">{{ humanize(a.type) }} · {{ humanize(a.specialty) }}</div>
+      <div class="row__sub appt-card__sub">{{ a.clinician || '—' }} · {{ a.location || '—' }}</div>
+    </div>
+    <div class="row__end arow__end">
+      <span class="chip chip--serious chip--sm" *ngIf="a.flagCount > 0"><span class="chip__glyph" aria-hidden="true">◆</span><span class="chip__label">{{ a.flagCount }} flag(s)</span></span>
+      <app-appointment-badge [appointment]="a" size="sm"></app-appointment-badge>
+    </div>
+    <div class="row__actions btn-row" *ngIf="actions" [ngSwitch]="key">
+      <ng-container *ngSwitchCase="'review'">
+        <a class="btn btn--primary btn--sm" [routerLink]="['/appointments', a.id]">Review</a>
+        <button type="button" class="btn btn--secondary btn--sm btn-reviewed" (click)="markReviewed(a)">Mark reviewed</button>
+      </ng-container>
+      <ng-container *ngSwitchCase="'ready'">
+        <a class="btn btn--secondary btn--sm" [routerLink]="['/appointments', a.id]">Open</a>
+        <button type="button" class="btn btn--ghost btn--sm btn-completed" (click)="markCompleted(a)">Mark completed</button>
+      </ng-container>
+      <ng-container *ngSwitchCase="'closed'">
+        <a class="btn btn--ghost btn--sm" [routerLink]="['/appointments', a.id]">Open</a>
+      </ng-container>
+      <ng-container *ngSwitchDefault>
+        <button type="button" class="btn btn--secondary btn--sm btn-newlink" *ngIf="canRegenerate(a)" (click)="newLink(a)"><app-icon name="link" [size]="16"></app-icon>New link</button>
+        <a class="btn btn--ghost btn--sm" [routerLink]="['/appointments', a.id]">Open</a>
+      </ng-container>
+    </div>
+    <app-access-link class="arow__link" *ngIf="codes[a.id]" [code]="codes[a.id]"></app-access-link>
+  </article>
+</ng-template>

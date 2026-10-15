@@ -1,3 +1,4 @@
+import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
@@ -7,9 +8,7 @@ import { environment } from '../../../environments/environment';
 import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questionnaire-form.component';
 import { CheckIn } from '../../models/follow-up.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
-import { AppointmentBadgeComponent } from '../../shared/appointment-badge/appointment-badge.component';
-import { todayLocalIsoDate } from '../../shared/link.util';
-import { HeaderComponent } from '../../shared/header/header.component';
+import { addDays, businessToday } from '../../shared/link.util';
 import { FULL_Q, JANE, alertDto, appointment, followUp } from '../../testing/fixtures';
 import { AlertTableComponent } from '../alert-table/alert-table.component';
 import { FollowUpFormComponent } from '../follow-up-form/follow-up-form.component';
@@ -35,8 +34,8 @@ describe('PatientDetailComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
-        AppointmentBadgeComponent, QuestionnaireFormComponent, HeaderComponent],
-      providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }) } } }]
+        QuestionnaireFormComponent, ...SHARED_DECLARATIONS],
+      providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), queryParamMap: convertToParamMap({}) } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PatientDetailComponent);
@@ -45,12 +44,14 @@ describe('PatientDetailComponent', () => {
 
   afterEach(() => http.verify());
 
-  function flushAll(data: { followUps?: any[]; checkIns?: any[]; alerts?: any[]; appointments?: any[] } = {}) {
+  function flushAll(data: { followUps?: any[]; checkIns?: any[]; alerts?: any[]; appointments?: any[]; rules?: any[] } = {}) {
     http.expectOne(`${api}/patients/5`).flush(JANE);
     http.expectOne(`${api}/patients/5/follow-ups`).flush(data.followUps ?? []);
     http.expectOne(`${api}/patients/5/check-ins`).flush(data.checkIns ?? []);
     http.expectOne(`${api}/patients/5/alerts`).flush(data.alerts ?? []);
     http.expectOne(`${api}/patients/5/appointments`).flush(data.appointments ?? []);
+    // the form definition (thresholds, items) is requested once per definition id (then cached)
+    http.match(`${api}/questionnaires/7`).forEach(r => r.flush({ id: 7, title: { fr: 'a', en: 'b' }, questionnaire: FULL_Q, rules: data.rules ?? [] }));
     fixture.detectChanges();
   }
 
@@ -86,7 +87,7 @@ describe('PatientDetailComponent', () => {
     init();
     expect(el.querySelector('app-follow-up-form')).not.toBeNull();
     const discharge = el.querySelector('#fu-discharge') as HTMLInputElement;
-    expect(discharge.max).toBe(todayLocalIsoDate());
+    expect(discharge.max).toBe(businessToday());
     (el.querySelector('app-follow-up-form form') as HTMLFormElement).dispatchEvent(new Event('submit'));
     const post = http.expectOne(`${api}/patients/5/follow-ups`);
     expect(post.request.method).toBe('POST');
@@ -128,7 +129,7 @@ describe('PatientDetailComponent', () => {
       { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { dischargeDate: 'must not be in the future' } },
       { status: 400, statusText: 'Bad Request' });
     fixture.detectChanges();
-    expect(el.querySelector('.field-error')!.textContent).toBe('must not be in the future');
+    expect(el.querySelector('.field-error')!.textContent).toContain('must not be in the future');
   });
 
   it('regenerate is confirm-guarded, and shows the new link', () => {
@@ -184,8 +185,7 @@ describe('PatientDetailComponent', () => {
     const buttons = el.querySelectorAll<HTMLButtonElement>('.btn-toggle');
     buttons[0].click();
     fixture.detectChanges();
-    const req = http.expectOne(`${api}/questionnaires/7`);
-    req.flush({ id: 7, title: { fr: 'a', en: 'b' }, questionnaire: FULL_Q, rules: [] });
+    http.expectNone(`${api}/questionnaires/7`); // already fetched (and cached) for the charts
     fixture.detectChanges();
     const dl = el.querySelector('dl.q-readonly')!;
     expect(dl.textContent).toContain('Pain level?');
@@ -205,10 +205,39 @@ describe('PatientDetailComponent', () => {
       appointments: [appointment({ status: 'READY' })]
     });
     expect(el.querySelector('app-alert-table')!.textContent).toContain('Severe pain reported (8/10)');
-    expect(el.querySelector('app-alert-table th')!.textContent).toContain('Severity');
+    expect(el.querySelector('app-alert-table .alert-row .chip__label')!.textContent).toBe('High');
     const apptLink = el.querySelector('.appointments ul a')!;
     expect(apptLink.getAttribute('href')).toBe('/appointments/4');
-    expect(apptLink.textContent).toContain('2026-10-14 08:30');
-    expect(el.querySelector('.appointments .badge')!.textContent).toBe('Ready');
+    expect(apptLink.textContent).toContain('08:30');
+    expect(el.querySelector('.appointments .appt__date')!.textContent).toContain('Wed 14 Oct');
+    expect(el.querySelector('.appointments .chip__label')!.textContent).toBe('Ready');
+  });
+
+  describe('charts', () => {
+    const fu = followUp({ dischargeDate: addDays(businessToday(), -5), endDate: addDays(businessToday(), 2) });
+
+    it('a failed definition request is announced as "Alert threshold unavailable", not "No alert rule"', () => {
+      spyOn(console, 'warn');
+      fixture.detectChanges();
+      http.expectOne(`${api}/patients/5`).flush(JANE);
+      http.expectOne(`${api}/patients/5/follow-ups`).flush([fu]);
+      http.expectOne(`${api}/patients/5/check-ins`).flush([]);
+      http.expectOne(`${api}/patients/5/alerts`).flush([]);
+      http.expectOne(`${api}/patients/5/appointments`).flush([]);
+      fixture.detectChanges();
+      expect(el.querySelector('.trend__caption')!.textContent).toContain('Loading alert threshold');
+      http.expectOne(`${api}/questionnaires/7`).flush('boom', { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+      expect(el.querySelector('.trend__caption')!.textContent).toContain('Alert threshold unavailable');
+      expect(el.querySelector('.trend__caption')!.textContent).not.toContain('No alert rule');
+    });
+
+    it('a CLOSED follow-up draws no missed stubs after its closure day', () => {
+      const closed = { ...fu, status: 'CLOSED' as const, closedAt: addDays(businessToday(), -3) + 'T15:00:00Z' }; // day 2
+      init({ followUps: [closed] });
+      const missedDays = Array.from(el.querySelectorAll('.trends-card .bc-bar--miss')).length;
+      expect(missedDays).toBeLessThanOrEqual(2); // days 1 and 2 only
+      expect(el.querySelectorAll('.trends-card .bc-bar--miss').length).toBeGreaterThan(0);
+    });
   });
 });

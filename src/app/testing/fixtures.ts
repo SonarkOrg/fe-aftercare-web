@@ -1,8 +1,9 @@
 import { FhirElement, FhirItem, FhirQuestionnaire } from '../fhir/fhir.model';
 import { Alert } from '../models/alert.model';
 import { Appointment, AppointmentDetail } from '../models/appointment.model';
-import { FollowUp } from '../models/follow-up.model';
+import { CheckIn, FollowUp } from '../models/follow-up.model';
 import { Patient } from '../models/patient.model';
+import { RuleJson } from '../models/questionnaire-definition.model';
 
 export const TRANSLATION_URL = 'http://hl7.org/fhir/StructureDefinition/translation';
 
@@ -123,3 +124,29 @@ export function appointment(over: Partial<Appointment> = {}): Appointment {
 export function appointmentDetail(over: Partial<AppointmentDetail> = {}): AppointmentDetail {
   return { ...appointment(), intake: null, ...over };
 }
+
+
+export function checkInDto(over: Partial<CheckIn> & { pain?: number; temp?: number } = {}): CheckIn {
+  const { pain, temp, ...rest } = over;
+  const item: { linkId: string; answer: { valueInteger?: number; valueDecimal?: number }[] }[] = [];
+  if (pain !== undefined) {
+    item.push({ linkId: 'PAIN', answer: [{ valueInteger: pain }] });
+  }
+  if (temp !== undefined) {
+    item.push({ linkId: 'TEMPERATURE', answer: [{ valueDecimal: temp }] });
+  }
+  return {
+    id: 1, patientId: 5, followUpId: 11, checkInDate: '2026-10-13', submittedAt: '2026-10-13T13:00:00Z',
+    questionnaireDefinitionId: 7, questionnaireUrl: 'u', questionnaireVersion: '1',
+    response: { resourceType: 'QuestionnaireResponse', questionnaire: 'u|1', status: 'completed', item }, ...rest
+  };
+}
+
+const msg = { fr: 'x', en: 'x' };
+export const SEED_RULES: RuleJson[] = [
+  { linkId: 'PAIN', operator: '>=', value: 5, outcome: { type: 'ALERT', severity: 'MEDIUM', message: msg } },
+  { linkId: 'PAIN', operator: '>=', value: 7, outcome: { type: 'ALERT', severity: 'HIGH', message: msg } },
+  { linkId: 'TEMPERATURE', operator: '>=', value: 37.5, outcome: { type: 'ALERT', severity: 'MEDIUM', message: msg } },
+  { linkId: 'TEMPERATURE', operator: '>=', value: 38, outcome: { type: 'ALERT', severity: 'HIGH', message: msg } },
+  { linkId: 'FEVER', operator: '=', value: ['true'], outcome: { type: 'ALERT', severity: 'HIGH', message: msg } }
+];

@@ -1,3 +1,4 @@
+import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
@@ -5,7 +6,6 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
-import { HeaderComponent } from '../../shared/header/header.component';
 import { JANE, appointment, appointmentDetail } from '../../testing/fixtures';
 import { AppointmentFormComponent } from './appointment-form.component';
 
@@ -20,7 +20,7 @@ describe('AppointmentFormComponent', () => {
   function setup(params: Record<string, string>, query: Record<string, string>) {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
-      declarations: [AppointmentFormComponent, AccessLinkComponent, HeaderComponent],
+      declarations: [AppointmentFormComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [{
         provide: ActivatedRoute,
         useValue: { snapshot: { paramMap: convertToParamMap(params), queryParamMap: convertToParamMap(query) } }
@@ -116,7 +116,7 @@ describe('AppointmentFormComponent', () => {
     expect((el.querySelector('#ap-patient') as HTMLSelectElement).disabled).toBeTrue();
     expect((el.querySelector('#ap-date') as HTMLInputElement).value).toBe('2026-10-14');
     expect((el.querySelector('#ap-time') as HTMLInputElement).value).toBe('08:30');
-    expect(el.querySelector('h2')!.textContent).toContain('Edit appointment');
+    expect(el.querySelector('h1')!.textContent).toContain('Edit appointment');
 
     component.time = '09:00';
     component.submit();

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FollowUpService } from '../../Services/FollowUp.service';
 import { FollowUpWithCode, Specialty } from '../../models/follow-up.model';
 import { apiErrorOf } from '../../models/api-error.model';
-import { todayLocalIsoDate } from '../../shared/link.util';
+import { businessToday } from '../../shared/link.util';
 
 @Component({
   selector: 'app-follow-up-form',
@@ -12,7 +12,7 @@ export class FollowUpFormComponent {
   @Input() patientId!: number;
   @Output() created = new EventEmitter<FollowUpWithCode>();
 
-  today = todayLocalIsoDate();
+  today = businessToday();
   specialty: Specialty = 'VISCERAL_SURGERY';
   dischargeDate = this.today;
   durationDays = 7;

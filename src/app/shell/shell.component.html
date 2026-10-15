@@ -1,0 +1,56 @@
+<a class="skip-link" href="#main" (click)="$event.preventDefault(); main.focus()">Skip to content</a>
+<header class="app-top">
+  <div class="app-top__row">
+    <div class="app-top__left">
+      <a class="brand" routerLink="/dashboard" aria-label="Aftercare home"><app-icon name="activity" [size]="26" [stroke]="2.4"></app-icon></a>
+      <span class="user-pill">
+        <app-icon name="grid-dots" [size]="16"></app-icon>
+        <span class="user-pill__name">{{ userName$ | async }}</span>
+        <span class="user-pill__initials" aria-hidden="true">{{ initials$ | async }}</span>
+        <span class="chip chip--warning chip--sm" *ngIf="devAuth"><span class="chip__glyph" aria-hidden="true">●</span><span class="chip__label">DEV AUTH — local only</span></span>
+      </span>
+    </div>
+
+    <nav class="top-nav" aria-label="Main">
+      <a *ngFor="let item of items" class="top-nav__item" [routerLink]="item.link" routerLinkActive="is-active" ariaCurrentWhenActive="page"
+         [attr.aria-label]="badgeLabel(item, (alertCount.openCount$ | async) ?? 0)">
+        <span>{{ item.label }}</span>
+        <span class="top-nav__count" *ngIf="item.badge && ((alertCount.openCount$ | async) ?? 0) > 0" aria-hidden="true">{{ alertCount.openCount$ | async }}</span>
+      </a>
+    </nav>
+
+    <div class="app-top__right">
+      <a class="icon-btn alerts-btn" routerLink="/alerts" [attr.aria-label]="(alertCount.openCount$ | async) ? 'Alerts, ' + (alertCount.openCount$ | async) + ' open' : 'Alerts'">
+        <app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon>
+        <span class="icon-btn__dot" *ngIf="((alertCount.openCount$ | async) ?? 0) > 0" aria-hidden="true"></span>
+      </a>
+      <button #menuButton type="button" class="icon-btn menu-btn" aria-label="Menu" aria-haspopup="true" aria-controls="top-menu"
+              [attr.aria-expanded]="menuOpen" (click)="toggleMenu()">
+        <app-icon [name]="menuOpen ? 'close' : 'menu'" [size]="22" [stroke]="1.6"></app-icon>
+      </button>
+    </div>
+  </div>
+
+  <div id="top-menu" class="menu-pop" *ngIf="menuOpen">
+    <div class="menu-pop__who">
+      <strong>{{ userName$ | async }}</strong>
+      <span class="chip chip--warning chip--sm menu-dev" *ngIf="devAuth"><span class="chip__glyph" aria-hidden="true">●</span><span class="chip__label">Dev auth</span></span>
+    </div>
+    <nav class="menu-nav" aria-label="Main (menu)">
+      <a *ngFor="let item of items" class="menu-nav__item" [routerLink]="item.link" routerLinkActive="is-active" ariaCurrentWhenActive="page"
+         [attr.aria-label]="badgeLabel(item, (alertCount.openCount$ | async) ?? 0)">
+        <span>{{ item.label }}</span>
+        <span class="badge-count" *ngIf="item.badge && ((alertCount.openCount$ | async) ?? 0) > 0" aria-hidden="true">{{ alertCount.openCount$ | async }}</span>
+      </a>
+    </nav>
+    <div class="search-pill">
+      <app-icon name="search" [size]="16"></app-icon>
+      <input type="search" placeholder="Search patients" aria-label="Search patients" [(ngModel)]="searchTerm" (keydown.enter)="search()">
+    </div>
+    <button type="button" class="btn btn--ghost logout" (click)="logout()"><app-icon name="logout" [size]="18"></app-icon><span>Log out</span></button>
+  </div>
+</header>
+
+<main id="main" tabindex="-1" class="shell__main" #main>
+  <router-outlet></router-outlet>
+</main>
