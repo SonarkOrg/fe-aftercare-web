@@ -1,10 +1,11 @@
 import { Component, HostListener, OnInit } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AlertCountService } from '../../Services/AlertCount.service';
 import { AlertService } from '../../Services/Alert.service';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { CareDataService } from '../../Services/CareData.service';
+import { SettingsService } from '../../Services/Settings.service';
 import { StaffAuth } from '../../auth/staff-auth';
 import { Alert } from '../../models/alert.model';
 import { Appointment } from '../../models/appointment.model';
@@ -54,7 +55,9 @@ export class DashboardComponent implements OnInit {
   live = '';
   firstName$: Observable<string>;
   codes: Record<number, string> = {};
+  /** The clinic's configured name (Settings); the build-time name until it loads or when it fails. */
   clinicName = environment.clinicName;
+  clinicName$: Observable<string>;
   overviewDay: 'today' | 'yesterday' = 'today';
   menuKey: string | null = null;
   showAll = false;
@@ -91,8 +94,10 @@ export class DashboardComponent implements OnInit {
     private alerts: AlertService,
     private appointments: AppointmentService,
     private alertCount: AlertCountService,
+    settings: SettingsService,
     auth: StaffAuth
   ) {
+    this.clinicName$ = settings.clinic$.pipe(map(c => c.name), catchError(() => of(environment.clinicName)));
     this.firstName$ = auth.userName$.pipe(map(n => (n ?? '').trim().split(/\s+/)[0] ?? ''));
   }
 

@@ -1,0 +1,57 @@
+<div class="page">
+  <section class="hero">
+    <div>
+      <h1 class="hero__title">Settings</h1>
+      <p class="hero__sub">{{ current?.name }}</p>
+    </div>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Settings sections" (keydown)="onTabKey($event)">
+    <button *ngFor="let t of tabs" #tabBtn type="button" role="tab" class="tab" [id]="'stab-' + t.key" [attr.aria-controls]="'spanel-' + t.key"
+            [attr.aria-selected]="tab === t.key" [attr.tabindex]="tab === t.key ? 0 : -1" (click)="selectTab(t.key)">{{ t.label }}</button>
+  </div>
+
+  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the settings. <button type="button" class="btn btn--ghost btn--sm" (click)="loadSettings()">Retry</button></span></div>
+
+  <!-- Clinic -->
+  <div class="tabpanel" id="spanel-clinic" role="tabpanel" aria-labelledby="stab-clinic" tabindex="0" [hidden]="tab !== 'clinic'">
+    <form class="card" (ngSubmit)="saveClinic()" aria-labelledby="clinic-title">
+      <div class="card__header"><h2 id="clinic-title" class="card__title--sm">Clinic profile</h2></div>
+      <div class="banner banner--info" role="status" *ngIf="saved"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>Saved.</span></div>
+      <div class="banner banner--error" role="alert" *ngIf="banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ banner }}</span></div>
+      <div class="grid-form">
+        <div class="form-group span-2"><label for="c-name">Clinic name</label><input id="c-name" name="name" type="text" maxlength="120" [(ngModel)]="form.name" (ngModelChange)="touch()"><span class="field-error" *ngIf="errors['name']">{{ errors['name'] }}</span></div>
+        <div class="form-group span-2"><label for="c-address">Address</label><input id="c-address" name="addressLine" type="text" maxlength="200" autocomplete="off" [(ngModel)]="form.addressLine" (ngModelChange)="touch()"><span class="field-error" *ngIf="errors['addressLine']">{{ errors['addressLine'] }}</span></div>
+        <div class="form-group"><label for="c-city">City</label><input id="c-city" name="city" type="text" maxlength="100" [(ngModel)]="form.city" (ngModelChange)="touch()"><span class="field-error" *ngIf="errors['city']">{{ errors['city'] }}</span></div>
+        <div class="form-group"><label for="c-province">Province</label><input id="c-province" name="province" type="text" maxlength="2" [(ngModel)]="form.province" (ngModelChange)="touch()" (blur)="upperProvince()"><span class="field-error" *ngIf="errors['province']">{{ errors['province'] }}</span></div>
+        <div class="form-group"><label for="c-postal">Postal code</label><input id="c-postal" name="postalCode" type="text" maxlength="7" autocomplete="off" [(ngModel)]="form.postalCode" (ngModelChange)="touch()"><span class="field-error" *ngIf="errors['postalCode']">{{ errors['postalCode'] }}</span></div>
+        <div class="form-group"><label for="c-phone">Phone</label><input id="c-phone" name="phone" type="tel" maxlength="25" [(ngModel)]="form.phone" (ngModelChange)="touch()"><span class="field-error" *ngIf="errors['phone']">{{ errors['phone'] }}</span></div>
+        <div class="form-group span-2"><label for="c-lang">Default language for patient contacts</label>
+          <select id="c-lang" name="defaultLanguage" [(ngModel)]="form.defaultLanguage" (ngModelChange)="touch()"><option value="FR">Français</option><option value="EN">English</option></select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn--accent save-clinic" [disabled]="!current || saving">{{ saving ? 'Saving…' : 'Save' }}</button>
+    </form>
+  </div>
+
+  <!-- Staff -->
+  <div class="tabpanel" id="spanel-staff" role="tabpanel" aria-labelledby="stab-staff" tabindex="0" [hidden]="tab !== 'staff'">
+    <app-staff-directory></app-staff-directory>
+  </div>
+
+  <!-- Notifications -->
+  <div class="tabpanel" id="spanel-notifications" role="tabpanel" aria-labelledby="stab-notifications" tabindex="0" [hidden]="tab !== 'notifications'">
+    <section class="card" aria-labelledby="notif-title">
+      <div class="card__header"><h2 id="notif-title" class="card__title--sm">Alert notifications</h2></div>
+      <p>Choose which open alerts count toward the Alerts badge and bell in the top bar. No email or SMS is sent.</p>
+      <div class="banner banner--error" role="alert" *ngIf="notifyError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ notifyError }}</span></div>
+      <div class="toggle-row"><label for="n-high"><span aria-hidden="true">▲</span> High alerts</label><input id="n-high" type="checkbox" [checked]="notifies('HIGH')" [disabled]="!current || notifyBusy" (change)="toggle('HIGH', $any($event.target).checked, $any($event.target))"></div>
+      <div class="toggle-row"><label for="n-medium"><span aria-hidden="true">●</span> Medium alerts</label><input id="n-medium" type="checkbox" [checked]="notifies('MEDIUM')" [disabled]="!current || notifyBusy" (change)="toggle('MEDIUM', $any($event.target).checked, $any($event.target))"></div>
+    </section>
+  </div>
+
+  <!-- Alert rules -->
+  <div class="tabpanel" id="spanel-rules" role="tabpanel" aria-labelledby="stab-rules" tabindex="0" [hidden]="tab !== 'rules'">
+    <app-alert-rules *ngIf="tab === 'rules'"></app-alert-rules>
+  </div>
+</div>

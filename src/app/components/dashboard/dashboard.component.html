@@ -6,7 +6,7 @@
     </div>
     <div class="hero__actions">
       <div class="hero__meta">
-        <div class="hero__clinic"><app-icon name="building" [size]="20" [stroke]="1.6"></app-icon>{{ clinicName }}</div>
+        <div class="hero__clinic"><app-icon name="building" [size]="20" [stroke]="1.6"></app-icon>{{ (clinicName$ | async) ?? clinicName }}</div>
         <div class="hero__date">{{ today | date:'EEEE, d MMMM y' }}</div>
       </div>
       <div class="btn-row">

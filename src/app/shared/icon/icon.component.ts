@@ -3,7 +3,8 @@ import { Component, Input } from '@angular/core';
 export type IconName = 'dashboard' | 'users' | 'calendar' | 'bell' | 'file' | 'search' | 'logout' | 'menu' | 'close'
   | 'chevron-left' | 'chevron-right' | 'plus' | 'phone' | 'copy' | 'check' | 'link' | 'thermometer' | 'activity'
   | 'building' | 'grid-dots' | 'chevron-down' | 'clock' | 'alert-triangle' | 'slash-circle' | 'more-horizontal' | 'heart-pulse'
-  | 'check-circle' | 'clipboard' | 'x-circle' | 'arrow-up' | 'arrow-down' | 'trash';
+  | 'check-circle' | 'clipboard' | 'x-circle' | 'arrow-up' | 'arrow-down' | 'trash'
+  | 'settings' | 'message' | 'send' | 'upload' | 'download' | 'eye' | 'eye-off' | 'edit' | 'shield' | 'lock' | 'pill' | 'bar-chart';
 
 @Component({
   selector: 'app-icon',
@@ -41,6 +42,18 @@ export type IconName = 'dashboard' | 'users' | 'calendar' | 'bell' | 'file' | 's
     <ng-container *ngSwitchCase="'trash'"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></ng-container>
     <ng-container *ngSwitchCase="'arrow-up'"><path d="M12 19V5M5 12l7-7 7 7"/></ng-container>
     <ng-container *ngSwitchCase="'arrow-down'"><path d="M12 5v14M19 12l-7 7-7-7"/></ng-container>
+    <ng-container *ngSwitchCase="'settings'"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></ng-container>
+    <ng-container *ngSwitchCase="'message'"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></ng-container>
+    <ng-container *ngSwitchCase="'send'"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></ng-container>
+    <ng-container *ngSwitchCase="'upload'"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></ng-container>
+    <ng-container *ngSwitchCase="'download'"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></ng-container>
+    <ng-container *ngSwitchCase="'eye'"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></ng-container>
+    <ng-container *ngSwitchCase="'eye-off'"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"/></ng-container>
+    <ng-container *ngSwitchCase="'edit'"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></ng-container>
+    <ng-container *ngSwitchCase="'shield'"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></ng-container>
+    <ng-container *ngSwitchCase="'lock'"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></ng-container>
+    <ng-container *ngSwitchCase="'pill'"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z"/><path d="m8.5 8.5 7 7"/></ng-container>
+    <ng-container *ngSwitchCase="'bar-chart'"><path d="M4 21V10M10 21V4M16 21v-8M22 21H2"/></ng-container>
   </svg>`
 })
 export class IconComponent {

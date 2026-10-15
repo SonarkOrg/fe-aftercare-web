@@ -1,0 +1,149 @@
+<div class="grid-2 medical-grid">
+  <div class="stack-20">
+    <section class="card identity-card">
+      <div class="card__header"><h2 class="card__title--sm">Identity</h2></div>
+      <div class="sage-panel">
+        <dl class="kv kv--grid">
+          <div>
+            <dt>Date of birth</dt>
+            <dd>
+              <ng-container *ngIf="!editDob">{{ dobText }} <button type="button" class="btn btn--ghost btn--sm edit-dob" (click)="openEditDob()"><app-icon name="edit" [size]="14"></app-icon><span>Edit</span></button></ng-container>
+              <form class="inline-form" *ngIf="editDob" (ngSubmit)="saveDob()">
+                <label class="sr-only" for="dob-input">Date of birth</label>
+                <input id="dob-input" name="dob" type="date" [max]="dobMax" [(ngModel)]="dobValue">
+                <button type="submit" class="btn btn--accent btn--sm" [disabled]="dobBusy">Save</button>
+                <button type="button" class="btn btn--secondary btn--sm" (click)="editDob = false">Cancel</button>
+              </form>
+              <div class="field-error" role="alert" *ngIf="dobError">{{ dobError }}</div>
+            </dd>
+          </div>
+          <div><dt>Age</dt><dd>{{ age !== null ? age + ' y' : '—' }}</dd></div>
+          <div class="span-all ramq-row">
+            <dt>Health insurance (RAMQ)</dt>
+            <dd>
+              <ng-container *ngIf="!editHn">
+                <ng-container *ngIf="medical.healthNumberMasked; else noHn">
+                  <span class="mono ramq-value" *ngIf="!revealed">{{ medical.healthNumberMasked }}</span>
+                  <span class="mono ramq-value ramq-value--open" *ngIf="revealed" aria-live="polite">{{ revealedText }}</span>
+                  <span class="helper-line ramq-visible" *ngIf="revealed" role="status"><span aria-hidden="true">✓</span> Visible for 30 s</span>
+                  <span class="btn-row ramq-actions">
+                    <button type="button" class="btn btn--ghost btn--sm reveal-btn" *ngIf="!revealed && !revealOpen" (click)="openReveal()"><app-icon name="eye" [size]="14"></app-icon><span>Reveal</span></button>
+                    <button type="button" class="btn btn--ghost btn--sm hide-btn" *ngIf="revealed" (click)="hideRevealed(true)"><app-icon name="eye-off" [size]="14"></app-icon><span>Hide</span></button>
+                    <button type="button" class="btn btn--ghost btn--sm edit-hn" (click)="openEditHn()"><app-icon name="edit" [size]="14"></app-icon><span>Edit</span></button>
+                    <button type="button" class="btn btn--ghost-danger btn--sm remove-hn" (click)="removeHn = true">Remove</button>
+                  </span>
+                </ng-container>
+                <ng-template #noHn>
+                  <span class="muted">None on file</span>
+                  <button type="button" class="btn btn--ghost btn--sm edit-hn" (click)="openEditHn()"><app-icon name="plus" [size]="14"></app-icon><span>Add</span></button>
+                </ng-template>
+              </ng-container>
+
+              <form class="reveal-form" *ngIf="revealOpen" (ngSubmit)="confirmReveal()">
+                <div class="form-group">
+                  <label for="reveal-reason">Reason for viewing</label>
+                  <input id="reveal-reason" name="reason" type="text" maxlength="200" autocomplete="off" [(ngModel)]="reason">
+                  <span class="helper-line">3 to 200 characters. Every reveal is recorded in the access log.</span>
+                </div>
+                <div class="field-error" role="alert" *ngIf="revealError">{{ revealError }}</div>
+                <div class="btn-row">
+                  <button type="submit" class="btn btn--accent btn--sm confirm-reveal" [disabled]="!reasonValid || revealBusy">Confirm</button>
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="cancelReveal()">Cancel</button>
+                </div>
+              </form>
+
+              <form class="hn-form" *ngIf="editHn" (ngSubmit)="saveHn()">
+                <div class="form-group">
+                  <label for="hn-input">Health insurance number</label>
+                  <input id="hn-input" name="healthNumber" type="text" class="mono" autocomplete="off" spellcheck="false" inputmode="text" maxlength="14"
+                         [(ngModel)]="hnValue" [attr.aria-invalid]="hnShowError" aria-describedby="hn-err">
+                  <span id="hn-err" class="field-error" *ngIf="hnShowError">Must be 4 letters and 8 digits (e.g. TREM 6854 1212)</span>
+                  <span class="field-error" role="alert" *ngIf="hnError">{{ hnError }}</span>
+                </div>
+                <div class="btn-row">
+                  <button type="submit" class="btn btn--accent btn--sm save-hn" [disabled]="!hnValid || hnBusy">Save</button>
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="editHn = false">Cancel</button>
+                </div>
+              </form>
+              <div class="field-error" role="alert" *ngIf="hnError && !editHn">{{ hnError }}</div>
+              <app-confirm-inline *ngIf="removeHn" question="Remove the health insurance number?" [busy]="hnBusy" (confirmed)="confirmRemoveHn()" (cancelled)="removeHn = false"></app-confirm-inline>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <ng-container *ngTemplateOutlet="listCard; context: { cfg: cfg('allergies') }"></ng-container>
+  </div>
+
+  <div class="stack-20">
+    <ng-container *ngTemplateOutlet="listCard; context: { cfg: cfg('medications') }"></ng-container>
+    <ng-container *ngTemplateOutlet="listCard; context: { cfg: cfg('procedures') }"></ng-container>
+    <ng-container *ngTemplateOutlet="listCard; context: { cfg: cfg('diagnoses') }"></ng-container>
+  </div>
+</div>
+
+<ng-template #listCard let-cfg="cfg">
+  <section class="card card--list med-list" [attr.data-list]="cfg.key">
+    <div class="card__head">
+      <h2 class="card__title--sm">{{ cfg.title }} <span class="badge">{{ items(cfg.key).length }}</span></h2>
+      <button type="button" class="card__link add-item" (click)="openForm(cfg.key)">+ Add</button>
+    </div>
+
+    <form class="grid-form med-form" *ngIf="form && form.list === cfg.key" (ngSubmit)="save()" [attr.aria-label]="form.id === null ? cfg.addLabel : 'Edit ' + cfg.title">
+      <div class="banner banner--error span-2" role="alert" *ngIf="form.banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ form.banner }}</span></div>
+      <div class="form-group" *ngFor="let f of cfg.fields" [class.span-2]="f.key === cfg.fields[0].key">
+        <label [attr.for]="'mf-' + cfg.key + '-' + f.key">{{ f.label }}<span class="q-optional" *ngIf="!f.required"> (optional)</span></label>
+        <ng-container [ngSwitch]="f.type">
+          <select *ngSwitchCase="'select'" [id]="'mf-' + cfg.key + '-' + f.key" [name]="f.key" [(ngModel)]="form.values[f.key]">
+            <option *ngFor="let o of f.options" [value]="o.value">{{ o.label }}</option>
+          </select>
+          <ng-container *ngSwitchCase="'surgeon'">
+            <select [id]="'mf-' + cfg.key + '-' + f.key" [name]="f.key" [(ngModel)]="form.values[f.key]" (ngModelChange)="onSurgeonChange()">
+              <option value="">Not recorded</option>
+              <option *ngFor="let s of surgeons" [value]="s.id">{{ s.displayName }}</option>
+              <option value="other">Other (type name)</option>
+            </select>
+            <input *ngIf="surgeonOther" type="text" name="surgeonName" maxlength="120" aria-label="Surgeon name" [(ngModel)]="form.values['surgeonName']">
+          </ng-container>
+          <input *ngSwitchCase="'date'" type="date" [id]="'mf-' + cfg.key + '-' + f.key" [name]="f.key" [max]="f.key === 'performedOn' ? '' : today" [(ngModel)]="form.values[f.key]">
+          <input *ngSwitchDefault type="text" [id]="'mf-' + cfg.key + '-' + f.key" [name]="f.key" [class.mono]="f.mono" [attr.maxlength]="f.max" autocomplete="off" [(ngModel)]="form.values[f.key]">
+        </ng-container>
+        <span class="helper-line" *ngIf="f.helper">{{ f.helper }}</span>
+        <span class="field-error" role="alert" *ngIf="form.errors[f.key]">{{ form.errors[f.key] }}</span>
+      </div>
+      <div class="btn-row span-2">
+        <button type="submit" class="btn btn--accent btn--sm save-item" [disabled]="!canSave()">{{ form.saving ? 'Saving…' : 'Save' }}</button>
+        <button type="button" class="btn btn--secondary btn--sm" (click)="closeForm()">Cancel</button>
+      </div>
+    </form>
+
+    <p class="muted empty-line" *ngIf="items(cfg.key).length === 0">{{ cfg.empty }}</p>
+    <ul class="rows" *ngIf="items(cfg.key).length > 0">
+      <li class="row" *ngFor="let i of items(cfg.key)">
+        <span class="appt__date" *ngIf="cfg.dated">{{ i.performedOn | date:'EEE d MMM y' }}</span>
+        <ng-container *ngIf="!cfg.dated">
+          <span class="tone-circle" *ngIf="cfg.key === 'allergies'" [ngClass]="'tone-' + chipOf(i).tone" aria-hidden="true">{{ chipOf(i).glyph }}</span>
+          <span class="tone-circle tone-neutral" *ngIf="cfg.key === 'medications'" aria-hidden="true"><app-icon name="pill" [size]="16"></app-icon></span>
+          <span class="tone-circle tone-neutral" *ngIf="cfg.key === 'diagnoses'" aria-hidden="true"><app-icon name="clipboard" [size]="16"></app-icon></span>
+        </ng-container>
+        <span class="row__main">
+          <span class="row__name">{{ rowName(cfg.key, i) }}</span>
+          <ng-container [ngSwitch]="cfg.key">
+            <span class="row__sub" *ngSwitchCase="'allergies'">{{ i.reaction || 'No reaction recorded' }}</span>
+            <span class="row__sub" *ngSwitchCase="'medications'">{{ i.dose || '—' }} · {{ i.frequency || '—' }}<ng-container *ngIf="i.startDate"> · since {{ i.startDate | date:'d MMM y' }}</ng-container></span>
+            <span class="row__sub" *ngSwitchCase="'procedures'">Surgeon: {{ i.surgeonName || '—' }}</span>
+            <span class="row__sub" *ngSwitchCase="'diagnoses'"><span class="mono" *ngIf="i.icd10Code">{{ i.icd10Code }}</span><ng-container *ngIf="i.icd10Code && i.diagnosedOn"> · </ng-container><ng-container *ngIf="i.diagnosedOn">{{ i.diagnosedOn | date:'d MMM y' }}</ng-container><ng-container *ngIf="!i.icd10Code && !i.diagnosedOn">—</ng-container></span>
+          </ng-container>
+        </span>
+        <span class="row__end">
+          <app-status-chip size="sm" *ngIf="cfg.key === 'allergies'" [spec]="chipOf(i)"></app-status-chip>
+          <app-row-menu [label]="'Actions for ' + rowName(cfg.key, i)" [items]="[{ key: 'edit', label: 'Edit' }, { key: 'remove', label: 'Remove' }]" (selected)="onMenu(cfg.key, i, $event)"></app-row-menu>
+        </span>
+        <app-confirm-inline *ngIf="removing && removing.list === cfg.key && removing.id === i.id" class="row-confirm"
+                            [question]="'Remove ' + rowName(cfg.key, i) + '?'" (confirmed)="confirmRemove()" (cancelled)="removing = null"></app-confirm-inline>
+      </li>
+    </ul>
+    <div class="field-error" role="alert" *ngIf="removeError && removing && removing.list === cfg.key">{{ removeError }}</div>
+  </section>
+</ng-template>

@@ -1,0 +1,22 @@
+<p class="helper-line audit-help"><span aria-hidden="true">ℹ</span> Every view of this file, reveal of the health number, and change is recorded.</p>
+<div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the access log. <button type="button" class="btn btn--ghost btn--sm" (click)="load(events.length ? page + 1 : 0)">Retry</button></span></div>
+<div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row"></div></div>
+<section class="table-card audit-table" *ngIf="!loading && events.length > 0">
+  <div class="table-scroll">
+    <table class="table">
+      <caption class="sr-only">Access log</caption>
+      <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Item</th><th scope="col">Detail</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let e of events">
+          <td class="num">{{ when(e.occurredAt) }}</td>
+          <td>{{ e.actorName || e.actorSub }}</td>
+          <td>{{ humanize(e.action) }}</td>
+          <td>{{ item(e) }}</td>
+          <td>{{ e.detail || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card__foot" *ngIf="hasMore"><button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">Load more</button></div>
+</section>
+<p class="muted empty-line" *ngIf="!loading && !error && events.length === 0">No access recorded yet.</p>

@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { AlertCountService } from '../../Services/AlertCount.service';
+import { MessageCountService } from '../../Services/MessageCount.service';
 import { StaffAuth } from '../../auth/staff-auth';
 import { ShellComponent } from '../../shell/shell.component';
 import { environment } from '../../../environments/environment';
@@ -294,6 +295,19 @@ describe('PatientsComponent', () => {
       expect(el.querySelector('.drawer')).not.toBeNull();
     });
 
+    it('sends the optional date of birth, null when left empty', () => {
+      init([]);
+      component.openDrawer(null);
+      fixture.detectChanges();
+      expect(el.querySelector<HTMLInputElement>('#new-dob')!.max).toBe(addDays(businessToday(), -1));
+      component.patient = { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', phone: '555-0111', gender: 'female', dateOfBirth: '', address: { city: 'Austin', state: 'TX', zip: '73301' } };
+      component.addPatient();
+      const post = http.expectOne(`${base}/register`);
+      expect(post.request.body.dateOfBirth).toBeNull();
+      post.flush({ ...post.request.body, id: 9 });
+      http.match(() => true).forEach(r => r.flush([]));
+    });
+
     it('POSTs a new patient without id, closes, reloads and shows a notice', () => {
       init([]);
       component.openDrawer(null);
@@ -327,7 +341,8 @@ describe('PatientsComponent inside the shell (real typing)', () => {
       declarations: [PatientsComponent, ShellComponent, ...SHARED_DECLARATIONS],
       providers: [
         { provide: StaffAuth, useValue: { userName$: of('Dev Nurse'), logout: () => undefined } },
-        { provide: AlertCountService, useValue: { openCount$: of(0), refresh: jasmine.createSpy('refresh') } }
+        { provide: AlertCountService, useValue: { openCount$: of(0), refresh: jasmine.createSpy('refresh') } },
+        { provide: MessageCountService, useValue: { unread$: of(0), refresh: jasmine.createSpy('refresh'), start: () => undefined, stop: () => undefined } }
       ]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);

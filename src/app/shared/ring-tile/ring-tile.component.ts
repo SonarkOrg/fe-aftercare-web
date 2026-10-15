@@ -10,7 +10,7 @@ export const RING_C = 2 * Math.PI * 21.5; // circumference of r = 21.5
 <ng-template #body>
   <span class="ring" role="img" [attr.aria-label]="aria">
     <svg viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="21.5" fill="#fefefe" stroke="var(--ring-track)" stroke-width="3"/>
-      <circle *ngIf="ratio > 0" class="ring__arc" cx="23" cy="23" r="21.5" fill="none" stroke="var(--sage-600)" stroke-width="3" [attr.stroke-dasharray]="c" [attr.stroke-dashoffset]="c * (1 - ratio)" transform="translate(46 0) scale(-1 1) rotate(-90 23 23)"/></svg>
+      <circle *ngIf="arc && ratio > 0" class="ring__arc" cx="23" cy="23" r="21.5" fill="none" stroke="var(--sage-600)" stroke-width="3" [attr.stroke-dasharray]="c" [attr.stroke-dashoffset]="c * (1 - ratio)" transform="translate(46 0) scale(-1 1) rotate(-90 23 23)"/></svg>
     <app-icon [name]="icon" [size]="20" [stroke]="1.5"></app-icon>
   </span>
   <span class="tile__label"><ng-container *ngFor="let l of lines; let last = last">{{ last ? l : l + ' ' }}<br *ngIf="!last"></ng-container></span>
@@ -30,6 +30,9 @@ export class RingTileComponent {
   @Input() sub = '';
   /** Overrides value/total when the ring should show another ratio (for example 60 % completed). */
   @Input() ratioOverride: number | null = null;
+
+  /** False for a plain count (no denominator, no rate): the ring is then just the empty track, not a misleading full circle. */
+  @Input() arc = true;
 
   readonly c = RING_C;
 

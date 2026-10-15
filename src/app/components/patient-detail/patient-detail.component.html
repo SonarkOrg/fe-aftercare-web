@@ -11,11 +11,12 @@
       <app-avatar [id]="patient.id" [initials]="patient.firstName.charAt(0) + patient.lastName.charAt(0)" size="xl"></app-avatar>
       <div class="profile-hero__main">
         <h1>{{ patient.firstName }} {{ patient.lastName }}</h1>
-        <p class="profile-hero__meta">{{ patient.gender }} · {{ patient.address.city }}, {{ patient.address.state }} · <a [attr.href]="'tel:' + patient.phone">{{ patient.phone }}</a> · <a [attr.href]="'mailto:' + patient.email">{{ patient.email }}</a></p>
+        <p class="profile-hero__meta">{{ patient.gender }}<ng-container *ngIf="age !== null && dob"> · {{ age }} y (born {{ dobLabel(dob) }})</ng-container> · {{ patient.address.city }}, {{ patient.address.state }} · <a [attr.href]="'tel:' + patient.phone">{{ patient.phone }}</a> · <a [attr.href]="'mailto:' + patient.email">{{ patient.email }}</a></p>
         <div class="profile-hero__chips">
           <app-status-chip [spec]="statusChip"></app-status-chip>
           <span class="chip chip--neutral" *ngIf="current as f"><span class="chip__label">{{ humanize(f.specialty) }}</span></span>
           <span class="badge" *ngIf="current && day as d">Day {{ d.day }} of {{ d.total }}</span>
+          <span class="allergy-chip" *ngIf="allergyChip as a" [attr.title]="a.title"><app-status-chip [spec]="a.spec"></app-status-chip></span>
         </div>
       </div>
       <a class="btn btn--accent" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
@@ -61,14 +62,7 @@
 
     <div class="tabs" role="tablist" aria-label="Patient sections" (keydown)="onTabKey($event)">
       <button *ngFor="let t of tabs" #tabBtn type="button" role="tab" class="tab" [id]="'tab-' + t" [attr.aria-controls]="'panel-' + t"
-              [attr.aria-selected]="tab === t" [attr.tabindex]="tab === t ? 0 : -1" (click)="selectTab(t)">
-        <ng-container [ngSwitch]="t">
-          <ng-container *ngSwitchCase="'overview'">Overview</ng-container>
-          <ng-container *ngSwitchCase="'checkins'">Check-ins ({{ checkIns.length }})</ng-container>
-          <ng-container *ngSwitchCase="'alerts'">Alerts ({{ unresolved.length }} unresolved)</ng-container>
-          <ng-container *ngSwitchCase="'appointments'">Appointments ({{ appointments.length }})</ng-container>
-        </ng-container>
-      </button>
+              [attr.aria-selected]="tab === t" [attr.tabindex]="tab === t ? 0 : -1" (click)="selectTab(t)">{{ tabLabel(t) }}<ng-container *ngIf="tabCount(t) > 0">&ngsp;<span class="pill-group__count">{{ tabCount(t) }}</span></ng-container></button>
     </div>
 
     <!-- Overview -->
@@ -140,8 +134,55 @@
               <dt>City</dt><dd>{{ patient.address.city }}, {{ patient.address.state }} {{ patient.address.zip }}</dd>
             </dl>
           </section>
+
+          <section class="card card--list care-team-card">
+            <div class="card__head">
+              <h2 class="card__title--sm">Care team <span class="badge">{{ careTeam.length }}</span></h2>
+              <button type="button" class="card__link" (click)="selectTab('contacts', true)">Manage</button>
+            </div>
+            <p class="muted empty-line" *ngIf="careTeam.length === 0">No care team assigned.</p>
+            <ul class="rows" *ngIf="careTeam.length > 0">
+              <li class="row" *ngFor="let m of careTeam">
+                <app-avatar [id]="m.staffId" [initials]="initialsOf(m.displayName)"></app-avatar>
+                <span class="row__main"><span class="row__name">{{ m.displayName }}</span><span class="row__sub">{{ humanize(m.role) }}</span></span>
+                <span class="row__end"><app-status-chip size="sm" *ngIf="!m.active" [spec]="inactiveChip"></app-status-chip></span>
+              </li>
+            </ul>
+          </section>
         </div>
       </div>
+    </div>
+
+    <!-- Medical -->
+    <div class="tabpanel" id="panel-medical" role="tabpanel" aria-labelledby="tab-medical" tabindex="0" [hidden]="tab !== 'medical'">
+      <div class="banner banner--error" *ngIf="medicalError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the medical information. <button type="button" class="btn btn--ghost btn--sm" (click)="loadFile()">Retry</button></span></div>
+      <app-patient-medical *ngIf="medical && patient" [patient]="patient" [medical]="medical" [active]="tab === 'medical'"
+                           (medicalChange)="medical = $event" (patientChange)="patient = $event"></app-patient-medical>
+    </div>
+
+    <!-- Contacts and care team -->
+    <div class="tabpanel" id="panel-contacts" role="tabpanel" aria-labelledby="tab-contacts" tabindex="0" [hidden]="tab !== 'contacts'">
+      <app-patient-contacts *ngIf="visited.has('contacts')" [patientId]="patientId" [careTeam]="careTeam" (careTeamChange)="careTeam = $event"></app-patient-contacts>
+    </div>
+
+    <!-- Timeline -->
+    <div class="tabpanel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" tabindex="0" [hidden]="tab !== 'timeline'">
+      <app-patient-timeline *ngIf="visited.has('timeline')" [patientId]="patientId" (openTab)="selectTab($event, true)"></app-patient-timeline>
+    </div>
+
+    <!-- Documents -->
+    <div class="tabpanel" id="panel-documents" role="tabpanel" aria-labelledby="tab-documents" tabindex="0" [hidden]="tab !== 'documents'">
+      <app-patient-documents *ngIf="visited.has('documents')" [patientId]="patientId"></app-patient-documents>
+    </div>
+
+    <!-- Messages -->
+    <div class="tabpanel" id="panel-messages" role="tabpanel" aria-labelledby="tab-messages" tabindex="0" [hidden]="tab !== 'messages'">
+      <app-message-thread *ngIf="visited.has('messages')" [patientId]="patientId" variant="embedded" (read)="unreadMessages = 0"></app-message-thread>
+    </div>
+
+    <!-- Access log -->
+    <div class="tabpanel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" tabindex="0" [hidden]="tab !== 'audit'">
+      <app-patient-audit *ngIf="visited.has('audit')" [patientId]="patientId"></app-patient-audit>
     </div>
 
     <!-- Check-ins -->

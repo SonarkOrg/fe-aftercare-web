@@ -3,7 +3,13 @@
     <button type="button" id="lang-toggle" class="pq-lang" [attr.lang]="lang === 'fr' ? 'en' : 'fr'" (click)="toggleLang()">{{ lang === 'fr' ? 'English' : 'Français' }}</button>
   </div>
 
+  <div class="pq-tabs" role="tablist" [attr.aria-label]="mt.tabQuestionnaire + ' / ' + mt.tabMessages" *ngIf="tabsVisible" (keydown)="onTabKey($event)">
+    <button type="button" role="tab" id="pq-tab-questionnaire" aria-controls="pq-panel-questionnaire" [attr.aria-selected]="tab === 'questionnaire'" [attr.tabindex]="tab === 'questionnaire' ? 0 : -1" (click)="selectTab('questionnaire')">{{ mt.tabQuestionnaire }}</button>
+    <button type="button" role="tab" id="pq-tab-messages" [attr.aria-controls]="tab === 'messages' ? 'pq-panel-messages' : null" [attr.aria-selected]="tab === 'messages'" [attr.tabindex]="tab === 'messages' ? 0 : -1" (click)="selectTab('messages')">{{ mt.tabMessages }}<span class="pq-count" *ngIf="unread > 0">{{ unread }}<span class="sr-only"> {{ lang === 'fr' ? 'non lus' : 'unread' }}</span></span></button>
+  </div>
+
   <main>
+    <div id="pq-panel-questionnaire" role="tabpanel" aria-labelledby="pq-tab-questionnaire" [hidden]="tabsVisible && tab !== 'questionnaire'">
     <p *ngIf="state === 'loading'" class="pq-msg" role="status">{{ t.loading }}</p>
 
     <p *ngIf="state === 'invalid'" class="pq-msg pq-invalid" role="status" #statusMsg tabindex="-1">{{ t.invalid }}</p>
@@ -40,6 +46,10 @@
         {{ state === 'submitting' ? t.submitting : t.submit }}
       </button>
     </ng-container>
+    </div>
+    <div id="pq-panel-messages" role="tabpanel" aria-labelledby="pq-tab-messages" *ngIf="tabsVisible && tab === 'messages'">
+      <app-patient-messages [code]="code" [lang]="lang" (unread)="unread = $event" (invalid)="onMessagesInvalid()"></app-patient-messages>
+    </div>
   </main>
 
   <footer class="pq-emergency">{{ t.emergency }}</footer>

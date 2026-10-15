@@ -20,6 +20,8 @@
 
 /* ---------- ring tile (stat) ---------- */
 .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+.tiles > app-ring-tile { display: flex; min-width: 0; }
+.tiles > app-ring-tile > .tile { flex: 1 1 auto; }
 .tile { display: block; background: var(--tile); border-radius: var(--r-ctl); padding: 13px 12px 16px; text-align: center; color: var(--ink); text-decoration: none; min-width: 0; }
 a.tile:hover { background: #ebebeb; color: var(--ink); }
 .ring { position: relative; display: grid; place-items: center; width: 46px; height: 46px; margin: 0 auto; }

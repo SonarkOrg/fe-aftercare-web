@@ -9,7 +9,13 @@ import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questi
 import { CheckIn } from '../../models/follow-up.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { addDays, businessToday } from '../../shared/link.util';
-import { FULL_Q, JANE, alertDto, appointment, followUp } from '../../testing/fixtures';
+import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, followUp, medical, conversation } from '../../testing/fixtures';
+import { MessageThreadComponent } from '../../shared/message-thread/message-thread.component';
+import { PatientAuditComponent } from '../patient-file/patient-audit/patient-audit.component';
+import { PatientContactsComponent } from '../patient-file/patient-contacts/patient-contacts.component';
+import { PatientDocumentsComponent } from '../patient-file/patient-documents/patient-documents.component';
+import { PatientMedicalComponent } from '../patient-file/patient-medical/patient-medical.component';
+import { PatientTimelineComponent } from '../patient-file/patient-timeline/patient-timeline.component';
 import { AlertTableComponent } from '../alert-table/alert-table.component';
 import { FollowUpFormComponent } from '../follow-up-form/follow-up-form.component';
 import { PatientDetailComponent } from './patient-detail.component';
@@ -20,6 +26,7 @@ describe('PatientDetailComponent', () => {
   let el: HTMLElement;
   const api = environment.apiUrl;
   const code = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG';
+  let query: Record<string, string> = {};
 
   const checkIn = (id: number): CheckIn => ({
     id, followUpId: 11, checkInDate: '2026-10-1' + id, submittedAt: '2026-10-13T14:00:00Z', questionnaireDefinitionId: 7,
@@ -31,11 +38,13 @@ describe('PatientDetailComponent', () => {
   });
 
   beforeEach(async () => {
+    query = {};
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
-        QuestionnaireFormComponent, ...SHARED_DECLARATIONS],
-      providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), queryParamMap: convertToParamMap({}) } } }]
+        QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
+        PatientAuditComponent, MessageThreadComponent, ...SHARED_DECLARATIONS],
+      providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PatientDetailComponent);
@@ -44,7 +53,13 @@ describe('PatientDetailComponent', () => {
 
   afterEach(() => http.verify());
 
-  function flushAll(data: { followUps?: any[]; checkIns?: any[]; alerts?: any[]; appointments?: any[]; rules?: any[] } = {}) {
+  function flushAll(data: { followUps?: any[]; checkIns?: any[]; alerts?: any[]; appointments?: any[]; rules?: any[]; medical?: any; careTeam?: any[]; inbox?: any[] } = {}, file = true) {
+    if (file) {
+      // the patient file loads once per visit (the medical call writes the "file viewed" audit row)
+      http.expectOne(`${api}/patients/5/medical`).flush(data.medical ?? medical());
+      http.expectOne(`${api}/patients/5/care-team`).flush(data.careTeam ?? []);
+      http.expectOne(`${api}/messages/inbox`).flush(data.inbox ?? []);
+    }
     http.expectOne(`${api}/patients/5`).flush(JANE);
     http.expectOne(`${api}/patients/5/follow-ups`).flush(data.followUps ?? []);
     http.expectOne(`${api}/patients/5/check-ins`).flush(data.checkIns ?? []);
@@ -60,9 +75,9 @@ describe('PatientDetailComponent', () => {
     flushAll(data);
   }
 
-  it('makes five parallel calls on init and renders demographics', () => {
+  it('makes the five page calls plus the three file calls on init', () => {
     fixture.detectChanges();
-    expect(http.match(() => true).length).toBe(5);
+    expect(http.match(() => true).length).toBe(8);
   });
 
   it('renders patient demographics, empty states and a New appointment link', () => {
@@ -94,7 +109,7 @@ describe('PatientDetailComponent', () => {
     expect(post.request.body.specialty).toBe('VISCERAL_SURGERY');
     expect(post.request.body.durationDays).toBe(7);
     post.flush({ followUp: followUp(), accessCode: code }, { status: 201, statusText: 'Created' });
-    flushAll({ followUps: [followUp()] });
+    flushAll({ followUps: [followUp()] }, false);
     const input = el.querySelector('.access-link input') as HTMLInputElement;
     expect(input.value).toContain('/q/' + code);
     expect(el.querySelector('app-follow-up-form')).toBeNull();
@@ -146,7 +161,7 @@ describe('PatientDetailComponent', () => {
     const req = http.expectOne(`${api}/follow-ups/11/access-code`);
     expect(req.request.method).toBe('POST');
     req.flush({ followUp: followUp(), accessCode: code });
-    flushAll({ followUps: [followUp()] });
+    flushAll({ followUps: [followUp()] }, false);
     expect((el.querySelector('.access-link input') as HTMLInputElement).value).toContain('/q/' + code);
   });
 
@@ -155,7 +170,7 @@ describe('PatientDetailComponent', () => {
     const confirmSpy = spyOn(window, 'confirm').and.returnValue(true);
     (el.querySelector('#regenerate-link') as HTMLButtonElement).click();
     http.expectOne(`${api}/follow-ups/11/access-code`).flush({ followUp: followUp(), accessCode: code });
-    flushAll({ followUps: [followUp()] });
+    flushAll({ followUps: [followUp()] }, false);
     expect(confirmSpy).toHaveBeenCalled();
 
     const write = spyOn(navigator.clipboard, 'writeText').and.resolveTo();
@@ -175,7 +190,7 @@ describe('PatientDetailComponent', () => {
     const req = http.expectOne(`${api}/follow-ups/11/close`);
     expect(req.request.method).toBe('POST');
     req.flush(followUp({ status: 'CLOSED' }));
-    flushAll({ followUps: [followUp({ status: 'CLOSED' })] });
+    flushAll({ followUps: [followUp({ status: 'CLOSED' })] }, false);
     expect(el.querySelector('app-follow-up-form')).not.toBeNull();
   });
 
@@ -213,12 +228,135 @@ describe('PatientDetailComponent', () => {
     expect(el.querySelector('.appointments .chip__label')!.textContent).toBe('Ready');
   });
 
+  describe('patient file', () => {
+    const tabs = () => Array.from(el.querySelectorAll<HTMLButtonElement>('.tabs .tab'));
+    const flushLazy = () => http.match(() => true).forEach(r => r.flush(
+      r.request.url.includes('/audit') ? { items: [], page: 0, size: 50, hasMore: false } : r.request.url.endsWith('/settings/clinic') ? CLINIC : []));
+
+    it('shows the ten tabs in order with counts only when above zero', () => {
+      init({
+        alerts: [alertDto()], appointments: [appointment()], checkIns: [checkIn(1)], followUps: [followUp()],
+        inbox: [conversation({ patientId: 9, unreadCount: 4 }), conversation({ patientId: 5, unreadCount: 1 })]
+      });
+      expect(tabs().map(t => t.textContent!.replace(/\s+/g, ' ').trim())).toEqual([
+        'Overview', 'Medical', 'Contacts', 'Timeline', 'Documents', 'Messages 1', 'Check-ins 1', 'Alerts 1', 'Appointments 1', 'Access log'
+      ]);
+      expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    });
+
+    it('takes the unread count from the inbox and never opens the thread (that would write an audit row)', () => {
+      init({ inbox: [conversation({ patientId: 5, unreadCount: 3 })] });
+      http.expectNone(r => r.url === `${api}/patients/5/messages`);
+      expect(tabs()[5].textContent!.replace(/\s+/g, ' ').trim()).toBe('Messages 3');
+    });
+
+    it('shows no count on a tab with nothing to show', () => {
+      init();
+      expect(tabs().map(t => t.textContent!.trim())).toEqual([
+        'Overview', 'Medical', 'Contacts', 'Timeline', 'Documents', 'Messages', 'Check-ins', 'Alerts', 'Appointments', 'Access log'
+      ]);
+    });
+
+    it('?tab=documents selects Documents and loads only that tab', () => {
+      query = { tab: 'documents' };
+      init();
+      http.expectOne(`${api}/patients/5/documents`).flush([]);
+      fixture.detectChanges();
+      expect(tabs()[4].getAttribute('aria-selected')).toBe('true');
+      expect(el.querySelector('#panel-documents')!.hasAttribute('hidden')).toBeFalse();
+      expect(el.querySelector('#panel-timeline app-patient-timeline')).toBeNull(); // lazy: never opened
+      expect(el.querySelector('#panel-audit app-patient-audit')).toBeNull();
+    });
+
+    it('arrow keys move between all ten tabs', () => {
+      init();
+      const list = el.querySelector('.tabs') as HTMLElement;
+      list.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+      fixture.detectChanges();
+      expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+      list.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+      fixture.detectChanges();
+      expect(tabs()[9].getAttribute('aria-selected')).toBe('true');
+      flushLazy(); // the opened tab loads its data
+    });
+
+    it('shows the age and date of birth in the hero meta', () => {
+      init({ medical: medical({ dateOfBirth: '1980-05-20' }) });
+      const meta = el.querySelector('.profile-hero__meta')!.textContent!;
+      expect(meta).toMatch(/ \d+ y \(born 20 May 1980\)/);
+    });
+
+    it('omits the age when the date of birth is unknown', () => {
+      init({ medical: medical({ dateOfBirth: null }) });
+      expect(el.querySelector('.profile-hero__meta')!.textContent).not.toContain('born');
+    });
+
+    it('a severe allergy shows a critical chip with the glyph and the word, titled with every substance', () => {
+      init({ medical: medical({ allergies: [
+        { ...medical().allergies[0], substance: 'Penicillin' },
+        { ...medical().allergies[0], id: 2, substance: 'Latex', severity: 'MILD' }] }) });
+      const holder = el.querySelector('.allergy-chip') as HTMLElement;
+      const chip = holder.querySelector('.chip--critical')!;
+      expect(chip.querySelector('.chip__glyph')!.textContent).toBe('▲');
+      expect(chip.querySelector('.chip__label')!.textContent).toBe('Allergy: Penicillin');
+      expect(holder.getAttribute('title')).toBe('Penicillin, Latex');
+    });
+
+    it('non-severe allergies show a warning count; no allergies show no chip', () => {
+      init({ medical: medical({ allergies: [{ ...medical().allergies[0], severity: 'MILD' }] }) });
+      expect(el.querySelector('.allergy-chip .chip--warning .chip__label')!.textContent).toBe('Allergies: 1');
+    });
+
+    it('does not show an allergy chip when none are recorded', () => {
+      init({ medical: medical({ allergies: [] }) });
+      expect(el.querySelector('.allergy-chip')).toBeNull();
+    });
+
+    it('calls the medical endpoint once per visit, not on a reload', () => {
+      init({ followUps: [followUp()] });
+      fixture.componentInstance.reload();
+      flushAll({ followUps: [followUp()] }, false); // would fail on an unexpected /medical call at verify()
+      expect(http.match(r => r.url.endsWith('/medical')).length).toBe(0);
+    });
+
+    it('lists the care team on the overview with an Inactive chip, and Manage opens Contacts', () => {
+      init({ careTeam: [careTeamMember(), careTeamMember({ assignmentId: 10, staffId: 2, displayName: 'Sam Doc', role: 'PHYSICIAN', active: false })] });
+      const card = el.querySelector('.care-team-card')!;
+      expect(card.querySelectorAll('.row').length).toBe(2);
+      expect(card.textContent).toContain('Marie Nurse');
+      expect(card.textContent).toContain('Nurse');
+      expect(card.querySelectorAll('.chip--neutral').length).toBe(1);
+      expect(card.querySelector('.chip--neutral')!.textContent).toContain('Inactive');
+      (card.querySelector('.card__link') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(tabs()[2].getAttribute('aria-selected')).toBe('true');
+      flushLazy();
+    });
+
+    it('says so when no care team is assigned', () => {
+      init();
+      expect(el.querySelector('.care-team-card')!.textContent).toContain('No care team assigned.');
+    });
+
+    it('shows a retry banner inside the Medical tab when the medical call fails', () => {
+      fixture.detectChanges();
+      http.expectOne(`${api}/patients/5/medical`).flush('x', { status: 500, statusText: 'Server Error' });
+      http.expectOne(`${api}/patients/5/care-team`).flush([]);
+      http.expectOne(`${api}/messages/inbox`).flush([]);
+      flushAll({}, false);
+      expect(el.querySelector('#panel-medical .banner--error')!.textContent).toContain('Could not load the medical information');
+    });
+  });
+
   describe('charts', () => {
     const fu = followUp({ dischargeDate: addDays(businessToday(), -5), endDate: addDays(businessToday(), 2) });
 
     it('a failed definition request is announced as "Alert threshold unavailable", not "No alert rule"', () => {
       spyOn(console, 'warn');
       fixture.detectChanges();
+      http.expectOne(`${api}/patients/5/medical`).flush(medical());
+      http.expectOne(`${api}/patients/5/care-team`).flush([]);
+      http.expectOne(`${api}/messages/inbox`).flush([]);
       http.expectOne(`${api}/patients/5`).flush(JANE);
       http.expectOne(`${api}/patients/5/follow-ups`).flush([fu]);
       http.expectOne(`${api}/patients/5/check-ins`).flush([]);

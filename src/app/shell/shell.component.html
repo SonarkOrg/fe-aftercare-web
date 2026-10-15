@@ -13,16 +13,17 @@
 
     <nav class="top-nav" aria-label="Main">
       <a *ngFor="let item of items" class="top-nav__item" [routerLink]="item.link" routerLinkActive="is-active" ariaCurrentWhenActive="page"
-         [attr.aria-label]="badgeLabel(item, (alertCount.openCount$ | async) ?? 0)">
+         [attr.aria-label]="badgeLabel(item)">
         <span>{{ item.label }}</span>
-        <span class="top-nav__count" *ngIf="item.badge && ((alertCount.openCount$ | async) ?? 0) > 0" aria-hidden="true">{{ alertCount.openCount$ | async }}</span>
+        <span class="top-nav__count" *ngIf="count(item) > 0" aria-hidden="true">{{ count(item) }}</span>
       </a>
     </nav>
 
     <div class="app-top__right">
-      <a class="icon-btn alerts-btn" routerLink="/alerts" [attr.aria-label]="(alertCount.openCount$ | async) ? 'Alerts, ' + (alertCount.openCount$ | async) + ' open' : 'Alerts'">
+      <a class="icon-btn settings-btn" routerLink="/settings" routerLinkActive="is-active" ariaCurrentWhenActive="page" aria-label="Settings"><app-icon name="settings" [size]="22" [stroke]="1.6"></app-icon></a>
+      <a class="icon-btn alerts-btn" routerLink="/alerts" [attr.aria-label]="alerts ? 'Alerts, ' + alerts + ' open' : 'Alerts'">
         <app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon>
-        <span class="icon-btn__dot" *ngIf="((alertCount.openCount$ | async) ?? 0) > 0" aria-hidden="true"></span>
+        <span class="icon-btn__dot" *ngIf="alerts > 0" aria-hidden="true"></span>
       </a>
       <button #menuButton type="button" class="icon-btn menu-btn" aria-label="Menu" aria-haspopup="true" aria-controls="top-menu"
               [attr.aria-expanded]="menuOpen" (click)="toggleMenu()">
@@ -38,10 +39,11 @@
     </div>
     <nav class="menu-nav" aria-label="Main (menu)">
       <a *ngFor="let item of items" class="menu-nav__item" [routerLink]="item.link" routerLinkActive="is-active" ariaCurrentWhenActive="page"
-         [attr.aria-label]="badgeLabel(item, (alertCount.openCount$ | async) ?? 0)">
+         [attr.aria-label]="badgeLabel(item)">
         <span>{{ item.label }}</span>
-        <span class="badge-count" *ngIf="item.badge && ((alertCount.openCount$ | async) ?? 0) > 0" aria-hidden="true">{{ alertCount.openCount$ | async }}</span>
+        <span class="badge-count" *ngIf="count(item) > 0" aria-hidden="true">{{ count(item) }}</span>
       </a>
+      <a class="menu-nav__item" routerLink="/settings" routerLinkActive="is-active" ariaCurrentWhenActive="page"><span>Settings</span></a>
     </nav>
     <div class="search-pill">
       <app-icon name="search" [size]="16"></app-icon>

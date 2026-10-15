@@ -1,0 +1,76 @@
+<section class="card composer-card">
+  <div class="card__header"><h2 class="card__title--sm">Add note</h2></div>
+  <div class="banner banner--error" role="alert" *ngIf="composeError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ composeError }}</span></div>
+  <div class="form-group">
+    <label for="note-body">Note</label>
+    <textarea id="note-body" name="body" rows="4" maxlength="5000" [(ngModel)]="body"></textarea>
+    <span class="muted composer__count">{{ body.length }} / {{ max }}</span>
+  </div>
+  <div class="form-group note-when">
+    <label for="note-at">Noted at <span class="q-optional">(optional)</span></label>
+    <input id="note-at" name="notedAt" type="datetime-local" [(ngModel)]="notedAt" aria-describedby="note-at-h">
+    <span id="note-at-h" class="helper-line">Leave empty for now. Up to 7 days back.</span>
+  </div>
+  <button type="button" class="btn btn--accent save-note" [disabled]="!canSave" (click)="saveNote()">{{ saving ? 'Saving…' : 'Save note' }}</button>
+</section>
+
+<div class="pill-group timeline-filter" role="group" aria-label="Filter the timeline">
+  <button *ngFor="let f of filters" type="button" class="pill-group__item" [attr.aria-pressed]="filter === f.category" (click)="setFilter(f.category)">{{ f.label }}</button>
+</div>
+
+<div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the timeline. <button type="button" class="btn btn--ghost btn--sm retry-timeline" (click)="load(0)">Retry</button></span></div>
+<div class="banner banner--error" role="alert" *ngIf="editError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ editError }}</span></div>
+<div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row"></div><div class="skeleton skeleton--row"></div></div>
+
+<section class="card card--list timeline-card" *ngIf="!loading && !loadError">
+  <div class="empty" *ngIf="items.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">Nothing here yet.</p></div>
+  <ng-container *ngFor="let g of groups">
+    <h3 class="label-day">{{ g.label }}</h3>
+    <ul class="rows">
+      <li class="row timeline-row" *ngFor="let i of g.items" [attr.data-kind]="i.kind">
+        <span class="tone-circle" [ngClass]="'tone-' + tone(i).tone" aria-hidden="true"><app-icon *ngIf="tone(i).icon as ic; else glyph" [name]="ic" [size]="16"></app-icon><ng-template #glyph>{{ tone(i).glyph }}</ng-template></span>
+        <span class="row__main">
+          <ng-container *ngIf="i.note as n; else plain">
+            <span class="row__name note-removed muted" *ngIf="n.deleted"><span aria-hidden="true">⊘</span> Note removed by {{ n.deletedByName || 'staff' }} on {{ day(n.deletedAt || i.occurredAt) }}: {{ n.deleteReason }}</span>
+            <ng-container *ngIf="!n.deleted">
+              <ng-container *ngIf="editing && editing.id === n.id; else view">
+                <label class="sr-only" [attr.for]="'edit-note-' + n.id">Edit note</label>
+                <textarea class="edit-body" [id]="'edit-note-' + n.id" rows="4" maxlength="5000" [(ngModel)]="editing.body" [name]="'edit' + n.id"></textarea>
+                <span class="btn-row"><button type="button" class="btn btn--accent btn--sm save-edit" [disabled]="!editing.body.trim()" (click)="saveEdit()">Save</button><button type="button" class="btn btn--secondary btn--sm" (click)="editing = null">Cancel</button></span>
+              </ng-container>
+              <ng-template #view>
+                <span class="row__name note-body" [class.is-clamped]="long(n) && !expanded.has(n.id)">{{ n.body }}</span>
+                <button type="button" class="plain-link show-more" *ngIf="long(n)" [attr.aria-expanded]="expanded.has(n.id)" (click)="toggleMore(n.id)">{{ expanded.has(n.id) ? 'Show less' : 'Show more' }}</button>
+              </ng-template>
+            </ng-container>
+          </ng-container>
+          <ng-template #plain>
+            <span class="row__name">
+              <ng-container [ngSwitch]="i.category">
+                <button type="button" class="plain-link" *ngSwitchCase="'ALERT'" (click)="openTab.emit('alerts')">{{ i.summary }}</button>
+                <button type="button" class="plain-link" *ngSwitchCase="'DOCUMENT'" (click)="openTab.emit('documents')">{{ i.summary }}</button>
+                <ng-container *ngSwitchCase="'APPOINTMENT'">
+                  <a class="plain-link" *ngIf="i.kind !== 'APPOINTMENT_DELETED' && i.refId !== null; else txt" [routerLink]="['/appointments', i.refId]">{{ i.summary }}</a>
+                  <ng-template #txt>{{ i.summary }}</ng-template>
+                </ng-container>
+                <ng-container *ngSwitchDefault>{{ i.summary }}</ng-container>
+              </ng-container>
+            </span>
+          </ng-template>
+          <span class="row__sub">{{ time(i.occurredAt) }} · {{ actor(i) }}<ng-container *ngIf="i.note && i.note.editedAt && !i.note.deleted"> · edited</ng-container></span>
+          <app-confirm-inline *ngIf="i.note && deleting === i.note.id" [requireReason]="true" [minLength]="3" [maxLength]="500" reasonLabel="Reason" [busy]="deleteBusy"
+                              question="Mark this note as entered in error?" confirmLabel="Mark as entered in error"
+                              (confirmed)="confirmDelete(i.note, $event)" (cancelled)="deleting = null"></app-confirm-inline>
+        </span>
+        <span class="row__end" *ngIf="i.note && !i.note.deleted && !(editing && editing.id === i.note.id)">
+          <button type="button" class="btn btn--ghost btn--sm edit-note" *ngIf="canEdit(i.note)" [attr.title]="'Editable until ' + time(i.note.editableUntil)" (click)="startEdit(i.note)">Edit</button>
+          <button type="button" class="btn btn--ghost-danger btn--sm delete-note" *ngIf="i.note.deletableByMe" (click)="startDelete(i.note)">Mark as entered in error</button>
+        </span>
+      </li>
+    </ul>
+  </ng-container>
+  <div class="card__foot" *ngIf="hasMore">
+    <div class="field-error" role="alert" *ngIf="moreError">Could not load more.</div>
+    <button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">Load more</button>
+  </div>
+</section>

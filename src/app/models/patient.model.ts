@@ -7,6 +7,7 @@ export interface Patient {
   email: string;
   phone: string;
   gender: string;
+  dateOfBirth?: string | null; // optional on the add form
   address: Address;
   activeFollowUp?: FollowUp | null;
   unresolvedAlertCount?: number;

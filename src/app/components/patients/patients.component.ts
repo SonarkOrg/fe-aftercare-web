@@ -6,7 +6,7 @@ import { CareDataService } from '../../Services/CareData.service';
 import { PatientService } from '../../Services/Patient.service';
 import { Patient } from '../../models/patient.model';
 import { CareSnapshot, PatientRow, PatientStatus, SeriesPoint } from '../../shared/care.model';
-import { humanize, relativeDay } from '../../shared/link.util';
+import { addDays, businessToday, humanize, relativeDay } from '../../shared/link.util';
 import { STATUS_RANK } from '../../shared/patient-status';
 import { GLYPH, patientStatusChip } from '../../shared/status';
 
@@ -35,7 +35,7 @@ export function normalizeText(s: string): string {
 }
 
 function emptyPatient(): Patient {
-  return { firstName: '', lastName: '', email: '', phone: '', gender: 'male', address: { city: '', state: '', zip: '' } };
+  return { firstName: '', lastName: '', email: '', phone: '', gender: 'male', dateOfBirth: null, address: { city: '', state: '', zip: '' } };
 }
 
 @Component({
@@ -46,6 +46,8 @@ export class PatientsComponent implements OnInit, OnDestroy {
   patient: Patient = emptyPatient();
   rows: PatientRow[] = [];
   today = '';
+  /** Latest selectable date of birth: yesterday in the clinic's time zone. */
+  readonly dobMax = addDays(businessToday(), -1);
   loading = true;
   errorMessage: string | null = null;
   actionError: string | null = null;
@@ -294,7 +296,7 @@ export class PatientsComponent implements OnInit, OnDestroy {
   addPatient(): void {
     this.addError = null;
     this.saving = true;
-    this.patientService.addPatient(this.patient).subscribe({
+    this.patientService.addPatient({ ...this.patient, dateOfBirth: this.patient.dateOfBirth || null }).subscribe({
       next: () => {
         this.saving = false;
         this.resetForm();

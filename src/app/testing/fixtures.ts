@@ -4,6 +4,12 @@ import { Appointment, AppointmentDetail } from '../models/appointment.model';
 import { CheckIn, FollowUp } from '../models/follow-up.model';
 import { Patient } from '../models/patient.model';
 import { RuleJson } from '../models/questionnaire-definition.model';
+import { CareTeamMember, EmergencyContact, PatientMedical } from '../models/medical.model';
+import { Conversation, Message, PublicMessage, PublicThread, Thread } from '../models/message.model';
+import { ReportSummary } from '../models/report.model';
+import { ClinicSettings } from '../models/settings.model';
+import { Staff } from '../models/staff.model';
+import { CareNote, TimelineItem } from '../models/timeline.model';
 
 export const TRANSLATION_URL = 'http://hl7.org/fhir/StructureDefinition/translation';
 
@@ -148,5 +154,99 @@ export const SEED_RULES: RuleJson[] = [
   { linkId: 'PAIN', operator: '>=', value: 7, outcome: { type: 'ALERT', severity: 'HIGH', message: msg } },
   { linkId: 'TEMPERATURE', operator: '>=', value: 37.5, outcome: { type: 'ALERT', severity: 'MEDIUM', message: msg } },
   { linkId: 'TEMPERATURE', operator: '>=', value: 38, outcome: { type: 'ALERT', severity: 'HIGH', message: msg } },
-  { linkId: 'FEVER', operator: '=', value: ['true'], outcome: { type: 'ALERT', severity: 'HIGH', message: msg } }
+  { linkId: 'FEVER', operator: 'equals-true', outcome: { type: 'ALERT', severity: 'HIGH', message: msg } }
 ];
+
+/* ---------- patient file, settings, reports, messages ---------- */
+
+export const CLINIC: ClinicSettings = {
+  name: 'Clinique Test', addressLine: '1 rue Principale', city: 'Montréal', province: 'QC', postalCode: 'H2X 1Y4', phone: '514-555-0100',
+  defaultLanguage: 'FR', notifySeverities: ['HIGH', 'MEDIUM'], updatedAt: null, updatedByName: null
+};
+
+const STAMP = { createdAt: '2026-10-01T14:00:00Z', createdByName: 'Dev Nurse', updatedAt: '2026-10-01T14:00:00Z', updatedByName: 'Dev Nurse' };
+
+export function medical(over: Partial<PatientMedical> = {}): PatientMedical {
+  return {
+    patientId: 5, dateOfBirth: '1980-05-20', healthNumberMasked: 'TREM \u2022\u2022\u2022\u2022 \u2022\u202212',
+    allergies: [{ id: 1, substance: 'Penicillin', severity: 'SEVERE', reaction: 'Anaphylaxis', ...STAMP }],
+    medications: [{ id: 2, name: 'Acetaminophen', dose: '500 mg', frequency: 'q6h', startDate: '2026-10-01', ...STAMP }],
+    procedures: [{ id: 3, name: 'Appendectomy', performedOn: '2026-10-10', surgeonStaffId: null, surgeonName: 'Dr. Roy', ...STAMP }],
+    diagnoses: [{ id: 4, description: 'Acute appendicitis', icd10Code: 'K35.80', diagnosedOn: '2026-10-09', ...STAMP }],
+    ...over
+  };
+}
+
+export function staffMember(over: Partial<Staff> = {}): Staff {
+  return {
+    id: 1, displayName: 'Marie Nurse', email: 'marie@example.com', role: 'NURSE', auth0Subject: null, active: true,
+    createdAt: '2026-10-01T14:00:00Z', updatedAt: '2026-10-01T14:00:00Z', ...over
+  };
+}
+
+export function careTeamMember(over: Partial<CareTeamMember> = {}): CareTeamMember {
+  return { assignmentId: 9, staffId: 1, displayName: 'Marie Nurse', role: 'NURSE', active: true, assignedAt: '2026-10-01T14:00:00Z', assignedByName: 'Dev Nurse', ...over };
+}
+
+export function contact(over: Partial<EmergencyContact> = {}): EmergencyContact {
+  return { id: 7, name: 'John Doe', relationship: 'Spouse', phone: '514-555-0111', preferredLanguage: 'EN', ...STAMP, ...over };
+}
+
+export function careNote(over: Partial<CareNote> = {}): CareNote {
+  return {
+    id: 30, patientId: 5, body: 'Wound looks clean.', notedAt: '2026-10-14T15:00:00Z', createdAt: '2026-10-14T15:00:00Z', editedAt: null,
+    authorName: 'Dev Nurse', editableUntil: new Date(Date.now() + 10 * 60_000).toISOString(), editableByMe: true, deletableByMe: true,
+    deleted: false, deletedAt: null, deletedByName: null, deleteReason: null, ...over
+  };
+}
+
+export function timelineItem(over: Partial<TimelineItem> = {}): TimelineItem {
+  return {
+    id: 100, category: 'CHECK_IN', kind: 'CHECK_IN_SUBMITTED', occurredAt: '2026-10-14T15:00:00Z', actorType: 'PATIENT', actorName: null,
+    refId: 21, severity: null, summary: 'Check-in submitted for 2026-10-14', note: null, ...over
+  };
+}
+
+export function message(over: Partial<Message> = {}): Message {
+  return {
+    id: 1, patientId: 5, sender: 'PATIENT', senderName: null, body: 'Hello', sentAt: '2026-10-14T15:00:00Z',
+    readByStaffAt: null, readByPatientAt: null, ...over
+  };
+}
+
+export function thread(over: Partial<Thread> = {}): Thread {
+  return { patientId: 5, messagingOpen: true, messagingOpenUntil: '2026-10-20T04:00:00Z', items: [], hasMore: false, ...over };
+}
+
+export function conversation(over: Partial<Conversation> = {}): Conversation {
+  return {
+    patientId: 5, patientFirstName: 'Jane', patientLastName: 'Doe', lastMessageAt: '2026-10-14T15:00:00Z', lastMessagePreview: 'Hello',
+    lastSender: 'PATIENT', unreadCount: 1, messagingOpen: true, ...over
+  };
+}
+
+export function publicMessage(over: Partial<PublicMessage> = {}): PublicMessage {
+  return { id: 1, sender: 'STAFF', senderName: 'Marie', body: 'Bonjour', sentAt: '2026-10-14T15:00:00Z', seen: false, ...over };
+}
+
+export function publicThread(over: Partial<PublicThread> = {}): PublicThread {
+  return { clinicName: 'Clinique Test', clinicPhone: '514-555-0100', items: [], hasMore: false, unreadCount: 0, ...over };
+}
+
+export function report(over: Partial<ReportSummary> = {}): ReportSummary {
+  return {
+    from: '2026-09-18', to: '2026-10-15', generatedAt: '2026-10-15T14:00:00Z',
+    checkIns: { expected: 20, received: 15, completionRate: 0.75, throughDate: '2026-10-14' },
+    followUps: { activeNow: 4, started: 6, closed: 2 },
+    alerts: { total: 7, high: 3, medium: 4, responded: 6, meanMinutesToAcknowledge: 45, resolved: 5, meanMinutesToResolve: 185, unresolved: 2 },
+    appointments: {
+      total: 10, completed: 5, cancelled: 2, noShow: 1, questionnairesExpected: 8, questionnairesCompleted: 6, questionnaireCompletionRate: 0.75,
+      intakesWithFlags: 2, needsReviewRate: 0.3333, cancellationRate: 0.2, noShowRate: null
+    },
+    weeks: [
+      { weekStart: '2026-09-14', from: '2026-09-18', to: '2026-09-20', checkInsExpected: 4, checkInsReceived: 3, alertsHigh: 1, alertsMedium: 2 },
+      { weekStart: '2026-09-21', from: '2026-09-21', to: '2026-09-27', checkInsExpected: 0, checkInsReceived: 0, alertsHigh: 0, alertsMedium: 0 }
+    ],
+    ...over
+  };
+}

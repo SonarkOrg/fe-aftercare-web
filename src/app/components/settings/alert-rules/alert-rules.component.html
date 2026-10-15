@@ -1,0 +1,28 @@
+<div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the alert rules. <button type="button" class="btn btn--ghost btn--sm" (click)="load()">Retry</button></span></div>
+<div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--card"></div></div>
+
+<div class="stack-20" *ngIf="!loading && !error">
+  <p class="muted empty-line" *ngIf="defs.length === 0">No active forms.</p>
+  <section class="card rules-card" *ngFor="let d of defs">
+    <div class="card__header">
+      <h2 class="card__title--sm">{{ d.title.en }}</h2>
+      <span class="chip chip--neutral chip--sm"><span class="chip__glyph" aria-hidden="true">—</span><span class="chip__label">{{ humanize(d.purpose) }}</span></span>
+    </div>
+    <p class="mono form-url">{{ d.url }}|{{ d.version }}</p>
+    <div class="table-card table-scroll">
+      <table class="table">
+        <caption class="sr-only">Alert rules of {{ d.title.en }}</caption>
+        <thead><tr><th scope="col">Question</th><th scope="col">Condition</th><th scope="col">Outcome</th><th scope="col">Message</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of d.rules">
+            <td>{{ question(d, r) }}</td>
+            <td class="num">{{ condition(d, r) }}</td>
+            <td><app-status-chip size="sm" [spec]="outcome(r)"></app-status-chip></td>
+            <td>{{ r.outcome.message.en }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <p class="helper-line"><span aria-hidden="true">ℹ</span> Rules are read-only here. To change one, publish a new form version (see API README → Forms). A clinician must validate thresholds.</p>
+</div>

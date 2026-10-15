@@ -4,14 +4,20 @@ import { environment } from '../environments/environment';
 describe('staffApiAllowedList', () => {
   const api = environment.apiUrl;
 
-  it('contains exactly the 10 staff entries', () => {
+  it('contains exactly the 17 staff entries', () => {
     expect(staffApiAllowedList).toEqual([
       `${api}/patients`, `${api}/patients/*`,
       `${api}/follow-ups/*`,
       `${api}/alerts`, `${api}/alerts/*`,
       `${api}/check-ins`,
       `${api}/appointments`, `${api}/appointments/*`,
-      `${api}/questionnaires`, `${api}/questionnaires/*`
+      `${api}/questionnaires`, `${api}/questionnaires/*`,
+      `${api}/notes/*`,
+      `${api}/documents/*`,
+      `${api}/messages/*`,
+      `${api}/staff`, `${api}/staff/*`,
+      `${api}/settings/*`,
+      `${api}/reports/*`
     ]);
   });
 
@@ -32,6 +38,21 @@ describe('staffApiAllowedList', () => {
   it('rejects dot-segment and encoded dot-segment traversal', () => {
     for (const url of [`${api}/patients/../public/q/abc`, `${api}/patients/%2e%2e/public/q/abc`, `${api}/patients/%2E%2E/public/q/abc`]) {
       expect(isStaffApiUrl(url)).withContext(url).toBeFalse();
+    }
+  });
+
+  it('matches the patient-file, notes, documents, messages, staff, settings and reports endpoints', () => {
+    for (const path of ['/notes/5', '/documents/3/content', '/messages/inbox', '/messages/unread-count', '/staff', '/staff/2/deactivate',
+      '/settings/clinic', '/reports/summary?from=2026-10-01&to=2026-10-15', '/patients/1/messages/read', '/patients/1/medical',
+      '/patients/1/health-number/reveal', '/patients/1/documents']) {
+      expect(isStaffApiUrl(api + path)).withContext(path).toBeTrue();
+    }
+  });
+
+  it('never matches the public message endpoints or look-alikes', () => {
+    for (const path of ['/public/q/abc/messages', '/public/q/abc/messages/read', '/public/q/abc/messages?before=4', '/messages', '/staffing',
+      '/documents', '/notes', '/messages/../public/q/x/messages', '/messages/%2e%2e/public/q/x', '/settings', '/reports']) {
+      expect(isStaffApiUrl(api + path)).withContext(path).toBeFalse();
     }
   });
 });

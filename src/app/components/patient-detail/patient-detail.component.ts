@@ -4,26 +4,31 @@ import { forkJoin } from 'rxjs';
 import { AlertService } from '../../Services/Alert.service';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { FollowUpService } from '../../Services/FollowUp.service';
+import { MessageService } from '../../Services/Message.service';
 import { PatientService } from '../../Services/Patient.service';
+import { PatientFileService } from '../../Services/PatientFile.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
 import { answerOf } from '../../fhir/fhir.util';
 import { Alert } from '../../models/alert.model';
 import { Appointment } from '../../models/appointment.model';
 import { CheckIn, FollowUp, FollowUpWithCode } from '../../models/follow-up.model';
+import { CareTeamMember, PatientMedical } from '../../models/medical.model';
 import { Patient } from '../../models/patient.model';
 import { QuestionnaireDefinitionDetail } from '../../models/questionnaire-definition.model';
 import { SeriesPoint } from '../../shared/care.model';
+import { ageOn } from '../../shared/age.util';
 import { businessNow, businessToday, humanize, relativeDay } from '../../shared/link.util';
 import {
   PAIN_LINK, TEMPERATURE_LINK, alertThreshold, buildSeries, chartTodayDay, computeStatus, followUpDay
 } from '../../shared/patient-status';
-import { ChipSpec, appointmentChip, patientStatusChip, severityChip } from '../../shared/status';
+import { ChipSpec, appointmentChip, patientStatusChip, severityChip, staffActiveChip } from '../../shared/status';
+import { fmtDayYear } from '../../shared/messages.util';
 import { ThresholdState } from '../../shared/trend-chart/trend-chart.component';
 import { PageTitleService } from '../../shell/page-title.service';
 
-export type ProfileTab = 'overview' | 'checkins' | 'alerts' | 'appointments';
-const TABS: ProfileTab[] = ['overview', 'checkins', 'alerts', 'appointments'];
+export type ProfileTab = 'overview' | 'medical' | 'contacts' | 'timeline' | 'documents' | 'messages' | 'checkins' | 'alerts' | 'appointments' | 'audit';
+const TABS: ProfileTab[] = ['overview', 'medical', 'contacts', 'timeline', 'documents', 'messages', 'checkins', 'alerts', 'appointments', 'audit'];
 
 export interface ChartSpec { linkId: string; label: string; unit: string; domain: [number, number] | 'auto'; points: SeriesPoint[]; threshold: number | null }
 
@@ -48,12 +53,19 @@ export class PatientDetailComponent implements OnInit {
   humanize = humanize;
   relativeDay = relativeDay;
   severityChip = severityChip;
+  inactiveChip = staffActiveChip(false);
   appointmentChip = appointmentChip;
   /** Whether the alert thresholds behind the charts loaded, are loading, or failed. */
   thresholdState: ThresholdState = 'loading';
   today = businessToday();
   tabs = TABS;
   tab: ProfileTab = 'overview';
+  /** Tabs opened at least once: their content is created on first open and kept (hidden) afterwards. */
+  visited = new Set<ProfileTab>(['overview']);
+  medical: PatientMedical | null = null;
+  medicalError = false;
+  careTeam: CareTeamMember[] = [];
+  unreadMessages = 0;
   def: QuestionnaireDefinitionDetail | null = null;
   charts: ChartSpec[] = [];
   chartTotal = 7;
@@ -69,6 +81,8 @@ export class PatientDetailComponent implements OnInit {
     private alertService: AlertService,
     private appointmentService: AppointmentService,
     private definitions: QuestionnaireDefinitionService,
+    private files: PatientFileService,
+    private messages: MessageService,
     private router: Router,
     private titles: PageTitleService
   ) {}
@@ -78,8 +92,75 @@ export class PatientDetailComponent implements OnInit {
     const t = this.route.snapshot.queryParamMap?.get('tab') as ProfileTab | null;
     if (t && TABS.includes(t)) {
       this.tab = t;
+      this.visited.add(t);
     }
     this.reload();
+    this.loadFile();
+  }
+
+  /** Medical summary (writes the "file viewed" audit row, so once per visit, not on reload), care team and unread messages. */
+  loadFile(): void {
+    this.medicalError = false;
+    this.files.medical(this.patientId).subscribe({
+      next: m => (this.medical = m),
+      error: () => (this.medicalError = true)
+    });
+    this.files.careTeam(this.patientId).subscribe({ next: c => (this.careTeam = c), error: () => { /* the card shows its empty state */ } });
+    // the inbox carries the unread count: opening the thread here would write a "messages viewed" audit row
+    const pid = this.patientId;
+    this.messages.inbox().subscribe({
+      next: list => (this.unreadMessages = list.find(c => c.patientId === pid)?.unreadCount ?? 0),
+      error: () => { /* no count on the tab */ }
+    });
+  }
+
+  /* ---------- hero ---------- */
+
+  get age(): number | null {
+    return ageOn(this.medical?.dateOfBirth ?? this.patient?.dateOfBirth, this.today);
+  }
+
+  get dob(): string | null {
+    return this.medical?.dateOfBirth ?? this.patient?.dateOfBirth ?? null;
+  }
+
+  dobLabel(d: string): string {
+    return fmtDayYear(d + 'T12:00:00Z');
+  }
+
+  /** Allergy chip in the hero: severe ones by name, otherwise a count; nothing when none are recorded. */
+  get allergyChip(): { spec: ChipSpec; title: string } | null {
+    const all = this.medical?.allergies ?? [];
+    if (!all.length) {
+      return null;
+    }
+    const severe = all.filter(a => a.severity === 'SEVERE');
+    const title = all.map(a => a.substance).join(', ');
+    if (severe.length === 1) {
+      return { spec: { tone: 'critical', glyph: '▲', label: `Allergy: ${severe[0].substance}` }, title };
+    }
+    if (severe.length > 1) {
+      return { spec: { tone: 'critical', glyph: '▲', label: `Allergies: ${severe.length}` }, title };
+    }
+    return { spec: { tone: 'warning', glyph: '●', label: `Allergies: ${all.length}` }, title };
+  }
+
+  tabCount(t: ProfileTab): number {
+    switch (t) {
+      case 'messages': return this.unreadMessages;
+      case 'checkins': return this.checkIns.length;
+      case 'alerts': return this.unresolved.length;
+      case 'appointments': return this.appointments.length;
+      default: return 0;
+    }
+  }
+
+  initialsOf(name: string): string {
+    return name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('');
+  }
+
+  tabLabel(t: ProfileTab): string {
+    return t === 'checkins' ? 'Check-ins' : t === 'audit' ? 'Access log' : t.charAt(0).toUpperCase() + t.slice(1);
   }
 
   /* ---------- derived data ---------- */
@@ -165,6 +246,7 @@ export class PatientDetailComponent implements OnInit {
 
   selectTab(t: ProfileTab, focus = false): void {
     this.tab = t;
+    this.visited.add(t);
     this.router.navigate([], { queryParams: { tab: t === 'overview' ? null : t }, queryParamsHandling: 'merge', replaceUrl: true });
     if (focus) {
       setTimeout(() => this.tabButtons?.get(TABS.indexOf(t))?.nativeElement.focus());

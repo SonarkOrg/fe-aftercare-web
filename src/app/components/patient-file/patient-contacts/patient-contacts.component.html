@@ -1,0 +1,79 @@
+<div class="banner banner--error" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ actionError }}</span></div>
+<div class="grid-2">
+  <section class="card card--list contacts-card">
+    <div class="card__head">
+      <h2 class="card__title--sm">Emergency contacts <span class="badge">{{ contacts.length }}</span></h2>
+      <button type="button" class="card__link add-contact" (click)="openForm()">+ Add</button>
+    </div>
+
+    <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the contacts. <button type="button" class="btn btn--ghost btn--sm" (click)="loadContacts()">Retry</button></span></div>
+
+    <form class="grid-form contact-form" *ngIf="form" (ngSubmit)="save()" aria-label="Emergency contact">
+      <div class="banner banner--error span-2" role="alert" *ngIf="form.banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ form.banner }}</span></div>
+      <div class="form-group span-2"><label for="ec-name">Name</label><input id="ec-name" name="name" type="text" maxlength="120" autocomplete="off" [(ngModel)]="form.name"><span class="field-error" *ngIf="form.errors['name']">{{ form.errors['name'] }}</span></div>
+      <div class="form-group"><label for="ec-rel">Relationship</label><input id="ec-rel" name="relationship" type="text" maxlength="60" autocomplete="off" [(ngModel)]="form.relationship"><span class="field-error" *ngIf="form.errors['relationship']">{{ form.errors['relationship'] }}</span></div>
+      <div class="form-group"><label for="ec-phone">Phone</label><input id="ec-phone" name="phone" type="tel" maxlength="25" autocomplete="off" [(ngModel)]="form.phone"><span class="field-error" *ngIf="form.errors['phone']">{{ form.errors['phone'] }}</span></div>
+      <div class="form-group span-2"><label for="ec-lang">Preferred language</label>
+        <select id="ec-lang" name="preferredLanguage" [(ngModel)]="form.preferredLanguage"><option value="FR">Français</option><option value="EN">English</option></select>
+      </div>
+      <div class="btn-row span-2">
+        <button type="submit" class="btn btn--accent btn--sm save-contact" [disabled]="!canSave">{{ form.saving ? 'Saving…' : 'Save' }}</button>
+        <button type="button" class="btn btn--secondary btn--sm" (click)="form = null">Cancel</button>
+      </div>
+    </form>
+
+    <p class="muted empty-line" *ngIf="!loading && !loadError && contacts.length === 0">No emergency contacts.</p>
+    <ul class="rows" *ngIf="contacts.length > 0">
+      <li class="row" *ngFor="let c of contacts">
+        <app-avatar [id]="c.id" [initials]="initials(c.name)"></app-avatar>
+        <span class="row__main"><span class="row__name">{{ c.name }}</span><span class="row__sub">{{ c.relationship }} · <a [attr.href]="'tel:' + c.phone">{{ c.phone }}</a></span></span>
+        <span class="row__end">
+          <span class="chip chip--neutral chip--sm"><span class="chip__glyph" aria-hidden="true">—</span><span class="chip__label">{{ c.preferredLanguage }}</span></span>
+          <app-row-menu [label]="'Actions for ' + c.name" [items]="[{ key: 'edit', label: 'Edit' }, { key: 'remove', label: 'Remove' }]" (selected)="onContactMenu(c, $event)"></app-row-menu>
+        </span>
+        <app-confirm-inline *ngIf="removingContact === c.id" class="row-confirm" [question]="'Remove ' + c.name + '?'" (confirmed)="confirmRemoveContact(c)" (cancelled)="removingContact = null"></app-confirm-inline>
+      </li>
+    </ul>
+  </section>
+
+  <section class="card card--list care-team-card">
+    <div class="card__head"><h2 class="card__title--sm">Care team <span class="badge">{{ careTeam.length }}</span></h2></div>
+    <p class="muted empty-line" *ngIf="careTeam.length === 0">No care team assigned.</p>
+    <ul class="rows" *ngIf="careTeam.length > 0">
+      <li class="row" *ngFor="let m of careTeam">
+        <app-avatar [id]="m.staffId" [initials]="initials(m.displayName)"></app-avatar>
+        <span class="row__main"><span class="row__name">{{ m.displayName }}</span><span class="row__sub">{{ humanize(m.role) }}</span></span>
+        <span class="row__end">
+          <app-status-chip size="sm" *ngIf="!m.active" [spec]="inactiveChip"></app-status-chip>
+          <app-row-menu [label]="'Actions for ' + m.displayName" [items]="[{ key: 'remove', label: 'Remove' }]" (selected)="removingMember = m.assignmentId"></app-row-menu>
+        </span>
+        <app-confirm-inline *ngIf="removingMember === m.assignmentId" class="row-confirm" [question]="'Remove ' + m.displayName + ' from the care team?'" (confirmed)="confirmUnassign(m)" (cancelled)="removingMember = null"></app-confirm-inline>
+      </li>
+    </ul>
+
+    <div class="assign" *ngIf="staff.length > 0; else noStaff">
+      <div class="banner banner--error" role="alert" *ngIf="assignError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ assignError }}</span></div>
+      <h3 class="enroll-title">Assign staff</h3>
+      <div class="assign__row">
+        <div class="form-group">
+          <label for="assign-staff">Staff member</label>
+          <select id="assign-staff" name="assignStaff" [(ngModel)]="assignStaffId">
+            <option value="">Choose…</option>
+            <option *ngFor="let s of assignable" [value]="s.id">{{ s.displayName }} — {{ humanize(s.role) }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="assign-role">Role</label>
+          <select id="assign-role" name="assignRole" [(ngModel)]="assignRole">
+            <option value="">Same as directory</option>
+            <option *ngFor="let r of roles" [value]="r">{{ humanize(r) }}</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn--secondary assign-btn" [disabled]="!assignStaffId || assigning" (click)="assign()">Assign</button>
+      </div>
+    </div>
+    <ng-template #noStaff>
+      <div class="empty"><p class="empty__text">No staff in the directory yet.</p><a class="btn btn--secondary btn--sm" routerLink="/settings" [queryParams]="{ tab: 'staff' }">Add staff in Settings</a></div>
+    </ng-template>
+  </section>
+</div>

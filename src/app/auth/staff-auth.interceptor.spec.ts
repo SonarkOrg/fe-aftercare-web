@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { PublicMessageService } from '../Services/PublicMessage.service';
 import { StaffAuth } from './staff-auth';
 import { StaffAuthInterceptor } from './staff-auth.interceptor';
 
@@ -72,5 +73,27 @@ describe('StaffAuthInterceptor', () => {
     http.get(`${api}/patients`).subscribe({ error: e => (message = e.message) });
     httpMock.expectNone(`${api}/patients`);
     expect(message).toBe('login required');
+  });
+
+  it('never attaches the staff token to the public message endpoints', () => {
+    const svc = TestBed.inject(PublicMessageService);
+    svc.thread('abc').subscribe();
+    svc.thread('abc', 9).subscribe();
+    svc.send('abc', 'hello').subscribe();
+    svc.markRead('abc', 3).subscribe();
+    const reqs = httpMock.match(r => r.url.startsWith(`${api}/public/q/abc/messages`));
+    expect(reqs.length).toBe(4);
+    for (const r of reqs) {
+      expect(r.request.headers.has('Authorization')).withContext(r.request.method + ' ' + r.request.url).toBeFalse();
+      r.flush({});
+    }
+    expect(getAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('attaches the token to the staff message inbox', () => {
+    http.get(`${api}/messages/inbox`).subscribe();
+    const req = httpMock.expectOne(`${api}/messages/inbox`);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer tok-123');
+    req.flush([]);
   });
 });

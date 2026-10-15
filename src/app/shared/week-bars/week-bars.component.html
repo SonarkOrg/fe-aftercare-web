@@ -1,0 +1,35 @@
+<figure class="trend">
+  <svg class="bc" role="img" [attr.viewBox]="'0 0 ' + model.w + ' ' + model.h" [attr.aria-labelledby]="titleId + ' ' + descId">
+    <title [attr.id]="titleId">{{ model.title }}</title>
+    <desc [attr.id]="descId">{{ model.desc }}</desc>
+    <svg:defs>
+      <pattern [attr.id]="hatchId" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><rect width="20" height="20" fill="#f6f8f1"/><rect width="10" height="20" fill="#eef2e6"/></pattern>
+      <pattern [attr.id]="greyId" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><rect width="8" height="8" fill="#f1f1f1"/><rect width="4" height="8" fill="#e5e7e2"/></pattern>
+      <linearGradient [attr.id]="critId" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#f4cfc6"/><stop offset="1" stop-color="#fae2dc"/></linearGradient>
+      <linearGradient [attr.id]="warnId" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fbefc9"/><stop offset="1" stop-color="#fdf6de"/></linearGradient>
+    </svg:defs>
+    <g aria-hidden="true">
+      <text *ngFor="let t of model.yTicks" class="bc-axis" [attr.x]="model.pad.l - 10" [attr.y]="t.y + 4" text-anchor="end">{{ t.label }}</text>
+      <text *ngFor="let l of model.labels" class="bc-day" [attr.x]="l.x" [attr.y]="l.y" text-anchor="middle">{{ l.text }}</text>
+    </g>
+    <g aria-hidden="true">
+      <ng-container *ngFor="let b of model.bars">
+        <rect *ngIf="!b.zero" class="bc-bar" [class.bc-bar--miss]="b.miss" [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" [attr.rx]="b.rx" [attr.fill]="fill(b.tone, b.miss)"/>
+        <ng-container *ngIf="b.pill as p">
+          <rect class="bc-pill" [class.bc-pill--alert]="b.tone === 'critical' && !b.miss" [class.bc-pill--warn]="b.tone === 'warning' && !b.miss" [class.bc-pill--dash]="b.miss"
+                [attr.x]="p.x" [attr.y]="p.y" [attr.width]="p.w" [attr.height]="p.h" [attr.rx]="p.rx"/>
+          <text class="bc-pill-t" [class.bc-pill-t--alert]="b.tone === 'critical' && !b.miss" [class.bc-pill-t--warn]="b.tone === 'warning' && !b.miss" [class.bc-pill-t--dash]="b.miss"
+                [style.font-size.px]="p.fs" [attr.x]="p.x + p.w / 2" [attr.y]="p.ty" text-anchor="middle">{{ p.text }}</text>
+        </ng-container>
+      </ng-container>
+    </g>
+  </svg>
+  <figcaption class="trend__legend">
+    <ng-container *ngFor="let s of series; let last = last">{{ s.glyph }} {{ s.label }}<ng-container *ngIf="!last"> · </ng-container></ng-container>
+  </figcaption>
+  <table class="sr-only">
+    <caption>{{ model.title }}</caption>
+    <thead><tr><th scope="col">Week</th><th scope="col" *ngFor="let s of series">{{ s.label }}</th></tr></thead>
+    <tbody><tr *ngFor="let r of model.rows"><th scope="row">{{ r.label }}</th><td *ngFor="let v of r.values">{{ v }}</td></tr></tbody>
+  </table>
+</figure>

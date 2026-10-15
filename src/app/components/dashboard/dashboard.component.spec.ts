@@ -5,11 +5,12 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AlertCountService } from '../../Services/AlertCount.service';
+import { SettingsService } from '../../Services/Settings.service';
 import { StaffAuth } from '../../auth/staff-auth';
 import { Patient } from '../../models/patient.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { addDays, businessToday } from '../../shared/link.util';
-import { SEED_RULES, alertDto, appointment, checkInDto, followUp } from '../../testing/fixtures';
+import { CLINIC, SEED_RULES, alertDto, appointment, checkInDto, followUp } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { DashboardComponent } from './dashboard.component';
 
@@ -50,7 +51,8 @@ describe('DashboardComponent', () => {
       declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [
         { provide: StaffAuth, useValue: { userName$: of('Dev Nurse') } },
-        { provide: AlertCountService, useValue: alertCount }
+        { provide: AlertCountService, useValue: alertCount },
+        { provide: SettingsService, useValue: { clinic$: of(CLINIC) } }
       ]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -80,6 +82,11 @@ describe('DashboardComponent', () => {
     (el.querySelector(`.attn[data-kind=${kind}] .more-btn`) as HTMLButtonElement).click();
     fixture.detectChanges();
   };
+
+  it('shows the configured clinic name in the hero', () => {
+    init();
+    expect(el.querySelector('.hero__clinic')!.textContent).toContain('Clinique Test');
+  });
 
   it('renders the pastel KPI values from the fixtures', () => {
     init();

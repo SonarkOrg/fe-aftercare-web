@@ -148,12 +148,16 @@
             <label for="new-phone">Phone:</label>
             <input type="tel" id="new-phone" name="phone" [(ngModel)]="patient.phone" required>
           </div>
-          <div class="form-group span-2">
+          <div class="form-group">
             <label for="new-gender">Gender:</label>
             <select id="new-gender" name="gender" [(ngModel)]="patient.gender" required>
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="new-dob">Date of birth <span class="q-optional">(optional)</span>:</label>
+            <input type="date" id="new-dob" name="dateOfBirth" [max]="dobMax" [(ngModel)]="patient.dateOfBirth">
           </div>
         </div>
         <div class="grid-form grid-form--3">

@@ -192,3 +192,102 @@ app-trend-chart[variant="micro"] .bc { width: 64px; height: 20px; }
 .chart-tip { background: var(--ink); color: #fff; border-radius: 12px; padding: 8px 12px; box-shadow: var(--shadow-3); font: 400 12px/1.4 var(--font-text); white-space: nowrap; }
 .chart-tip strong { font: 600 18px/1.2 var(--font-display); }
 button.card__link { background: none; border: 0; padding: 0; min-height: 0; cursor: pointer; }
+
+/* ---------- patient file, messages, reports, settings (pages release) ---------- */
+.tab .pill-group__count { margin-left: 8px; }
+.tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs > .tab { flex: 0 0 auto; }
+.timeline-card .btn--sm, .med-list .btn--sm, .documents-card .btn--sm, .care-team-card .btn--sm, .contacts-card .btn--sm, .staff-card .btn--sm,
+.identity-card .btn--sm, .thread-card .btn--sm, .confirm-inline .btn--sm, .rules-card .btn--sm, .composer-card .btn--sm { min-height: 40px; height: 40px; }
+app-row-menu .more-btn { width: 40px; height: 40px; }
+app-row-menu .row-menu { top: 44px; }
+.label-day { margin: 16px 4px 8px; font: 600 14px/1.3 var(--font-display); color: var(--ink-2); letter-spacing: 0; }
+.label-day:first-child { margin-top: 4px; }
+
+.row-confirm { flex-basis: 100%; }
+.row:has(> .row-confirm) { flex-wrap: wrap; }
+.confirm-inline { padding: 8px 4px; }
+.confirm-inline__q { margin: 0 0 8px; font: 600 14px/1.4 var(--font-text); }
+.confirm-inline .form-group { margin-bottom: 8px; }
+.allergy-chip { display: inline-flex; }
+dl.kv--grid > div.span-all { grid-column: 1 / -1; }
+.ramq-value { font-size: 16px; letter-spacing: .04em; margin-right: 8px; }
+.ramq-actions { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.ramq-visible { display: inline-flex; margin: 0 8px 0 0; }
+.inline-form, .reveal-form, .hn-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin-top: 8px; }
+.reveal-form .form-group, .hn-form .form-group { flex: 1 1 220px; margin-bottom: 0; }
+.med-form { padding: 8px 4px 12px; }
+.med-form .btn-row, .contact-form .btn-row { grid-column: 1 / -1; }
+.stack-20 > .card + .card { margin-top: 0; }
+.timeline-filter { margin: 20px 0; }
+.composer-card textarea { min-height: 96px; }
+.composer__row { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.composer__hint { margin-top: 0; }
+.composer__count { font: 400 13px/1.45 var(--font-text); white-space: nowrap; }
+.note-body { white-space: pre-wrap; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.note-body.is-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.note-removed { white-space: normal; }
+.timeline-row .row__sub { white-space: normal; }
+.timeline-row .row__name { white-space: normal; overflow-wrap: anywhere; }
+.timeline-row { align-items: flex-start; }
+.audit-table td.num { white-space: nowrap; }
+.timeline-row .row__end { flex-wrap: wrap; justify-content: flex-end; }
+.timeline-row .edit-body { width: 100%; margin: 4px 0 8px; }
+@media (max-width: 599px) {
+  .timeline-row { flex-wrap: wrap; }
+  .timeline-row .row__main { flex: 1 1 0; }
+  .timeline-row .row__end { flex: 1 0 100%; padding-left: 44px; justify-content: flex-start; }
+}
+.show-more { display: block; margin-top: 4px; padding: 0; background: none; border: 0; font: 500 13px/1.4 var(--font-display); color: var(--ink-2); text-decoration: underline; cursor: pointer; }
+.assign { margin-top: 16px; padding-top: 8px; }
+.assign__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px 12px; align-items: end; }
+.assign__row .form-group { margin-bottom: 0; }
+.doc-image { display: block; max-width: 100%; height: auto; border-radius: 12px; }
+.view-drawer { display: flex; flex-direction: column; height: 100%; }
+.audit-help { margin: 0 0 12px; }
+.range-field { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--font-display); color: var(--ink-2); }
+.toolbar + .field-error { margin: -8px 0 12px; }
+.toggle-row { min-height: 48px; }
+.toggle-row input[type=checkbox] { width: 24px; height: 24px; }
+.rules-card .form-url { margin: 0 0 12px; }
+
+/* messages */
+.grid-msg { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.grid-msg > * { min-width: 0; }
+.msg-back { display: none; }
+.msg-search { margin: 4px 4px 12px; width: calc(100% - 8px); }
+.conv-row .row__name.is-unread { font-weight: 700; }
+.conv-time { font-size: 12px; white-space: nowrap; }
+.thread-card .card__head { margin-bottom: 8px; }
+.thread-who { color: var(--ink); text-decoration: none; font-weight: 600; }
+.thread-who:hover { text-decoration: underline; }
+.thread { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; min-height: 120px; overflow-y: auto; padding: 4px; }
+.thread-earlier { align-self: center; }
+.msg { align-self: flex-start; max-width: min(560px, 85%); padding: 10px 14px; border-radius: 16px 16px 16px 4px; background: var(--g-row); box-shadow: var(--glass-hi); font: 400 14px/1.45 var(--font-text); }
+.msg--me { align-self: flex-end; background: var(--sage-50); border-radius: 16px 16px 4px 16px; }
+.msg__body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg__meta { margin: 4px 0 0; font: 400 12px/1.4 var(--font-text); color: var(--muted); }
+.composer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.composer textarea { width: 100%; min-height: 80px; }
+.msg-send { margin-top: 4px; }
+@media (min-width: 900px) {
+  .grid-msg { grid-template-columns: 360px minmax(0, 1fr); }
+}
+@media (max-width: 899px) {
+  .grid-msg:not(.has-selection) .msg-pane { display: none; }
+  .grid-msg.has-selection .msg-list { display: none; }
+  .grid-msg.has-selection .msg-back { display: inline-flex; }
+}
+@media (max-width: 899px) {
+  .assign__row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* week bars (reports): the warning series */
+.bc-pill--warn { fill: var(--warning-bg); }
+.bc-pill-t--warn { fill: var(--warning-fg); }
+span.row__name, span.row__sub { display: block; }
+.conv-row .row__end { gap: 6px; }
+.conv-row .conv-time { flex: 0 0 auto; }
+.row .appt__date { flex: 0 0 110px; }
+button.plain-link { padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }

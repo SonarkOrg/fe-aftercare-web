@@ -1,0 +1,29 @@
+<section class="pq-messages">
+  <p class="pq-sub pq-intro">{{ t.intro }}</p>
+  <p class="pq-sub pq-clinic" *ngIf="clinicName || clinicPhone">
+    <strong *ngIf="clinicName">{{ clinicName }}</strong><ng-container *ngIf="clinicName && clinicPhone"> · </ng-container>
+    <ng-container *ngIf="clinicPhone">{{ t.clinicPhone }} <a [attr.href]="'tel:' + clinicPhone">{{ clinicPhone }}</a></ng-container>
+  </p>
+
+  <div class="pq-thread" #log role="log" aria-live="polite" [attr.aria-busy]="loading">
+    <button type="button" class="pq-btn pq-btn--ghost pq-earlier" *ngIf="hasMore" (click)="loadEarlier()">{{ t.earlier }}</button>
+    <p class="pq-sub pq-empty" *ngIf="!loading && items.length === 0">{{ t.empty }}</p>
+    <div class="pq-msg-item" *ngFor="let m of items" [class.pq-msg-item--me]="m.sender === 'PATIENT'">
+      <p class="pq-body">{{ m.body }}</p>
+      <p class="pq-meta">{{ time(m) }} · {{ who(m) }}<ng-container *ngIf="m.sender === 'PATIENT' && m.seen"> · {{ t.seen }}</ng-container></p>
+    </div>
+  </div>
+
+  <button type="button" class="pq-btn pq-btn--ghost pq-refresh" (click)="load()">{{ t.refresh }}</button>
+
+  <div class="pq-compose">
+    <div class="pq-msg pq-error" role="alert" *ngIf="errorKey">
+      <p>{{ t[errorKey] }}</p>
+      <button type="button" class="pq-btn pq-retry" *ngIf="errorKey === 'error'" (click)="retry()">{{ retryText }}</button>
+    </div>
+    <label for="pq-msg-body">{{ t.label }}</label>
+    <textarea id="pq-msg-body" rows="4" maxlength="2000" [(ngModel)]="draft" name="draft" (keydown)="onKey($event)" aria-describedby="pq-msg-count"></textarea>
+    <p id="pq-msg-count" class="pq-sub pq-counter">{{ counter }}</p>
+    <button type="button" class="pq-btn pq-send" [disabled]="!canSend" (click)="send()">{{ sending ? t.sending : t.send }}</button>
+  </div>
+</section>

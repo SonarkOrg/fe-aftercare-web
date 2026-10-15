@@ -82,8 +82,9 @@
 .brand:hover { color: #fff; }
 .user-pill { display: inline-flex; align-items: center; gap: 12px; height: 48px; padding: 0 18px 0 20px; border-radius: 16px; background: var(--ink); color: #fff;
   font: 400 15.5px/1 var(--font-display); white-space: nowrap; min-width: 0; }
-.user-pill__name { overflow: hidden; text-overflow: ellipsis; }
-.user-pill .chip { flex: 0 0 auto; }
+.user-pill__name { flex: 0 0 auto; white-space: nowrap; } /* the name keeps its full width; the dev chip gives up room first */
+.user-pill .chip { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+.user-pill .chip__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .user-pill__initials { display: none; }
 .top-nav { display: flex; gap: 6px; padding: 4px; height: 48px; border-radius: 16px; background: #fff; }
 .top-nav__item { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--r-active); color: var(--ink-2);
@@ -95,6 +96,8 @@
 .icon-btn { position: relative; flex: 0 0 48px; width: 48px; height: 48px; border-radius: 16px; background: #fff; border: 0; padding: 0; min-height: 0;
   display: grid; place-items: center; color: var(--ink); cursor: pointer; text-decoration: none; font: inherit; }
 .icon-btn:hover { background: var(--sage-50); color: var(--ink); }
+.icon-btn[aria-current=page] { background: linear-gradient(180deg, #607d47 0%, #57713f 100%); color: #fff; }
+.icon-btn[aria-current=page]:hover { color: #fff; }
 .icon-btn__dot { position: absolute; top: 13px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--bell-dot); box-shadow: 0 0 0 2px #fff; }
 .menu-pop { position: absolute; right: max(24px, calc((100% - var(--content-max)) / 2 + 24px)); top: 84px; z-index: 30; min-width: 240px; max-width: calc(100vw - 32px); padding: 8px; border-radius: 16px; background: #fff;
   box-shadow: var(--shadow-3); display: flex; flex-direction: column; gap: 4px; }
@@ -107,7 +110,10 @@
   font: 400 16px/1 var(--font-display); text-decoration: none; }
 .menu-nav__item[aria-current=page] { background: linear-gradient(180deg, #607d47 0%, #57713f 100%); color: #fff; }
 .menu-dev { padding: 4px 12px; }
-@media (max-width: 1199px) {
+/* the seven top-bar items need the room: the user pill collapses to its initials below 1280 px, and the dev chip
+   shows in the pill only from 1600 px (below that it is in the menu), so the staff name is never truncated */
+@media (max-width: 1599px) { .user-pill .chip { display: none; } }
+@media (max-width: 1279px) {
   .user-pill { width: 48px; padding: 0; justify-content: center; }
   .user-pill__name, .user-pill .chip { display: none; }
   .user-pill__initials { display: inline; font: 600 15px/1 var(--font-display); }
@@ -120,3 +126,5 @@
   .menu-nav { display: flex; }
   .menu-pop { left: 16px; right: 16px; top: 72px; border-radius: 24px; padding: 8px; max-width: none; }
 }
+/* seven top-bar items must fit at 1200 px */
+@media (min-width: 1200px) and (max-width: 1279px) { .top-nav__item { padding: 0 12px; gap: 6px; } }

@@ -1,11 +1,14 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { PublicMessageService } from '../../Services/PublicMessage.service';
 import { PublicQuestionnaireService } from '../../Services/PublicQuestionnaire.service';
 import { FhirQuestionnaireResponse } from '../../fhir/fhir.model';
 import { localize } from '../../fhir/fhir.util';
 import { PublicSession } from '../../models/public-session.model';
 import { PatientLang, QUESTIONNAIRE_TEXT, QuestionnaireText } from './patient-questionnaire.i18n';
+import { PATIENT_MESSAGES_TEXT, PatientMessagesText } from './patient-messages/patient-messages.i18n';
 
+export type PqTab = 'questionnaire' | 'messages';
 export type PageState = 'loading' | 'invalid' | 'form' | 'submitting' | 'done' | 'already' | 'error';
 
 const LANG_KEY = 'aftercare.lang';
@@ -23,13 +26,20 @@ export class PatientQuestionnaireComponent implements OnInit {
   errorKey: 'error' | 'validationError' = 'error';
   /** True when the error came from submitting (the form stays visible so answers are kept). */
   submitFailed = false;
+  tab: PqTab = 'questionnaire';
+  /** Unread clinic messages, shown on the Messages tab. */
+  unread = 0;
 
   @ViewChild('statusMsg') statusMsg?: ElementRef<HTMLElement>;
 
-  constructor(private route: ActivatedRoute, private service: PublicQuestionnaireService) {}
+  constructor(private route: ActivatedRoute, private service: PublicQuestionnaireService, private messages: PublicMessageService) {}
 
   get t(): QuestionnaireText {
     return QUESTIONNAIRE_TEXT[this.lang];
+  }
+
+  get mt(): PatientMessagesText {
+    return PATIENT_MESSAGES_TEXT[this.lang];
   }
 
   get formVisible(): boolean {
@@ -38,6 +48,10 @@ export class PatientQuestionnaireComponent implements OnInit {
 
   get isCheckin(): boolean {
     return this.session?.kind === 'FOLLOW_UP_CHECKIN';
+  }
+
+  get tabsVisible(): boolean {
+    return this.state !== 'loading' && this.state !== 'invalid';
   }
 
   get title(): string {
@@ -56,6 +70,9 @@ export class PatientQuestionnaireComponent implements OnInit {
     }
     document.documentElement.lang = this.lang;
     this.code = this.route.snapshot.paramMap.get('code') ?? '';
+    if (this.route.snapshot.queryParamMap?.get('tab') === 'messages') {
+      this.tab = 'messages';
+    }
     this.load();
   }
 
@@ -80,6 +97,8 @@ export class PatientQuestionnaireComponent implements OnInit {
         if (s.submitted) {
           this.focusStatus();
         }
+        // Unread count for the Messages tab; a failure is ignored (the tab still shows).
+        this.messages.thread(this.code).subscribe({ next: t => (this.unread = this.tab === 'messages' ? 0 : t.unreadCount), error: () => { /* ignore */ } });
       },
       error: err => {
         this.state = err?.status === 404 ? 'invalid' : 'error';
@@ -115,6 +134,26 @@ export class PatientQuestionnaireComponent implements OnInit {
         }
       }
     });
+  }
+
+  selectTab(t: PqTab, focus = false): void {
+    this.tab = t;
+    if (focus) {
+      setTimeout(() => document.getElementById('pq-tab-' + t)?.focus());
+    }
+  }
+
+  onTabKey(e: KeyboardEvent): void {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'Home' || e.key === 'End') {
+      e.preventDefault();
+      this.selectTab(e.key === 'Home' ? 'questionnaire' : e.key === 'End' ? 'messages' : this.tab === 'messages' ? 'questionnaire' : 'messages', true);
+    }
+  }
+
+  /** The messages view found the link invalid (404): same page state as an invalid questionnaire link. */
+  onMessagesInvalid(): void {
+    this.state = 'invalid';
+    this.focusStatus();
   }
 
   /** Moves focus to the status message once it has rendered (done / already / invalid). */
