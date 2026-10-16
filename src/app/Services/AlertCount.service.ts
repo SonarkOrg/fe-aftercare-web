@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, catchError, of, take } from 'rxjs';
 import { AlertSeverity } from '../models/alert.model';
+import { Permissions } from '../auth/permissions.service';
 import { AlertService } from './Alert.service';
 import { SettingsService } from './Settings.service';
 
@@ -12,9 +13,14 @@ import { SettingsService } from './Settings.service';
 export class AlertCountService {
   readonly openCount$ = new BehaviorSubject<number>(0);
 
-  constructor(private alerts: AlertService, private settings: SettingsService) {}
+  constructor(private alerts: AlertService, private settings: SettingsService, private permissions: Permissions) {}
 
+  /** Does nothing (no request) without CLINICAL_READ. */
   refresh(): void {
+    if (!this.permissions.can('CLINICAL_READ')) {
+      this.openCount$.next(0);
+      return;
+    }
     this.settings.clinic$.pipe(take(1), catchError(() => of(null))).subscribe(clinic => {
       const wanted: AlertSeverity[] | null = clinic ? clinic.notifySeverities : null;
       this.alerts.list(['OPEN']).subscribe({

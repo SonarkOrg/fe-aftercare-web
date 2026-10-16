@@ -1,14 +1,15 @@
 import { Component, HostListener, OnInit } from '@angular/core';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, combineLatest, forkJoin, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AlertCountService } from '../../Services/AlertCount.service';
 import { AlertService } from '../../Services/Alert.service';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { CareDataService } from '../../Services/CareData.service';
 import { SettingsService } from '../../Services/Settings.service';
+import { Permissions } from '../../auth/permissions.service';
 import { StaffAuth } from '../../auth/staff-auth';
 import { Alert } from '../../models/alert.model';
-import { Appointment } from '../../models/appointment.model';
+import { Appointment, AppointmentMetrics } from '../../models/appointment.model';
 import { CareSnapshot, PatientRow } from '../../shared/care.model';
 import { addDays, businessHour, businessNow, businessToday, humanize } from '../../shared/link.util';
 import { STATUS_RANK, chartTodayDay } from '../../shared/patient-status';
@@ -48,6 +49,10 @@ export class DashboardComponent implements OnInit {
   protected now: () => Date = () => new Date();
 
   snapshot: CareSnapshot | null = null;
+  /** CLINICAL_READ: alerts, check-ins and trends. Without it only the schedule is loaded. */
+  clinical = false;
+  receptionReady = false;
+  metrics: AppointmentMetrics | null = null;
   today = businessToday();
   loading = true;
   errorMessage: string | null = null;
@@ -95,14 +100,20 @@ export class DashboardComponent implements OnInit {
     private appointments: AppointmentService,
     private alertCount: AlertCountService,
     settings: SettingsService,
-    auth: StaffAuth
+    auth: StaffAuth,
+    private permissions: Permissions
   ) {
     this.clinicName$ = settings.clinic$.pipe(map(c => c.name), catchError(() => of(environment.clinicName)));
-    this.firstName$ = auth.userName$.pipe(map(n => (n ?? '').trim().split(/\s+/)[0] ?? ''));
+    this.firstName$ = combineLatest([permissions.me$, auth.userName$]).pipe(map(([me, n]) => ((me?.displayName ?? n ?? '').trim().split(/\s+/)[0]) ?? ''));
   }
 
   ngOnInit(): void {
+    this.clinical = this.permissions.can('CLINICAL_READ');
     this.reload();
+  }
+
+  get ready(): boolean {
+    return this.clinical ? !!this.snapshot : this.receptionReady;
   }
 
   get greetingText(): string {
@@ -118,6 +129,10 @@ export class DashboardComponent implements OnInit {
   }
 
   reload(): void {
+    if (!this.clinical) {
+      this.reloadSchedule();
+      return;
+    }
     this.care.load().subscribe({
       next: s => {
         this.snapshot = s;
@@ -129,6 +144,30 @@ export class DashboardComponent implements OnInit {
       error: () => {
         this.loading = false;
         this.snapshot = null; // never show "nothing needs attention" / "no appointments" on top of a failed load
+        this.errorMessage = 'Could not load the dashboard.';
+      }
+    });
+  }
+
+  /** Reception: today's appointments and their metrics, nothing clinical. */
+  private reloadSchedule(): void {
+    const today = businessToday();
+    this.today = today;
+    const canRead = this.permissions.can('APPOINTMENT_READ');
+    forkJoin({
+      appts: canRead ? this.appointments.list(today, today) : of<Appointment[]>([]),
+      metrics: canRead ? this.appointments.metrics(today, today) : of<AppointmentMetrics | null>(null)
+    }).subscribe({
+      next: r => {
+        this.todayAppts = [...r.appts].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt) || a.id - b.id);
+        this.metrics = r.metrics;
+        this.receptionReady = true;
+        this.loading = false;
+        this.errorMessage = null;
+      },
+      error: () => {
+        this.loading = false;
+        this.receptionReady = false;
         this.errorMessage = 'Could not load the dashboard.';
       }
     });
@@ -209,6 +248,9 @@ export class DashboardComponent implements OnInit {
 
   /** "Pain 8" / "Temp 38.4 °C"; any other measure keeps its question label. */
   alertShort(a: Alert): string {
+    if (a.type === 'MISSED_CHECKIN') {
+      return a.missedDate ? `Missed check-in ${this.shortDate(a.missedDate)}` : 'Missed check-in';
+    }
     const v = this.display(a);
     switch (a.linkId) {
       case 'PAIN': return `Pain ${v}`;
@@ -271,7 +313,7 @@ export class DashboardComponent implements OnInit {
   }
 
   display(a: Alert): string {
-    return a.answerValue === 'true' ? 'Yes' : a.answerValue === 'false' ? 'No' : a.answerValue;
+    return a.answerValue === 'true' ? 'Yes' : a.answerValue === 'false' ? 'No' : a.answerValue ?? '—';
   }
 
   when(a: Appointment): string {

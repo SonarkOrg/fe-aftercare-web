@@ -1,10 +1,12 @@
+import { NotificationService } from '../../Services/Notification.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
 import { AppointmentDetail, AppointmentStatusRequest } from '../../models/appointment.model';
-import { humanize, initials } from '../../shared/link.util';
+import { errorText } from '../../models/api-error.model';
+import { businessNow, humanize, initials } from '../../shared/link.util';
 import { PageTitleService } from '../../shell/page-title.service';
 
 @Component({
@@ -27,8 +29,13 @@ export class AppointmentDetailComponent implements OnInit {
     private router: Router,
     private appointments: AppointmentService,
     private definitions: QuestionnaireDefinitionService,
-    private titles: PageTitleService
+    private titles: PageTitleService,
+    private notifications: NotificationService
   ) {}
+
+  onLinkSent(patientId: number): void {
+    this.notifications.notifySent(patientId);
+  }
 
   ngOnInit(): void {
     this.id = Number(this.route.snapshot.paramMap.get('id'));
@@ -38,6 +45,11 @@ export class AppointmentDetailComponent implements OnInit {
   get open(): boolean {
     const s = this.appt?.status;
     return s === 'SCHEDULED' || s === 'READY' || s === 'NEEDS_REVIEW';
+  }
+
+  /** The link is usable while the appointment is open and still ahead of us. */
+  get canSendLink(): boolean {
+    return this.open && !!this.appt && this.appt.scheduledAt > businessNow();
   }
 
   load(): void {
@@ -64,14 +76,14 @@ export class AppointmentDetailComponent implements OnInit {
     });
   }
 
-  private fail(): void {
-    this.errorMessage = 'Action failed. The appointment may have changed; reloading.';
+  private fail(err?: unknown): void {
+    this.errorMessage = errorText(err, 'Action failed. The appointment may have changed; reloading.');
     this.load();
   }
 
   markReviewed(): void {
     this.errorMessage = null;
-    this.appointments.markReviewed(this.id).subscribe({ next: () => this.load(), error: () => this.fail() });
+    this.appointments.markReviewed(this.id).subscribe({ next: () => this.load(), error: err => this.fail(err) });
   }
 
   setStatus(status: AppointmentStatusRequest['status'], question: string): void {
@@ -79,7 +91,7 @@ export class AppointmentDetailComponent implements OnInit {
       return;
     }
     this.errorMessage = null;
-    this.appointments.setStatus(this.id, status).subscribe({ next: () => this.load(), error: () => this.fail() });
+    this.appointments.setStatus(this.id, status).subscribe({ next: () => this.load(), error: err => this.fail(err) });
   }
 
   regenerate(): void {
@@ -92,7 +104,7 @@ export class AppointmentDetailComponent implements OnInit {
         this.accessCode = res.accessCode;
         this.load();
       },
-      error: () => this.fail()
+      error: err => this.fail(err)
     });
   }
 
@@ -103,7 +115,7 @@ export class AppointmentDetailComponent implements OnInit {
     this.errorMessage = null;
     this.appointments.delete(this.id).subscribe({
       next: () => this.router.navigate(['/appointments']),
-      error: () => this.fail()
+      error: err => this.fail(err)
     });
   }
 }

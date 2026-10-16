@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { Permissions } from '../auth/permissions.service';
+import { Alert } from '../models/alert.model';
+import { Appointment } from '../models/appointment.model';
+import { CheckIn } from '../models/follow-up.model';
 import { RuleJson } from '../models/questionnaire-definition.model';
 import { CareSnapshot } from '../shared/care.model';
 import { addDays, businessNow, businessToday } from '../shared/link.util';
@@ -22,16 +26,19 @@ export class CareDataService {
     private alerts: AlertService,
     private checkIns: CheckInFeedService,
     private appointments: AppointmentService,
-    private definitions: QuestionnaireDefinitionService
+    private definitions: QuestionnaireDefinitionService,
+    private permissions: Permissions
   ) {}
 
   load(): Observable<CareSnapshot> {
     const today = businessToday();
+    const clinical = this.permissions.can('CLINICAL_READ');
     return forkJoin({
       patients: this.patients.getPatientList(),
-      alerts: this.alerts.list(),
-      checkIns: this.checkIns.range(addDays(today, -30), today),
-      appointments: this.appointments.list(today, addDays(today, 30))
+      // Clinical feeds only with CLINICAL_READ; RECEPTION gets the patient list and the schedule.
+      alerts: clinical ? this.alerts.list() : of<Alert[]>([]),
+      checkIns: clinical ? this.checkIns.range(addDays(today, -30), today) : of<CheckIn[]>([]),
+      appointments: this.permissions.can('APPOINTMENT_READ') ? this.appointments.list(today, addDays(today, 30)) : of<Appointment[]>([])
     }).pipe(
       switchMap(feeds => {
         const ids = Array.from(new Set(

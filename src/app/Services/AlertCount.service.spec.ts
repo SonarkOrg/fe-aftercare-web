@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { environment } from '../../environments/environment';
-import { CLINIC, alertDto } from '../testing/fixtures';
+import { CLINIC, alertDto, providePermissions } from '../testing/fixtures';
 import { AlertCountService } from './AlertCount.service';
 
 describe('AlertCountService', () => {
@@ -12,7 +12,7 @@ describe('AlertCountService', () => {
   const settings = (body: object = CLINIC) => http.expectOne(`${api}/settings/clinic`).flush(body);
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [HttpClientTestingModule] });
+    TestBed.configureTestingModule({ providers: [providePermissions('NURSE')], imports: [HttpClientTestingModule] });
     http = TestBed.inject(HttpTestingController);
     svc = TestBed.inject(AlertCountService);
   });
@@ -56,5 +56,15 @@ describe('AlertCountService', () => {
     http.expectOne(`${api}/settings/clinic`).flush('x', { status: 500, statusText: 'Server Error' });
     req().flush([alertDto(), alertDto({ id: 2, severity: 'MEDIUM' })]);
     expect(svc.openCount$.value).toBe(2);
+  });
+
+  it('makes no request without CLINICAL_READ and shows 0', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [providePermissions('RECEPTION')], imports: [HttpClientTestingModule] });
+    http = TestBed.inject(HttpTestingController);
+    svc = TestBed.inject(AlertCountService);
+    svc.refresh();
+    http.expectNone(r => r.url.startsWith(api));
+    expect(svc.openCount$.value).toBe(0);
   });
 });

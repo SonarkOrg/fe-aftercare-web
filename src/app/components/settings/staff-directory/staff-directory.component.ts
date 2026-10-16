@@ -1,6 +1,9 @@
+import { Router } from '@angular/router';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { StaffService } from '../../../Services/Staff.service';
-import { apiErrorOf } from '../../../models/api-error.model';
+import { Permissions } from '../../../auth/permissions.service';
+import { apiErrorOf, errorText } from '../../../models/api-error.model';
+import { ACCESS_ROLES, AccessRole } from '../../../models/me.model';
 import { STAFF_ROLES, Staff, StaffRequest, StaffRole } from '../../../models/staff.model';
 import { humanize } from '../../../shared/link.util';
 import { ChipSpec, linkedChip, staffActiveChip } from '../../../shared/status';
@@ -13,6 +16,8 @@ export type StaffFilter = 'active' | 'inactive' | 'all';
 })
 export class StaffDirectoryComponent implements OnInit, OnDestroy {
   readonly roles = STAFF_ROLES;
+  readonly accessRoles = ACCESS_ROLES;
+  readonly lastAdminText = 'At least one active administrator is required. Make someone else an admin first.';
   readonly humanize = humanize;
   readonly inactiveChip: ChipSpec = staffActiveChip(false);
   readonly linked = linkedChip(true);
@@ -20,13 +25,16 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
 
   all: Staff[] = [];
   filter: StaffFilter = 'active';
+  roleFilter: AccessRole | 'all' = 'all';
+  /** The row (the signed-in member) waiting for "You will lose access immediately." to be confirmed. */
+  selfConfirm: number | null = null;
   loading = true;
   loadError = false;
   actionError: string | null = null;
 
   drawerOpen = false;
   editId: number | null = null;
-  form = { displayName: '', email: '', role: 'NURSE' as StaffRole, auth0Subject: '' };
+  form = { displayName: '', email: '', role: 'NURSE' as StaffRole, accessRole: 'NURSE' as AccessRole, auth0Subject: '' };
   errors: Record<string, string> = {};
   banner: string | null = null;
   saving = false;
@@ -34,7 +42,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   @ViewChild('drawerEl') drawerEl?: ElementRef<HTMLElement>;
   private trigger: HTMLElement | null = null;
 
-  constructor(private staff: StaffService) {}
+  constructor(private staff: StaffService, private permissions: Permissions, private router: Router) {}
 
   ngOnInit(): void {
     this.load();
@@ -66,7 +74,8 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   }
 
   get visible(): Staff[] {
-    return this.filter === 'all' ? this.all : this.all.filter(s => (this.filter === 'active') === s.active);
+    const byState = this.filter === 'all' ? this.all : this.all.filter(s => (this.filter === 'active') === s.active);
+    return this.roleFilter === 'all' ? byState : byState.filter(s => s.accessRole === this.roleFilter);
   }
 
   initials(name: string): string {
@@ -80,13 +89,31 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   onMenu(s: Staff, key: string): void {
     if (key === 'edit') {
       this.openDrawer(s, null);
-    } else {
+    } else if (key === 'deactivate' && this.permissions.me?.staffId === s.id) {
       this.actionError = null;
-      (key === 'deactivate' ? this.staff.deactivate(s.id) : this.staff.reactivate(s.id)).subscribe({
-        next: u => (this.all = this.all.map(x => (x.id === u.id ? u : x))),
-        error: () => (this.actionError = `Could not ${key} ${s.displayName}.`)
-      });
+      this.selfConfirm = s.id;
+    } else {
+      this.run(s, key);
     }
+  }
+
+  /** Deactivating yourself is allowed unless you are the last admin; the next request then gets NOT_STAFF. */
+  confirmSelf(s: Staff): void {
+    this.selfConfirm = null;
+    this.run(s, 'deactivate', true);
+  }
+
+  private run(s: Staff, key: string, self = false): void {
+    this.actionError = null;
+    (key === 'deactivate' ? this.staff.deactivate(s.id) : this.staff.reactivate(s.id)).subscribe({
+      next: u => {
+        this.all = this.all.map(x => (x.id === u.id ? u : x));
+        if (self) {
+          this.permissions.load(true).subscribe({ error: () => { /* NOT_STAFF: the interceptor sends us to /not-staff */ } });
+        }
+      },
+      error: err => (this.actionError = apiErrorOf(err)?.error === 'LAST_ADMIN' ? this.lastAdminText : errorText(err, `Could not ${key} ${s.displayName}.`))
+    });
   }
 
   /* ---------- add / edit drawer ---------- */
@@ -94,7 +121,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   openDrawer(s: Staff | null, trigger: HTMLElement | null): void {
     this.trigger = trigger ?? (document.activeElement as HTMLElement | null);
     this.editId = s?.id ?? null;
-    this.form = { displayName: s?.displayName ?? '', email: s?.email ?? '', role: s?.role ?? 'NURSE', auth0Subject: s?.auth0Subject ?? '' };
+    this.form = { displayName: s?.displayName ?? '', email: s?.email ?? '', role: s?.role ?? 'NURSE', accessRole: s?.accessRole ?? 'NURSE', auth0Subject: s?.auth0Subject ?? '' };
     this.errors = {};
     this.banner = null;
     this.drawerOpen = true;
@@ -145,7 +172,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
     this.errors = {};
     this.banner = null;
     const req: StaffRequest = {
-      displayName: this.form.displayName.trim(), email: this.form.email.trim() || null, role: this.form.role,
+      displayName: this.form.displayName.trim(), email: this.form.email.trim() || null, role: this.form.role, accessRole: this.form.accessRole,
       auth0Subject: this.form.auth0Subject.trim() || null
     };
     const call = this.editId === null ? this.staff.create(req) : this.staff.update(this.editId, req);
@@ -155,16 +182,29 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
         this.all = this.editId === null ? [...this.all, s] : this.all.map(x => (x.id === s.id ? s : x));
         this.all = [...this.all].sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr-CA', { sensitivity: 'base' }));
         this.closeDrawer();
+        if (this.editId !== null && this.permissions.me?.staffId === s.id) {
+          // our own role may have changed: refresh permissions and leave if Settings is no longer allowed
+          this.permissions.load(true).subscribe({
+            next: () => {
+              if (!this.permissions.can('SETTINGS_MANAGE')) {
+                this.router.navigate(['/dashboard']);
+              }
+            },
+            error: () => { /* keep the current permissions */ }
+          });
+        }
       },
       error: err => {
         this.saving = false;
         const api = apiErrorOf(err);
-        if (api?.error === 'DUPLICATE_STAFF') {
+        if (api?.error === 'LAST_ADMIN') {
+          this.banner = this.lastAdminText;
+        } else if (api?.error === 'DUPLICATE_STAFF') {
           this.banner = api.message || 'A staff member with this email or login already exists';
         } else if (api && Object.keys(api.fieldErrors).length) {
           this.errors = { ...api.fieldErrors };
         } else {
-          this.banner = 'Could not save the staff member.';
+          this.banner = errorText(err, 'Could not save the staff member.');
         }
       }
     });

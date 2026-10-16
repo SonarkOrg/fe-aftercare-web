@@ -12,6 +12,7 @@ export const AUDIT_PAGE_SIZE = 50;
 export class PatientAuditComponent implements OnInit {
   @Input() patientId = 0;
 
+  actorSub: string | null = null;
   events: AuditEvent[] = [];
   page = 0;
   hasMore = false;
@@ -34,12 +35,19 @@ export class PatientAuditComponent implements OnInit {
     return humanize(e.resourceType) + (e.resourceId !== null ? ` #${e.resourceId}` : '');
   }
 
+  /** Changing the actor starts over at page 0. */
+  setActor(sub: string | null): void {
+    this.actorSub = sub;
+    this.events = [];
+    this.load(0);
+  }
+
   load(page: number): void {
     this.error = false;
     if (page === 0) {
       this.loading = true;
     }
-    this.audit.list(this.patientId, page, AUDIT_PAGE_SIZE).subscribe({
+    this.audit.list(this.patientId, page, AUDIT_PAGE_SIZE, this.actorSub).subscribe({
       next: p => {
         this.events = page === 0 ? p.items : [...this.events, ...p.items];
         this.page = p.page;

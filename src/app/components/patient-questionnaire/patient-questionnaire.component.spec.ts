@@ -477,7 +477,9 @@ describe('PatientQuestionnaireComponent', () => {
       http.expectOne(r => r.url === murl && r.method === 'GET').flush(publicThread());
       fixture.detectChanges();
       tick(30_000);
-      http.expectOne(r => r.url === murl && r.method === 'GET').flush(publicThread());
+      const poll = http.expectOne(r => r.url === murl && r.method === 'GET');
+      expect(poll.request.method).toBe('GET');
+      poll.flush(publicThread());
       fixture.destroy(); // stops the timer
     }));
   });

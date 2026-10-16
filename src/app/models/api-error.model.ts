@@ -13,3 +13,17 @@ export function apiErrorOf(err: unknown): ApiError | null {
   }
   return null;
 }
+
+export const FORBIDDEN_TEXT = "You don't have permission for this action.";
+
+/** User-facing text for a failed request: a fixed sentence for FORBIDDEN, the server message for other ApiErrors, else the fallback. */
+export function errorText(err: unknown, fallback: string): string {
+  const api = apiErrorOf(err);
+  if (!api) {
+    return fallback;
+  }
+  if (api.error === 'FORBIDDEN') {
+    return FORBIDDEN_TEXT;
+  }
+  return api.message || fallback;
+}

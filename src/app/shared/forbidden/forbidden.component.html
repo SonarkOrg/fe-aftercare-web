@@ -1,0 +1,8 @@
+<div class="page">
+  <section class="card empty forbidden">
+    <span class="empty__glyph" aria-hidden="true"><app-icon name="lock" [size]="22"></app-icon></span>
+    <h1 class="empty__title">No access</h1>
+    <p class="empty__text">Your role ({{ roleLabel }}) doesn't include this page. Ask a clinic administrator if you need access.</p>
+    <a class="btn btn--secondary" routerLink="/dashboard">Back to dashboard</a>
+  </section>
+</div>

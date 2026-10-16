@@ -1,0 +1,49 @@
+<section class="card access-log" aria-labelledby="al-title">
+  <div class="card__header"><h2 id="al-title" class="card__title--sm">Access log</h2></div>
+  <p class="helper-line audit-help"><span aria-hidden="true">ℹ</span> Every view of a patient file, reveal of a health number, change and denied request is recorded. Opening this page is recorded too.</p>
+
+  <form class="grid-form al-filters" (ngSubmit)="apply()" aria-label="Filter the access log">
+    <div class="form-group"><app-actor-select selectId="al-actor" [value]="actorSub" (changed)="actorSub = $event"></app-actor-select></div>
+    <div class="form-group">
+      <label for="al-action">Action</label>
+      <select id="al-action" name="action" class="select" [(ngModel)]="action">
+        <option value="">All actions</option>
+        <option *ngFor="let a of actions" [value]="a">{{ humanize(a) }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="al-patient">Patient id</label>
+      <input id="al-patient" name="patientId" type="number" min="1" step="1" inputmode="numeric" [(ngModel)]="patientId">
+    </div>
+    <div class="form-group"><label for="al-from">From</label><input id="al-from" name="from" type="date" [(ngModel)]="from"></div>
+    <div class="form-group"><label for="al-to">To</label><input id="al-to" name="to" type="date" [(ngModel)]="to"></div>
+    <div class="btn-row span-2">
+      <button type="submit" class="btn btn--accent apply-filters">Apply</button>
+      <button type="button" class="btn btn--secondary reset-filters" (click)="reset()">Reset</button>
+    </div>
+  </form>
+  <div class="field-error" role="alert" *ngIf="filterError">{{ filterError }}</div>
+</section>
+
+<div class="banner banner--error" role="alert" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ errorMessage }} <button type="button" class="btn btn--ghost btn--sm retry" (click)="retry()">Retry</button></span></div>
+<div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row"></div></div>
+<section class="table-card audit-table" *ngIf="!loading && events.length > 0">
+  <div class="table-scroll">
+    <table class="table">
+      <caption class="sr-only">Access log</caption>
+      <thead><tr><th scope="col">When</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Resource</th><th scope="col">Patient</th><th scope="col">Detail</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let e of events">
+          <td class="num">{{ when(e.occurredAt) }}</td>
+          <td>{{ e.actorName || e.actorSub }}</td>
+          <td>{{ humanize(e.action) }}</td>
+          <td>{{ item(e) }}</td>
+          <td><a *ngIf="e.patientId !== null; else noPatient" class="patient-link" [routerLink]="['/patients', e.patientId]" [queryParams]="{ tab: 'audit' }">#{{ e.patientId }}</a><ng-template #noPatient>—</ng-template></td>
+          <td>{{ e.detail || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card__foot" *ngIf="hasMore"><button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">Load more</button></div>
+</section>
+<p class="muted empty-line" *ngIf="!loading && !errorMessage && events.length === 0">No entries match these filters.</p>

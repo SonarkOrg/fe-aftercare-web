@@ -7,7 +7,7 @@ describe('StaffService', () => {
   let http: HttpTestingController;
   let svc: StaffService;
   const url = `${environment.apiUrl}/staff`;
-  const req = { displayName: 'A', email: null, role: 'NURSE' as const, auth0Subject: null };
+  const req = { displayName: 'A', email: null, role: 'NURSE' as const, accessRole: 'NURSE' as const, auth0Subject: null };
 
   beforeEach(() => {
     TestBed.configureTestingModule({ imports: [HttpClientTestingModule] });

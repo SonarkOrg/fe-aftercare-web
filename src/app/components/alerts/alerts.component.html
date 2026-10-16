@@ -12,6 +12,11 @@
       <button type="button" id="filter-open" class="pill-group__item" [attr.aria-pressed]="!showResolved" (click)="setResolved(false)">Needs action</button>
       <button type="button" id="filter-resolved" class="pill-group__item" [attr.aria-pressed]="showResolved" (click)="setResolved(true)">Resolved</button>
     </div>
+    <div class="pill-group" role="group" aria-label="Filter alerts by type">
+      <button type="button" class="pill-group__item" data-type="all" [attr.aria-pressed]="type === 'all'" [attr.aria-label]="'All types, ' + typeCount('all')" (click)="setType('all')">All <span class="pill-group__count" aria-hidden="true">{{ typeCount('all') }}</span></button>
+      <button type="button" class="pill-group__item" data-type="answers" [attr.aria-pressed]="type === 'answers'" [attr.aria-label]="'Answers, ' + typeCount('answers')" (click)="setType('answers')">Answers <span class="pill-group__count" aria-hidden="true">{{ typeCount('answers') }}</span></button>
+      <button type="button" class="pill-group__item" data-type="missed" [attr.aria-pressed]="type === 'missed'" [attr.aria-label]="'Missed check-ins, ' + typeCount('missed')" (click)="setType('missed')">Missed check-ins <span class="pill-group__count" aria-hidden="true">{{ typeCount('missed') }}</span></button>
+    </div>
     <div class="pill-group" role="group" aria-label="Filter alerts by severity">
       <button type="button" class="pill-group__item" data-severity="all" [attr.aria-pressed]="severity === 'all'" [attr.aria-label]="'All, ' + count('all')" (click)="setSeverity('all')">All <span class="pill-group__count" aria-hidden="true">{{ count('all') }}</span></button>
       <button type="button" class="pill-group__item" data-severity="HIGH" [attr.aria-pressed]="severity === 'HIGH'" [attr.aria-label]="'High, ' + count('HIGH')" (click)="setSeverity('HIGH')"><span class="glyph" aria-hidden="true">▲</span>High <span class="pill-group__count" aria-hidden="true">{{ count('HIGH') }}</span></button>

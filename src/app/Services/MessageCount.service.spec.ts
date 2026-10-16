@@ -2,6 +2,7 @@ import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { environment } from '../../environments/environment';
 import { MessageCountService } from './MessageCount.service';
+import { providePermissions } from '../testing/fixtures';
 
 describe('MessageCountService', () => {
   let http: HttpTestingController;
@@ -9,7 +10,7 @@ describe('MessageCountService', () => {
   const url = `${environment.apiUrl}/messages/unread-count`;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [HttpClientTestingModule] });
+    TestBed.configureTestingModule({ providers: [providePermissions('NURSE')], imports: [HttpClientTestingModule] });
     http = TestBed.inject(HttpTestingController);
     svc = TestBed.inject(MessageCountService);
   });
@@ -58,4 +59,26 @@ describe('MessageCountService', () => {
     tick(120_000);
     http.expectNone(url);
   }));
+
+  describe('without CLINICAL_READ (reception)', () => {
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({ providers: [providePermissions('RECEPTION')], imports: [HttpClientTestingModule] });
+      http = TestBed.inject(HttpTestingController);
+      svc = TestBed.inject(MessageCountService);
+    });
+
+    it('refresh makes no request and the count stays 0', () => {
+      svc.refresh();
+      http.expectNone(url);
+      expect(svc.unread$.value).toBe(0);
+    });
+
+    it('start does not poll', fakeAsync(() => {
+      svc.start();
+      tick(180_000);
+      expect(http.match(url).length).toBe(0);
+      svc.stop();
+    }));
+  });
 });

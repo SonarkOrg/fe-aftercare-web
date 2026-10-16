@@ -8,7 +8,7 @@
       </p>
     </div>
     <div class="hero__actions">
-      <a class="btn btn--accent" routerLink="/appointments/new"><app-icon name="plus" [size]="16"></app-icon>New appointment</a>
+      <a class="btn btn--accent" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new"><app-icon name="plus" [size]="16"></app-icon>New appointment</a>
     </div>
   </section>
 
@@ -47,7 +47,7 @@
   <div class="card empty" *ngIf="!loading && !errorMessage && count === 0">
     <span class="empty__glyph" aria-hidden="true">—</span>
     <p class="empty__title">No appointments.</p>
-    <a class="btn btn--primary" routerLink="/appointments/new">New appointment</a>
+    <a class="btn btn--primary" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new">New appointment</a>
   </div>
 
   <!-- Day view: readiness board -->
@@ -110,7 +110,7 @@
     <div class="arow__time"><span class="appt__time">{{ time(a) }}</span><small>–{{ endOf(a) }}</small></div>
     <div class="row__main arow__main">
       <a class="row__name appt-card__name" [routerLink]="['/appointments', a.id]">{{ a.patientFirstName }} {{ a.patientLastName }}</a>
-      <div class="row__sub appt-card__meta">{{ humanize(a.type) }} · {{ humanize(a.specialty) }}</div>
+      <div class="row__sub appt-card__meta">{{ humanize(a.type) }}<ng-container *ngIf="a.specialty"> · {{ humanize(a.specialty) }}</ng-container></div>
       <div class="row__sub appt-card__sub">{{ a.clinician || '—' }} · {{ a.location || '—' }}</div>
     </div>
     <div class="row__end arow__end">

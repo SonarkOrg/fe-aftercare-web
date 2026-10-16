@@ -1,6 +1,7 @@
-import { Component, ElementRef, OnInit, QueryList, ViewChildren } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, QueryList, ViewChildren } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { NotificationService } from '../../Services/Notification.service';
 import { AlertService } from '../../Services/Alert.service';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { FollowUpService } from '../../Services/FollowUp.service';
@@ -8,9 +9,14 @@ import { MessageService } from '../../Services/Message.service';
 import { PatientService } from '../../Services/Patient.service';
 import { PatientFileService } from '../../Services/PatientFile.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
+import { Permissions } from '../../auth/permissions.service';
+import { ContactPreferences } from '../../models/notification.model';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
 import { answerOf } from '../../fhir/fhir.util';
+import { errorText } from '../../models/api-error.model';
 import { Alert } from '../../models/alert.model';
+import { Permission } from '../../models/me.model';
+import { alertAnswer, alertDay, alertLabel, isMissed } from '../../shared/alert.util';
 import { Appointment } from '../../models/appointment.model';
 import { CheckIn, FollowUp, FollowUpWithCode } from '../../models/follow-up.model';
 import { CareTeamMember, PatientMedical } from '../../models/medical.model';
@@ -30,14 +36,21 @@ import { PageTitleService } from '../../shell/page-title.service';
 export type ProfileTab = 'overview' | 'medical' | 'contacts' | 'timeline' | 'documents' | 'messages' | 'checkins' | 'alerts' | 'appointments' | 'audit';
 const TABS: ProfileTab[] = ['overview', 'medical', 'contacts', 'timeline', 'documents', 'messages', 'checkins', 'alerts', 'appointments', 'audit'];
 
+/** What each tab needs. Tabs without an entry are always shown. */
+const TAB_PERMISSION: Partial<Record<ProfileTab, Permission>> = {
+  contacts: 'PATIENT_READ', appointments: 'APPOINTMENT_READ', audit: 'AUDIT_READ',
+  medical: 'CLINICAL_READ', timeline: 'CLINICAL_READ', documents: 'CLINICAL_READ', messages: 'CLINICAL_READ', checkins: 'CLINICAL_READ', alerts: 'CLINICAL_READ'
+};
+
 export interface ChartSpec { linkId: string; label: string; unit: string; domain: [number, number] | 'auto'; points: SeriesPoint[]; threshold: number | null }
 
 @Component({
   selector: 'app-patient-detail',
   templateUrl: './patient-detail.component.html'
 })
-export class PatientDetailComponent implements OnInit {
+export class PatientDetailComponent implements OnInit, OnDestroy {
   patientId = 0;
+  private querySub?: Subscription;
   patient: Patient | null = null;
   followUps: FollowUp[] = [];
   checkIns: CheckIn[] = [];
@@ -58,8 +71,14 @@ export class PatientDetailComponent implements OnInit {
   /** Whether the alert thresholds behind the charts loaded, are loading, or failed. */
   thresholdState: ThresholdState = 'loading';
   today = businessToday();
-  tabs = TABS;
   tab: ProfileTab = 'overview';
+  /** CLINICAL_READ: the follow-up, check-ins, alerts, medical file, timeline, documents and messages. */
+  clinical = false;
+  prefs: ContactPreferences | null = null;
+  alertLabel = alertLabel;
+  alertAnswer = alertAnswer;
+  alertDay = alertDay;
+  isMissed = isMissed;
   /** Tabs opened at least once: their content is created on first open and kept (hidden) afterwards. */
   visited = new Set<ProfileTab>(['overview']);
   medical: PatientMedical | null = null;
@@ -84,29 +103,65 @@ export class PatientDetailComponent implements OnInit {
     private files: PatientFileService,
     private messages: MessageService,
     private router: Router,
-    private titles: PageTitleService
+    private titles: PageTitleService,
+    public permissions: Permissions,
+    private notifications: NotificationService
   ) {}
+
+  /** The tabs this member may open (hidden, not disabled). */
+  get visibleTabs(): ProfileTab[] {
+    return TABS.filter(t => !TAB_PERMISSION[t] || this.permissions.can(TAB_PERMISSION[t]!));
+  }
+
+  show(t: ProfileTab): boolean {
+    return this.visibleTabs.includes(t);
+  }
 
   ngOnInit(): void {
     this.patientId = Number(this.route.snapshot.paramMap.get('id'));
+    this.clinical = this.permissions.can('CLINICAL_READ');
     const t = this.route.snapshot.queryParamMap?.get('tab') as ProfileTab | null;
-    if (t && TABS.includes(t)) {
+    if (t && this.visibleTabs.includes(t)) {
       this.tab = t;
       this.visited.add(t);
     }
+    // "Open Contacts" links change ?tab= while this page is already shown
+    this.querySub = this.route.queryParamMap?.subscribe(q => {
+      const next = q.get('tab') as ProfileTab | null;
+      if (next && next !== this.tab && this.visibleTabs.includes(next)) {
+        this.tab = next;
+        this.visited.add(next);
+      }
+    });
     this.reload();
     this.loadFile();
+  }
+
+  ngOnDestroy(): void {
+    this.querySub?.unsubscribe();
+  }
+
+  /** A link was queued from the follow-up card: refresh any open notification history. */
+  onLinkSent(): void {
+    this.notifications.notifySent(this.patientId);
   }
 
   /** Medical summary (writes the "file viewed" audit row, so once per visit, not on reload), care team and unread messages. */
   loadFile(): void {
     this.medicalError = false;
-    this.files.medical(this.patientId).subscribe({
-      next: m => (this.medical = m),
-      error: () => (this.medicalError = true)
-    });
+    if (this.clinical) {
+      this.files.medical(this.patientId).subscribe({
+        next: m => (this.medical = m),
+        error: () => (this.medicalError = true)
+      });
+    } else if (this.permissions.can('PATIENT_READ')) {
+      this.notifications.preferences(this.patientId).subscribe({ next: p => (this.prefs = p), error: () => { /* the summary line just stays out */ } });
+    }
     this.files.careTeam(this.patientId).subscribe({ next: c => (this.careTeam = c), error: () => { /* the card shows its empty state */ } });
     // the inbox carries the unread count: opening the thread here would write a "messages viewed" audit row
+    if (!this.clinical) {
+      return;
+    }
     const pid = this.patientId;
     this.messages.inbox().subscribe({
       next: list => (this.unreadMessages = list.find(c => c.patientId === pid)?.unreadCount ?? 0),
@@ -202,6 +257,25 @@ export class PatientDetailComponent implements OnInit {
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))[0] ?? null;
   }
 
+  /** "Reminders: consent granted, SMS, French" for the overview of members without clinical access. */
+  get reminderSummary(): string | null {
+    const p = this.prefs;
+    if (!p) {
+      return null;
+    }
+    const consent = p.contactConsent === 'GRANTED' ? 'granted' : p.contactConsent === 'WITHDRAWN' ? 'opted out' : 'not recorded';
+    return `Reminders: consent ${consent}, ${p.preferredChannel === 'SMS' ? 'SMS' : 'email'}, ${p.effectiveLanguage === 'FR' ? 'French' : 'English'}`;
+  }
+
+  /** Upcoming open appointments (the overview card for members without clinical access). */
+  get upcoming(): Appointment[] {
+    const now = businessNow();
+    return this.appointments
+      .filter(a => ['SCHEDULED', 'READY', 'NEEDS_REVIEW'].includes(a.status) && a.scheduledAt >= now)
+      .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
+      .slice(0, 3);
+  }
+
   get recentAlerts(): Alert[] {
     return this.unresolved.slice(0, 3);
   }
@@ -249,22 +323,23 @@ export class PatientDetailComponent implements OnInit {
     this.visited.add(t);
     this.router.navigate([], { queryParams: { tab: t === 'overview' ? null : t }, queryParamsHandling: 'merge', replaceUrl: true });
     if (focus) {
-      setTimeout(() => this.tabButtons?.get(TABS.indexOf(t))?.nativeElement.focus());
+      setTimeout(() => this.tabButtons?.get(this.visibleTabs.indexOf(t))?.nativeElement.focus());
     }
   }
 
   onTabKey(e: KeyboardEvent): void {
-    const i = TABS.indexOf(this.tab);
+    const tabs = this.visibleTabs;
+    const i = Math.max(0, tabs.indexOf(this.tab));
     let next = -1;
     switch (e.key) {
-      case 'ArrowRight': next = (i + 1) % TABS.length; break;
-      case 'ArrowLeft': next = (i + TABS.length - 1) % TABS.length; break;
+      case 'ArrowRight': next = (i + 1) % tabs.length; break;
+      case 'ArrowLeft': next = (i + tabs.length - 1) % tabs.length; break;
       case 'Home': next = 0; break;
-      case 'End': next = TABS.length - 1; break;
+      case 'End': next = tabs.length - 1; break;
     }
     if (next >= 0) {
       e.preventDefault();
-      this.selectTab(TABS[next], true);
+      this.selectTab(tabs[next], true);
     }
   }
 
@@ -278,12 +353,13 @@ export class PatientDetailComponent implements OnInit {
   }
 
   reload(): void {
+    const clinical = this.clinical;
     forkJoin({
       patient: this.patients.getPatient(this.patientId),
-      followUps: this.followUpService.listForPatient(this.patientId),
-      checkIns: this.followUpService.checkInsForPatient(this.patientId),
-      alerts: this.alertService.listForPatient(this.patientId),
-      appointments: this.appointmentService.listForPatient(this.patientId)
+      followUps: clinical ? this.followUpService.listForPatient(this.patientId) : of<FollowUp[]>([]),
+      checkIns: clinical ? this.followUpService.checkInsForPatient(this.patientId) : of<CheckIn[]>([]),
+      alerts: clinical ? this.alertService.listForPatient(this.patientId) : of<Alert[]>([]),
+      appointments: this.permissions.can('APPOINTMENT_READ') ? this.appointmentService.listForPatient(this.patientId) : of<Appointment[]>([])
     }).subscribe({
       next: r => {
         this.patient = r.patient;
@@ -301,7 +377,7 @@ export class PatientDetailComponent implements OnInit {
         if (err?.status === 404) {
           this.notFound = true;
         } else {
-          this.errorMessage = 'Could not load patient.';
+          this.errorMessage = errorText(err, 'Could not load patient.');
         }
       }
     });
@@ -343,7 +419,7 @@ export class PatientDetailComponent implements OnInit {
         this.accessCode = res.accessCode;
         this.reload();
       },
-      error: () => (this.actionError = 'Could not regenerate the link.')
+      error: err => (this.actionError = errorText(err, 'Could not regenerate the link.'))
     });
   }
 
@@ -357,7 +433,7 @@ export class PatientDetailComponent implements OnInit {
         this.accessCode = null;
         this.reload();
       },
-      error: () => (this.actionError = 'Could not close the follow-up.')
+      error: err => (this.actionError = errorText(err, 'Could not close the follow-up.'))
     });
   }
 

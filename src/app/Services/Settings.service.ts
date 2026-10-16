@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject, of, shareReplay, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { NotificationSettings, NotificationSettingsRequest } from '../models/notification.model';
 import { ClinicSettings, ClinicSettingsRequest } from '../models/settings.model';
 
 /** Clinic settings with a one-request cache: every subscriber shares the latest value; `refresh()` reloads it. */
@@ -26,5 +27,14 @@ export class SettingsService {
 
   update(req: ClinicSettingsRequest): Observable<ClinicSettings> {
     return this.http.put<ClinicSettings>(this.url, req).pipe(tap(saved => this.reload$.next(saved)));
+  }
+
+  /** Patient notification settings (ADMIN). Not cached: only the Settings tab reads them. */
+  notifications(): Observable<NotificationSettings> {
+    return this.http.get<NotificationSettings>(`${environment.apiUrl}/settings/notifications`);
+  }
+
+  updateNotifications(req: NotificationSettingsRequest): Observable<NotificationSettings> {
+    return this.http.put<NotificationSettings>(`${environment.apiUrl}/settings/notifications`, req);
   }
 }

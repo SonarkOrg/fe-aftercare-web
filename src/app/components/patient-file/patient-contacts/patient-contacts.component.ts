@@ -1,9 +1,11 @@
+import { ContactPreferences } from '../../../models/notification.model';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { take } from 'rxjs';
+import { Permissions } from '../../../auth/permissions.service';
 import { PatientFileService } from '../../../Services/PatientFile.service';
 import { SettingsService } from '../../../Services/Settings.service';
 import { StaffService } from '../../../Services/Staff.service';
-import { apiErrorOf } from '../../../models/api-error.model';
+import { apiErrorOf, errorText } from '../../../models/api-error.model';
 import { CareTeamMember, EmergencyContact } from '../../../models/medical.model';
 import { Language } from '../../../models/settings.model';
 import { STAFF_ROLES, Staff, StaffRole } from '../../../models/staff.model';
@@ -23,6 +25,7 @@ export function sortCareTeam(list: CareTeamMember[]): CareTeamMember[] {
 export class PatientContactsComponent implements OnInit {
   @Input() patientId = 0;
   @Input() careTeam: CareTeamMember[] = [];
+  @Output() prefsSaved = new EventEmitter<ContactPreferences>();
   @Output() careTeamChange = new EventEmitter<CareTeamMember[]>();
 
   contacts: EmergencyContact[] = [];
@@ -43,7 +46,7 @@ export class PatientContactsComponent implements OnInit {
   readonly humanize = humanize;
   readonly inactiveChip: ChipSpec = staffActiveChip(false);
 
-  constructor(private files: PatientFileService, private staffService: StaffService, private settings: SettingsService) {}
+  constructor(private files: PatientFileService, private staffService: StaffService, private settings: SettingsService, public permissions: Permissions) {}
 
   ngOnInit(): void {
     this.loadContacts();
@@ -133,7 +136,7 @@ export class PatientContactsComponent implements OnInit {
         this.contacts = this.contacts.filter(x => x.id !== c.id);
         this.removingContact = null;
       },
-      error: () => (this.actionError = 'Could not remove the contact.')
+      error: err => (this.actionError = errorText(err, 'Could not remove the contact.'))
     });
   }
 
@@ -155,7 +158,7 @@ export class PatientContactsComponent implements OnInit {
       error: err => {
         this.assigning = false;
         const api = apiErrorOf(err);
-        this.assignError = api?.error === 'ALREADY_ASSIGNED' || api?.error === 'STAFF_INACTIVE' ? api.message : 'Could not assign the staff member.';
+        this.assignError = api?.error === 'ALREADY_ASSIGNED' || api?.error === 'STAFF_INACTIVE' ? api.message : errorText(err, 'Could not assign the staff member.');
       }
     });
   }
@@ -166,7 +169,7 @@ export class PatientContactsComponent implements OnInit {
         this.removingMember = null;
         this.careTeamChange.emit(this.careTeam.filter(x => x.assignmentId !== m.assignmentId));
       },
-      error: () => (this.actionError = 'Could not remove the team member.')
+      error: err => (this.actionError = errorText(err, 'Could not remove the team member.'))
     });
   }
 }

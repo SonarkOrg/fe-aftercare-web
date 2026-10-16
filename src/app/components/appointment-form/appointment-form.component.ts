@@ -69,7 +69,7 @@ export class AppointmentFormComponent implements OnInit {
     this.loaded = true;
     this.patientId = a.patientId;
     this.type = a.type;
-    this.specialty = a.specialty;
+    this.specialty = a.specialty ?? this.specialty;
     this.date = a.scheduledAt.substring(0, 10);
     this.time = a.scheduledAt.substring(11, 16);
     this.durationMinutes = a.durationMinutes;

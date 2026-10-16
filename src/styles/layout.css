@@ -112,7 +112,7 @@
 .menu-dev { padding: 4px 12px; }
 /* the seven top-bar items need the room: the user pill collapses to its initials below 1280 px, and the dev chip
    shows in the pill only from 1600 px (below that it is in the menu), so the staff name is never truncated */
-@media (max-width: 1599px) { .user-pill .chip { display: none; } }
+@media (max-width: 1599px) { .user-pill .chip:not(.role-badge) { display: none; } }
 @media (max-width: 1279px) {
   .user-pill { width: 48px; padding: 0; justify-content: center; }
   .user-pill__name, .user-pill .chip { display: none; }

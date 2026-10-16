@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 export abstract class StaffAuth {
   abstract readonly isAuthenticated$: Observable<boolean>;
   abstract readonly userName$: Observable<string | null>;
+  /** The login's `sub` (what a clinic administrator links in Settings → Staff); null before it is known. */
+  abstract readonly subject$: Observable<string | null>;
   /** Default target is '/dashboard'. */
   abstract login(targetUrl?: string): void;
   abstract logout(): void;

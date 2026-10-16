@@ -12,14 +12,14 @@
           </div>
         </div>
         <div class="alert-row__q">
-          <div class="alert-row__label cell-q">{{ a.questionLabel }}</div>
-          <div class="row__sub alert-row__answer">Answer <strong>{{ display(a) }}</strong> · {{ a.message }}</div>
+          <div class="alert-row__label cell-q"><app-icon *ngIf="isMissed(a)" class="alert-row__glyph" name="calendar" [size]="16"></app-icon> {{ alertLabel(a) }}</div>
+          <div class="row__sub alert-row__answer">Answer <strong>{{ alertAnswer(a) }}</strong><ng-container *ngIf="isMissed(a) && alertDay(a)"> · <span class="alert-day">{{ alertDay(a) | date:'MMM d' }}</span></ng-container> · {{ a.message }}</div>
         </div>
         <div class="alert-row__chips">
           <app-status-chip [spec]="severityChip(a.severity)"></app-status-chip>
           <app-status-chip [spec]="statusChip(a.status)"></app-status-chip>
         </div>
-        <div class="alert-row__actions actions">
+        <div class="alert-row__actions actions" *appCan="'CLINICAL_WRITE'">
           <button type="button" class="btn btn--primary btn--sm btn-ack" *ngIf="a.status === 'OPEN'" [disabled]="busy" (click)="acknowledge(a)">Acknowledge</button>
           <button type="button" class="btn btn--secondary btn--sm btn-resolve" *ngIf="a.status !== 'RESOLVED'" [disabled]="busy" (click)="startResolve(a)">Resolve</button>
         </div>

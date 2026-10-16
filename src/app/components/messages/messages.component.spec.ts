@@ -5,7 +5,7 @@ import { Router, RouterModule, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { MessageCountService } from '../../Services/MessageCount.service';
-import { JANE, conversation, thread } from '../../testing/fixtures';
+import { JANE, conversation, thread, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { MessageThreadComponent } from '../../shared/message-thread/message-thread.component';
 import { MessagesComponent } from './messages.component';
@@ -27,7 +27,7 @@ describe('MessagesComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterModule],
       declarations: [MessagesComponent, MessageThreadComponent, ...SHARED_DECLARATIONS],
-      providers: [
+      providers: [providePermissions('NURSE'), 
         provideRouter([{ path: 'messages', component: MessagesComponent }, { path: 'messages/:patientId', component: MessagesComponent }]),
         { provide: MessageCountService, useValue: { refresh: jasmine.createSpy('refresh'), report: jasmine.createSpy('report') } }
       ]

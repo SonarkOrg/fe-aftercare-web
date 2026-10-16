@@ -9,9 +9,10 @@ import { MessageCountService } from '../../Services/MessageCount.service';
 import { StaffAuth } from '../../auth/staff-auth';
 import { ShellComponent } from '../../shell/shell.component';
 import { environment } from '../../../environments/environment';
+import { AccessRole } from '../../models/me.model';
 import { Patient } from '../../models/patient.model';
 import { addDays, businessToday } from '../../shared/link.util';
-import { SEED_RULES, alertDto, appointment, checkInDto, followUp } from '../../testing/fixtures';
+import { SEED_RULES, alertDto, appointment, checkInDto, followUp, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { PatientsComponent } from './patients.component';
 
@@ -38,6 +39,7 @@ describe('PatientsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [providePermissions('ADMIN')],
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
@@ -339,7 +341,7 @@ describe('PatientsComponent inside the shell (real typing)', () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule.withRoutes([{ path: 'patients', component: PatientsComponent, data: { title: 'Patients' } }])],
       declarations: [PatientsComponent, ShellComponent, ...SHARED_DECLARATIONS],
-      providers: [
+      providers: [providePermissions('NURSE'), 
         { provide: StaffAuth, useValue: { userName$: of('Dev Nurse'), logout: () => undefined } },
         { provide: AlertCountService, useValue: { openCount$: of(0), refresh: jasmine.createSpy('refresh') } },
         { provide: MessageCountService, useValue: { unread$: of(0), refresh: jasmine.createSpy('refresh'), start: () => undefined, stop: () => undefined } }
@@ -387,5 +389,100 @@ describe('PatientsComponent inside the shell (real typing)', () => {
     expect(shell.nativeElement.querySelectorAll('li.prow').length).toBe(1);
     http.expectNone(r => r.url === `${api}/alerts`); // no alert-count refetch per keystroke
     shell.nativeElement.remove();
+  });
+});
+
+describe('PatientsComponent by access role', () => {
+  const api = environment.apiUrl;
+  const today = businessToday();
+  let fixture: ComponentFixture<PatientsComponent>;
+  let http: HttpTestingController;
+  let el: HTMLElement;
+
+  const plain = (id: number, firstName: string, lastName: string): Patient => ({
+    id, firstName, lastName, email: `${firstName.toLowerCase()}@example.com`, phone: '555-0100', gender: 'female',
+    address: { city: 'Montréal', state: 'QC', zip: 'H1A' }, activeFollowUp: null, unresolvedAlertCount: null
+  });
+
+  async function setup(role: AccessRole) {
+    await TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      declarations: [PatientsComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions(role)]
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(PatientsComponent);
+    el = fixture.nativeElement;
+    fixture.detectChanges();
+  }
+  afterEach(() => http.verify());
+
+  describe('RECEPTION', () => {
+    beforeEach(async () => {
+      await setup('RECEPTION');
+      http.expectOne(`${api}/patients`).flush([plain(1, 'Marie', 'Tremblay'), plain(2, 'Jean', 'Roy')]);
+      http.expectOne(r => r.url === `${api}/appointments`).flush([appointment({ id: 9, patientId: 1, scheduledAt: addDays(today, 1) + 'T10:30:00' })]);
+      fixture.detectChanges();
+    });
+
+    it('asks only for the patient list and the schedule', () => {
+      expect(http.match(r => r.url === `${api}/alerts`).length).toBe(0);
+      expect(http.match(r => r.url === `${api}/check-ins`).length).toBe(0);
+      expect(http.match(r => r.url.startsWith(`${api}/questionnaires`)).length).toBe(0);
+    });
+
+    it('hides the status, follow-up, last check-in and pain columns, the status filters and the alert sort', () => {
+      expect(Array.from(el.querySelectorAll('.prow--head > span')).map(s => s.textContent!.trim().replace(/\s+/g, ' ')).filter(Boolean)).toEqual(['Patient', 'Next appointment']);
+      for (const sel of ['.prow__status', '.c-fu', '.c-last', '.c-pain', 'app-status-chip', '.pill-group', 'app-trend-chart']) {
+        expect(el.querySelector(sel)).withContext(sel).toBeNull();
+      }
+      expect(Array.from(el.querySelectorAll<HTMLOptionElement>('#sort-key option')).map(o => o.textContent!.trim())).toEqual(['Name', 'Next appointment']);
+      expect(el.querySelector('.hero__sub')!.textContent).toBe('2 patients');
+    });
+
+    it('still shows name, e-mail and the next appointment, sorted by name', () => {
+      const names = Array.from(el.querySelectorAll('.prow__name')).map(n => n.textContent!.trim());
+      expect(names).toEqual(['Jean Roy', 'Marie Tremblay']);
+      expect(el.querySelectorAll('.prow:not(.prow--head) .c-next')[1].textContent).toContain('Pre op consult'); // Marie, second by name
+    });
+
+    it('has no Delete action but keeps Open and Add patient (PATIENT_WRITE)', () => {
+      expect(el.querySelector('.btn--ghost-danger')).toBeNull();
+      expect(el.querySelectorAll('.prow__actions a.btn').length).toBe(2);
+      expect(el.querySelector('#open-add-patient')).not.toBeNull();
+    });
+
+    it('ignores a ?status= filter it cannot offer', () => {
+      expect(fixture.componentInstance.statusFilter).toBe('all');
+      expect(el.querySelectorAll('.prow--plain').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('NURSE', () => {
+    it('shows the clinical columns but no Delete patient (ADMIN only)', async () => {
+      await setup('NURSE');
+      http.expectOne(`${api}/patients`).flush([{ ...plain(1, 'Marie', 'Tremblay'), activeFollowUp: followUp({ id: 11, patientId: 1, dischargeDate: addDays(today, -3), endDate: addDays(today, 4) }), unresolvedAlertCount: 0 }]);
+      http.expectOne(r => r.url === `${api}/alerts`).flush([]);
+      http.expectOne(r => r.url === `${api}/check-ins`).flush([]);
+      http.expectOne(r => r.url === `${api}/appointments`).flush([]);
+      http.match(`${api}/questionnaires/7`).forEach(r => r.flush({ id: 7, rules: SEED_RULES, questionnaire: {} }));
+      fixture.detectChanges();
+      expect(el.querySelector('.pill-group')).not.toBeNull();
+      expect(el.querySelector('.prow__status')).not.toBeNull();
+      expect(el.querySelector('.c-fu')).not.toBeNull();
+      expect(el.querySelector('.btn--ghost-danger')).toBeNull();
+    });
+  });
+
+  describe('ADMIN', () => {
+    it('can delete a patient', async () => {
+      await setup('ADMIN');
+      http.expectOne(`${api}/patients`).flush([{ ...plain(1, 'Marie', 'Tremblay'), unresolvedAlertCount: 0 }]);
+      http.expectOne(r => r.url === `${api}/alerts`).flush([]);
+      http.expectOne(r => r.url === `${api}/check-ins`).flush([]);
+      http.expectOne(r => r.url === `${api}/appointments`).flush([]);
+      fixture.detectChanges();
+      expect(el.querySelector('.btn--ghost-danger[aria-label="Delete Marie Tremblay"]')).not.toBeNull();
+    });
   });
 });

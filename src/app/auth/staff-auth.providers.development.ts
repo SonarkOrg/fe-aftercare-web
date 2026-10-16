@@ -2,6 +2,8 @@ import { Provider } from '@angular/core';
 import { provideAuth0 } from '@auth0/auth0-angular';
 import { environment } from '../../environments/environment';
 import { Auth0StaffAuth } from './auth0-staff-auth';
+import { DEV_IDENTITY_UI } from './dev-identity';
+import { DevIdentitySelectComponent } from './dev-identity-select.component';
 import { DEV_TOKEN_URL, DevStaffAuth } from './dev-staff-auth';
 import { StaffAuth } from './staff-auth';
 
@@ -9,7 +11,9 @@ import { StaffAuth } from './staff-auth';
 export const staffAuthProviders: Provider[] = environment.devAuth
   ? [
       { provide: DEV_TOKEN_URL, useValue: environment.apiUrl.replace(/\/api$/, '') + '/dev/token' },
-      { provide: StaffAuth, useClass: DevStaffAuth }
+      { provide: StaffAuth, useClass: DevStaffAuth },
+      { provide: DevStaffAuth, useExisting: StaffAuth },
+      { provide: DEV_IDENTITY_UI, useValue: DevIdentitySelectComponent }
     ]
   : [
       provideAuth0({

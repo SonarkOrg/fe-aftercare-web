@@ -7,7 +7,7 @@
 .card__header { margin-bottom: 12px; }
 .card--list .card__head { min-height: 40px; padding: 0 4px; margin-bottom: 4px; }
 .card__title { font: 600 23px/1.2 var(--font-display); display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
-.card__title--sm { font: 600 18px/1.2 var(--font-display); letter-spacing: -.01em; display: inline-flex; align-items: center; gap: 10px; }
+.card__title--sm { color: var(--ink); font: 600 18px/1.2 var(--font-display); letter-spacing: -.01em; display: inline-flex; align-items: center; gap: 10px; }
 .card__link { font: 500 15px/1 var(--font-display); color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .card__link:hover { color: var(--sage-700); text-decoration: underline; }
 .card__foot { margin-top: 8px; padding: 0 4px; }
@@ -171,6 +171,7 @@ select.select {
 .tab { display: inline-flex; align-items: center; height: 40px; padding: 0 18px; border-radius: 12px; border: 0; background: transparent; color: var(--ink-2); font: 500 15px/1 var(--font-display); cursor: pointer; white-space: nowrap; min-height: 0; }
 .tab:hover { background: var(--sage-50); color: var(--ink); }
 .tab[aria-selected=true] { background: var(--ink); color: #fff; }
+.tab[aria-selected=true]:hover { background: var(--ink); color: #fff; }
 .tabs { margin: 0 0 20px; }
 @media (max-width: 599px) {
   .pill-group, .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; }

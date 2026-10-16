@@ -1,9 +1,10 @@
 <div class="banner banner--error" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ actionError }}</span></div>
+<app-patient-notifications [patientId]="patientId" (saved)="prefsSaved.emit($event)"></app-patient-notifications>
 <div class="grid-2">
   <section class="card card--list contacts-card">
     <div class="card__head">
       <h2 class="card__title--sm">Emergency contacts <span class="badge">{{ contacts.length }}</span></h2>
-      <button type="button" class="card__link add-contact" (click)="openForm()">+ Add</button>
+      <button type="button" class="card__link add-contact" *appCan="'PATIENT_WRITE'" (click)="openForm()">+ Add</button>
     </div>
 
     <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the contacts. <button type="button" class="btn btn--ghost btn--sm" (click)="loadContacts()">Retry</button></span></div>
@@ -29,7 +30,7 @@
         <span class="row__main"><span class="row__name">{{ c.name }}</span><span class="row__sub">{{ c.relationship }} · <a [attr.href]="'tel:' + c.phone">{{ c.phone }}</a></span></span>
         <span class="row__end">
           <span class="chip chip--neutral chip--sm"><span class="chip__glyph" aria-hidden="true">—</span><span class="chip__label">{{ c.preferredLanguage }}</span></span>
-          <app-row-menu [label]="'Actions for ' + c.name" [items]="[{ key: 'edit', label: 'Edit' }, { key: 'remove', label: 'Remove' }]" (selected)="onContactMenu(c, $event)"></app-row-menu>
+          <app-row-menu *appCan="'PATIENT_WRITE'" [label]="'Actions for ' + c.name" [items]="[{ key: 'edit', label: 'Edit' }, { key: 'remove', label: 'Remove' }]" (selected)="onContactMenu(c, $event)"></app-row-menu>
         </span>
         <app-confirm-inline *ngIf="removingContact === c.id" class="row-confirm" [question]="'Remove ' + c.name + '?'" (confirmed)="confirmRemoveContact(c)" (cancelled)="removingContact = null"></app-confirm-inline>
       </li>
@@ -45,13 +46,13 @@
         <span class="row__main"><span class="row__name">{{ m.displayName }}</span><span class="row__sub">{{ humanize(m.role) }}</span></span>
         <span class="row__end">
           <app-status-chip size="sm" *ngIf="!m.active" [spec]="inactiveChip"></app-status-chip>
-          <app-row-menu [label]="'Actions for ' + m.displayName" [items]="[{ key: 'remove', label: 'Remove' }]" (selected)="removingMember = m.assignmentId"></app-row-menu>
+          <app-row-menu *appCan="'CLINICAL_WRITE'" [label]="'Actions for ' + m.displayName" [items]="[{ key: 'remove', label: 'Remove' }]" (selected)="removingMember = m.assignmentId"></app-row-menu>
         </span>
         <app-confirm-inline *ngIf="removingMember === m.assignmentId" class="row-confirm" [question]="'Remove ' + m.displayName + ' from the care team?'" (confirmed)="confirmUnassign(m)" (cancelled)="removingMember = null"></app-confirm-inline>
       </li>
     </ul>
 
-    <div class="assign" *ngIf="staff.length > 0; else noStaff">
+    <div class="assign" *ngIf="permissions.can('CLINICAL_WRITE') && staff.length > 0; else noStaff">
       <div class="banner banner--error" role="alert" *ngIf="assignError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ assignError }}</span></div>
       <h3 class="enroll-title">Assign staff</h3>
       <div class="assign__row">
@@ -73,7 +74,7 @@
       </div>
     </div>
     <ng-template #noStaff>
-      <div class="empty"><p class="empty__text">No staff in the directory yet.</p><a class="btn btn--secondary btn--sm" routerLink="/settings" [queryParams]="{ tab: 'staff' }">Add staff in Settings</a></div>
+      <div class="empty" *ngIf="permissions.can('CLINICAL_WRITE')"><p class="empty__text">No staff in the directory yet.</p><a class="btn btn--secondary btn--sm" routerLink="/settings" [queryParams]="{ tab: 'staff' }">Add staff in Settings</a></div>
     </ng-template>
   </section>
 </div>

@@ -7,7 +7,7 @@
           <div>
             <dt>Date of birth</dt>
             <dd>
-              <ng-container *ngIf="!editDob">{{ dobText }} <button type="button" class="btn btn--ghost btn--sm edit-dob" (click)="openEditDob()"><app-icon name="edit" [size]="14"></app-icon><span>Edit</span></button></ng-container>
+              <ng-container *ngIf="!editDob">{{ dobText }} <button type="button" class="btn btn--ghost btn--sm edit-dob" *appCan="'PATIENT_WRITE'" (click)="openEditDob()"><app-icon name="edit" [size]="14"></app-icon><span>Edit</span></button></ng-container>
               <form class="inline-form" *ngIf="editDob" (ngSubmit)="saveDob()">
                 <label class="sr-only" for="dob-input">Date of birth</label>
                 <input id="dob-input" name="dob" type="date" [max]="dobMax" [(ngModel)]="dobValue">
@@ -27,15 +27,15 @@
                   <span class="mono ramq-value ramq-value--open" *ngIf="revealed" aria-live="polite">{{ revealedText }}</span>
                   <span class="helper-line ramq-visible" *ngIf="revealed" role="status"><span aria-hidden="true">✓</span> Visible for 30 s</span>
                   <span class="btn-row ramq-actions">
-                    <button type="button" class="btn btn--ghost btn--sm reveal-btn" *ngIf="!revealed && !revealOpen" (click)="openReveal()"><app-icon name="eye" [size]="14"></app-icon><span>Reveal</span></button>
+                    <ng-container *appCan="'HEALTH_NUMBER_REVEAL'"><button type="button" class="btn btn--ghost btn--sm reveal-btn" *ngIf="!revealed && !revealOpen" (click)="openReveal()"><app-icon name="eye" [size]="14"></app-icon><span>Reveal</span></button></ng-container>
                     <button type="button" class="btn btn--ghost btn--sm hide-btn" *ngIf="revealed" (click)="hideRevealed(true)"><app-icon name="eye-off" [size]="14"></app-icon><span>Hide</span></button>
-                    <button type="button" class="btn btn--ghost btn--sm edit-hn" (click)="openEditHn()"><app-icon name="edit" [size]="14"></app-icon><span>Edit</span></button>
-                    <button type="button" class="btn btn--ghost-danger btn--sm remove-hn" (click)="removeHn = true">Remove</button>
+                    <button type="button" class="btn btn--ghost btn--sm edit-hn" *appCan="'CLINICAL_WRITE'" (click)="openEditHn()"><app-icon name="edit" [size]="14"></app-icon><span>Edit</span></button>
+                    <button type="button" class="btn btn--ghost-danger btn--sm remove-hn" *appCan="'CLINICAL_WRITE'" (click)="removeHn = true">Remove</button>
                   </span>
                 </ng-container>
                 <ng-template #noHn>
                   <span class="muted">None on file</span>
-                  <button type="button" class="btn btn--ghost btn--sm edit-hn" (click)="openEditHn()"><app-icon name="plus" [size]="14"></app-icon><span>Add</span></button>
+                  <button type="button" class="btn btn--ghost btn--sm edit-hn" *appCan="'CLINICAL_WRITE'" (click)="openEditHn()"><app-icon name="plus" [size]="14"></app-icon><span>Add</span></button>
                 </ng-template>
               </ng-container>
 
@@ -87,7 +87,7 @@
   <section class="card card--list med-list" [attr.data-list]="cfg.key">
     <div class="card__head">
       <h2 class="card__title--sm">{{ cfg.title }} <span class="badge">{{ items(cfg.key).length }}</span></h2>
-      <button type="button" class="card__link add-item" (click)="openForm(cfg.key)">+ Add</button>
+      <button type="button" class="card__link add-item" *appCan="'CLINICAL_WRITE'" (click)="openForm(cfg.key)">+ Add</button>
     </div>
 
     <form class="grid-form med-form" *ngIf="form && form.list === cfg.key" (ngSubmit)="save()" [attr.aria-label]="form.id === null ? cfg.addLabel : 'Edit ' + cfg.title">
@@ -138,7 +138,7 @@
         </span>
         <span class="row__end">
           <app-status-chip size="sm" *ngIf="cfg.key === 'allergies'" [spec]="chipOf(i)"></app-status-chip>
-          <app-row-menu [label]="'Actions for ' + rowName(cfg.key, i)" [items]="[{ key: 'edit', label: 'Edit' }, { key: 'remove', label: 'Remove' }]" (selected)="onMenu(cfg.key, i, $event)"></app-row-menu>
+          <app-row-menu *appCan="'CLINICAL_WRITE'" [label]="'Actions for ' + rowName(cfg.key, i)" [items]="[{ key: 'edit', label: 'Edit' }, { key: 'remove', label: 'Remove' }]" (selected)="onMenu(cfg.key, i, $event)"></app-row-menu>
         </span>
         <app-confirm-inline *ngIf="removing && removing.list === cfg.key && removing.id === i.id" class="row-confirm"
                             [question]="'Remove ' + rowName(cfg.key, i) + '?'" (confirmed)="confirmRemove()" (cancelled)="removing = null"></app-confirm-inline>

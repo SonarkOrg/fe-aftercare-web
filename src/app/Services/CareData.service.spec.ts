@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { environment } from '../../environments/environment';
-import { SEED_RULES, JANE, followUp } from '../testing/fixtures';
+import { SEED_RULES, JANE, followUp, providePermissions } from '../testing/fixtures';
 import { addDays, businessToday } from '../shared/link.util';
 import { CareDataService } from './CareData.service';
 
@@ -11,7 +11,7 @@ describe('CareDataService', () => {
   let svc: CareDataService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [HttpClientTestingModule] });
+    TestBed.configureTestingModule({ providers: [providePermissions('NURSE')], imports: [HttpClientTestingModule] });
     http = TestBed.inject(HttpTestingController);
     svc = TestBed.inject(CareDataService);
   });
@@ -71,5 +71,22 @@ describe('CareDataService', () => {
     http.expectOne(r => r.url === `${api}/appointments`).flush([]);
     http.expectOne(`${api}/questionnaires/7`).flush({ id: 7, rules: SEED_RULES, questionnaire: {} });
     expect(snap.rows[0].painThreshold).toBe(7);
+  });
+
+  it('without CLINICAL_READ it asks only for the patients and the schedule (no alerts, no check-ins)', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ providers: [providePermissions('RECEPTION')], imports: [HttpClientTestingModule] });
+    http = TestBed.inject(HttpTestingController);
+    svc = TestBed.inject(CareDataService);
+    let snap: any;
+    svc.load().subscribe(s => (snap = s));
+    http.expectOne(`${api}/patients`).flush([{ ...JANE, activeFollowUp: null, unresolvedAlertCount: null }]);
+    http.expectOne(r => r.url === `${api}/appointments`).flush([]);
+    http.expectNone(r => r.url === `${api}/alerts`);
+    http.expectNone(r => r.url === `${api}/check-ins`);
+    http.expectNone(r => r.url.startsWith(`${api}/questionnaires`));
+    expect(snap.rows.length).toBe(1);
+    expect(snap.alerts).toEqual([]);
+    expect(snap.checkIns).toEqual([]);
   });
 });

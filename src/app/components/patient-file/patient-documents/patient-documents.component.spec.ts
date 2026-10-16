@@ -6,6 +6,7 @@ import { environment } from '../../../../environments/environment';
 import { PatientDocument } from '../../../models/document.model';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { BAD_TYPE, PatientDocumentsComponent, TOO_BIG } from './patient-documents.component';
+import { providePermissions } from '../../../testing/fixtures';
 
 describe('PatientDocumentsComponent', () => {
   let fixture: ComponentFixture<PatientDocumentsComponent>;
@@ -21,6 +22,7 @@ describe('PatientDocumentsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [providePermissions('NURSE')],
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientDocumentsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();

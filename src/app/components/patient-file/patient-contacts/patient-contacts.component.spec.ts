@@ -1,11 +1,17 @@
+import { Component, Input } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../../environments/environment';
-import { CLINIC, careTeamMember, contact, staffMember } from '../../../testing/fixtures';
+import { CLINIC, careTeamMember, contact, staffMember, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { PatientContactsComponent } from './patient-contacts.component';
+
+@Component({ selector: 'app-patient-notifications', template: '' })
+class StubNotificationsComponent {
+  @Input() patientId = 0;
+}
 
 describe('PatientContactsComponent', () => {
   let fixture: ComponentFixture<PatientContactsComponent>;
@@ -21,8 +27,9 @@ describe('PatientContactsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [providePermissions('NURSE')],
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
-      declarations: [PatientContactsComponent, ...SHARED_DECLARATIONS]
+      declarations: [PatientContactsComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PatientContactsComponent);

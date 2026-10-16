@@ -5,7 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { MessageCountService } from '../../Services/MessageCount.service';
-import { JANE, message, thread } from '../../testing/fixtures';
+import { JANE, message, thread, providePermissions } from '../../testing/fixtures';
+import { AccessRole } from '../../models/me.model';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { MessageThreadComponent } from './message-thread.component';
 
@@ -23,7 +24,7 @@ describe('MessageThreadComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [MessageThreadComponent, ...SHARED_DECLARATIONS],
-      providers: [{ provide: MessageCountService, useValue: { refresh } }]
+      providers: [providePermissions('NURSE'), { provide: MessageCountService, useValue: { refresh } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(MessageThreadComponent);
@@ -255,7 +256,7 @@ describe('MessageThreadComponent', () => {
       http.expectOne(`${api}/patients/5/messages/read`).flush(null, { status: 204, statusText: 'No Content' });
       visibility.and.returnValue('hidden');
       jasmine.clock().tick(30_000);
-      http.expectNone(r => r.url === `${api}/patients/5/messages`);
+      expect(http.match(r => r.url === `${api}/patients/5/messages`).length).toBe(0);
       fixture.destroy();
     });
 
@@ -349,5 +350,44 @@ describe('MessageThreadComponent', () => {
       expect(refresh).not.toHaveBeenCalled();
       expect(reads).toBe(0);
     });
+  });
+});
+
+describe('MessageThreadComponent by permission', () => {
+  const api = environment.apiUrl;
+
+  async function mount(role: AccessRole) {
+    await TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      declarations: [MessageThreadComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions(role), { provide: MessageCountService, useValue: { refresh: () => undefined } }]
+    }).compileComponents();
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(MessageThreadComponent);
+    const c = fixture.componentInstance;
+    c.variant = 'embedded';
+    c.patientId = 5;
+    c.ngOnChanges({ patientId: new SimpleChange(0, 5, true) });
+    fixture.detectChanges();
+    http.expectOne(r => r.url === `${api}/patients/5/messages` && r.method === 'GET').flush(thread());
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+    http.verify();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  for (const role of ['ADMIN', 'PHYSICIAN', 'NURSE'] as AccessRole[]) {
+    it(`${role} can write to the patient: composer and Send are shown`, async () => {
+      const el = await mount(role);
+      expect(el.querySelector('.composer')).not.toBeNull();
+      expect(el.querySelector('.msg-send')).not.toBeNull();
+    });
+  }
+
+  it('RECEPTION (no CLINICAL_WRITE) gets no composer', async () => {
+    const el = await mount('RECEPTION');
+    expect(el.querySelector('.composer')).toBeNull();
+    expect(el.querySelector('.msg-send')).toBeNull();
   });
 });

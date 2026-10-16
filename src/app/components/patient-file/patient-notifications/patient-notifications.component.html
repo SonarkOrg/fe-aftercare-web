@@ -1,0 +1,56 @@
+<section class="card notif-card" aria-labelledby="pn-title">
+  <div class="card__header"><h2 id="pn-title" class="card__title--sm">Notifications to the patient</h2></div>
+  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ loadError }} <button type="button" class="btn btn--ghost btn--sm" (click)="loadPrefs()">Retry</button></span></div>
+
+  <form *ngIf="prefs" (ngSubmit)="save()" aria-label="Contact preferences">
+    <div class="banner banner--info" role="status" *ngIf="showSaved"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>Saved.</span></div>
+    <div class="banner banner--error" role="alert" *ngIf="banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ banner }}</span></div>
+
+    <fieldset class="radio-group consent-group">
+      <legend>Consent</legend>
+      <label class="radio-row"><input type="radio" name="consent" value="UNKNOWN" [attr.disabled]="unknownLocked ? '' : null" [(ngModel)]="consent" (ngModelChange)="touch()"> Not recorded</label>
+      <label class="radio-row"><input type="radio" name="consent" value="GRANTED" [(ngModel)]="consent" (ngModelChange)="touch()"> Consents to reminders by email/SMS</label>
+      <label class="radio-row"><input type="radio" name="consent" value="WITHDRAWN" [(ngModel)]="consent" (ngModelChange)="touch()"> Opted out</label>
+      <span class="helper-line consent-help" *ngIf="consent === 'WITHDRAWN'"><span aria-hidden="true">ℹ</span> No messages will be sent until consent is recorded again.</span>
+      <span class="field-error" role="alert" *ngIf="errors['contactConsent']">{{ errors['contactConsent'] }}</span>
+    </fieldset>
+
+    <fieldset class="radio-group channel-group">
+      <legend>Preferred channel</legend>
+      <label class="radio-row"><input type="radio" name="channel" value="EMAIL" [attr.aria-describedby]="available('EMAIL') ? null : 'pn-hint-email'" [(ngModel)]="channel" (ngModelChange)="touch()"> Email</label>
+      <span class="helper-line channel-hint hint-email" id="pn-hint-email" *ngIf="!available('EMAIL')"><span aria-hidden="true">●</span> {{ hint }}</span>
+      <label class="radio-row"><input type="radio" name="channel" value="SMS" [attr.aria-describedby]="available('SMS') ? null : 'pn-hint-sms'" [(ngModel)]="channel" (ngModelChange)="touch()"> SMS</label>
+      <span class="helper-line channel-hint hint-sms" id="pn-hint-sms" *ngIf="!available('SMS')"><span aria-hidden="true">●</span> {{ hint }}</span>
+      <span class="field-error" role="alert" *ngIf="errors['preferredChannel']">{{ errors['preferredChannel'] }}</span>
+    </fieldset>
+
+    <div class="form-group">
+      <label for="pn-lang">Language</label>
+      <select id="pn-lang" name="language" [(ngModel)]="language" (ngModelChange)="touch()">
+        <option value="">{{ defaultLabel }}</option>
+        <option value="FR">Français</option>
+        <option value="EN">English</option>
+      </select>
+      <span class="field-error" role="alert" *ngIf="errors['language']">{{ errors['language'] }}</span>
+    </div>
+
+    <p class="helper-line consent-updated" *ngIf="prefs.consentUpdatedAt">Updated {{ when(prefs.consentUpdatedAt) }}<ng-container *ngIf="prefs.consentUpdatedByName"> by {{ prefs.consentUpdatedByName }}</ng-container></p>
+
+    <div class="btn-row" *appCan="'PATIENT_WRITE'"><button type="submit" class="btn btn--accent save-prefs" [disabled]="saving">{{ saving ? 'Saving…' : 'Save' }}</button></div>
+  </form>
+
+  <h3 class="enroll-title">Recent messages</h3>
+  <div class="banner banner--error" role="alert" *ngIf="historyError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ historyError }} <button type="button" class="btn btn--ghost btn--sm" (click)="loadHistory()">Retry</button></span></div>
+  <p class="muted empty-line" *ngIf="historyLoaded && history.length === 0">No messages sent yet.</p>
+  <ul class="rows notif-history" *ngIf="history.length > 0">
+    <li class="row notif-row" *ngFor="let n of history">
+      <span class="row__main">
+        <span class="row__name">{{ templateLabel[n.template] }} · {{ channelLabel(n.channel) }}</span>
+        <span class="row__sub">
+          <span class="notif-to" *ngIf="n.recipientMasked">{{ n.recipientMasked }} · </span>{{ n.sentAt ? 'Sent ' + when(n.sentAt) : 'Created ' + when(n.createdAt) }} · {{ n.requestedByName ? 'by ' + n.requestedByName : 'automatic' }}<ng-container *ngIf="n.lastError"> · {{ humanize(n.lastError) }}</ng-container>
+        </span>
+      </span>
+      <span class="row__end"><app-status-chip size="sm" [spec]="chip(n)"></app-status-chip></span>
+    </li>
+  </ul>
+</section>

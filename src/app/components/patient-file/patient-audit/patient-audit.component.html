@@ -1,4 +1,5 @@
 <p class="helper-line audit-help"><span aria-hidden="true">ℹ</span> Every view of this file, reveal of the health number, and change is recorded.</p>
+<div class="toolbar audit-filter"><div class="form-group"><app-actor-select selectId="audit-actor" [value]="actorSub" (changed)="setActor($event)"></app-actor-select></div></div>
 <div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the access log. <button type="button" class="btn btn--ghost btn--sm" (click)="load(events.length ? page + 1 : 0)">Retry</button></span></div>
 <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row"></div></div>
 <section class="table-card audit-table" *ngIf="!loading && events.length > 0">
@@ -19,4 +20,4 @@
   </div>
   <div class="card__foot" *ngIf="hasMore"><button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">Load more</button></div>
 </section>
-<p class="muted empty-line" *ngIf="!loading && !error && events.length === 0">No access recorded yet.</p>
+<p class="muted empty-line" *ngIf="!loading && !error && events.length === 0">{{ actorSub ? 'No access recorded for this person.' : 'No access recorded yet.' }}</p>

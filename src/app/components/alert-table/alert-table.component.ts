@@ -2,6 +2,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { AlertCountService } from '../../Services/AlertCount.service';
 import { AlertService } from '../../Services/Alert.service';
 import { Alert } from '../../models/alert.model';
+import { errorText } from '../../models/api-error.model';
+import { alertAnswer, alertDay, alertLabel, isMissed } from '../../shared/alert.util';
 import { initials } from '../../shared/link.util';
 import { alertStatusChip, severityChip } from '../../shared/status';
 
@@ -22,15 +24,12 @@ export class AlertTableComponent {
   severityChip = severityChip;
   statusChip = alertStatusChip;
   initialsOf = initials;
+  alertLabel = alertLabel;
+  alertAnswer = alertAnswer;
+  alertDay = alertDay;
+  isMissed = isMissed;
 
   constructor(private alertService: AlertService, private alertCount: AlertCountService) {}
-
-  display(a: Alert): string {
-    if (a.answerValue === 'true') {
-      return 'Yes';
-    }
-    return a.answerValue === 'false' ? 'No' : a.answerValue;
-  }
 
   startResolve(a: Alert): void {
     this.resolvingId = a.id;
@@ -69,7 +68,7 @@ export class AlertTableComponent {
           this.resolvingId = null;
           this.changed.emit();
         } else {
-          this.message = 'Could not update the alert.';
+          this.message = errorText(err, 'Could not update the alert.');
         }
       }
     });

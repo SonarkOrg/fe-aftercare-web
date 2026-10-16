@@ -1,5 +1,12 @@
+import { Provider } from '@angular/core';
+import { of } from 'rxjs';
+import { MeService } from '../Services/Me.service';
+import { Permissions } from '../auth/permissions.service';
 import { FhirElement, FhirItem, FhirQuestionnaire } from '../fhir/fhir.model';
 import { Alert } from '../models/alert.model';
+import { AccessRole, Me, Permission } from '../models/me.model';
+import { ContactPreferences, NotificationItem, NotificationSettings } from '../models/notification.model';
+import { RetentionRun, RetentionSettings } from '../models/retention.model';
 import { Appointment, AppointmentDetail } from '../models/appointment.model';
 import { CheckIn, FollowUp } from '../models/follow-up.model';
 import { Patient } from '../models/patient.model';
@@ -107,12 +114,20 @@ export function followUp(over: Partial<FollowUp> = {}): FollowUp {
 
 export function alertDto(over: Partial<Alert> = {}): Alert {
   return {
-    id: 1, patientId: 5, patientFirstName: 'Jane', patientLastName: 'Doe', followUpId: 11, checkInId: 21,
-    checkInDate: '2026-10-13', linkId: 'PAIN', questionLabel: 'Pain level?', answerValue: '8', severity: 'HIGH',
+    id: 1, patientId: 5, patientFirstName: 'Jane', patientLastName: 'Doe', followUpId: 11, type: 'CHECK_IN_ANSWER', checkInId: 21,
+    checkInDate: '2026-10-13', linkId: 'PAIN', questionLabel: 'Pain level?', answerValue: '8', missedDate: null, severity: 'HIGH',
     message: 'Severe pain reported (8/10)', messageFr: 'Douleur sévère signalée (8/10)', status: 'OPEN',
     createdAt: '2026-10-13T14:00:00Z', acknowledgedAt: null, acknowledgedBy: null, resolvedAt: null, resolvedBy: null,
     resolutionNote: null, ...over
   };
+}
+
+/** A MISSED_CHECKIN alert: no check-in, question or answer, only the day that was missed. */
+export function missedAlert(over: Partial<Alert> = {}): Alert {
+  return alertDto({
+    id: 2, type: 'MISSED_CHECKIN', checkInId: null, checkInDate: null, linkId: null, questionLabel: null, answerValue: null,
+    missedDate: '2026-10-13', severity: 'MEDIUM', message: 'No check-in received for 2026-10-13', messageFr: 'Aucun suivi reçu pour le 2026-10-13', ...over
+  });
 }
 
 export function appointment(over: Partial<Appointment> = {}): Appointment {
@@ -128,7 +143,7 @@ export function appointment(over: Partial<Appointment> = {}): Appointment {
 }
 
 export function appointmentDetail(over: Partial<AppointmentDetail> = {}): AppointmentDetail {
-  return { ...appointment(), intake: null, ...over };
+  return { ...appointment(), intake: null, intakeRedacted: false, ...over };
 }
 
 
@@ -179,7 +194,7 @@ export function medical(over: Partial<PatientMedical> = {}): PatientMedical {
 
 export function staffMember(over: Partial<Staff> = {}): Staff {
   return {
-    id: 1, displayName: 'Marie Nurse', email: 'marie@example.com', role: 'NURSE', auth0Subject: null, active: true,
+    id: 1, displayName: 'Marie Nurse', email: 'marie@example.com', role: 'NURSE', accessRole: 'NURSE', auth0Subject: null, active: true,
     createdAt: '2026-10-01T14:00:00Z', updatedAt: '2026-10-01T14:00:00Z', ...over
   };
 }
@@ -248,5 +263,79 @@ export function report(over: Partial<ReportSummary> = {}): ReportSummary {
       { weekStart: '2026-09-21', from: '2026-09-21', to: '2026-09-27', checkInsExpected: 0, checkInsReceived: 0, alertsHigh: 0, alertsMedium: 0 }
     ],
     ...over
+  };
+}
+
+/* ---------- roles, notifications, retention ---------- */
+
+/** The permission arrays of the Phase A matrix (spec 2.2), in table order. */
+export const ROLE_PERMISSIONS: Record<AccessRole, Permission[]> = {
+  ADMIN: ['PATIENT_READ', 'PATIENT_WRITE', 'PATIENT_DELETE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL',
+    'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'REPORTS_READ', 'AUDIT_READ',
+    'STAFF_READ', 'STAFF_MANAGE', 'SETTINGS_READ', 'SETTINGS_MANAGE'],
+  PHYSICIAN: ['PATIENT_READ', 'PATIENT_WRITE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL',
+    'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'REPORTS_READ', 'STAFF_READ', 'SETTINGS_READ'],
+  NURSE: ['PATIENT_READ', 'PATIENT_WRITE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL',
+    'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'REPORTS_READ', 'STAFF_READ', 'SETTINGS_READ'],
+  RECEPTION: ['PATIENT_READ', 'PATIENT_WRITE', 'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'STAFF_READ', 'SETTINGS_READ']
+};
+
+const ME_NAME: Record<AccessRole, string> = { ADMIN: 'Dev Admin', PHYSICIAN: 'Dr Alain Bouchard', NURSE: 'Dev Nurse', RECEPTION: 'Dev Reception' };
+const ME_SUB: Record<AccessRole, string> = { ADMIN: 'dev|admin-1', PHYSICIAN: 'auth0|seed-surgeon', NURSE: 'dev|nurse-1', RECEPTION: 'dev|reception-1' };
+
+export function me(role: AccessRole = 'NURSE', over: Partial<Me> = {}): Me {
+  return {
+    staffId: 6, sub: ME_SUB[role], displayName: ME_NAME[role], email: null, role: role === 'ADMIN' ? 'OTHER' : 'NURSE',
+    accessRole: role, permissions: [...ROLE_PERMISSIONS[role]], ...over
+  };
+}
+
+/** Seeds Permissions with a role's member and no HTTP (a stub MeService that never goes to the network). */
+export function providePermissions(role: AccessRole | null = 'NURSE', over: Partial<Me> = {}): Provider {
+  return {
+    provide: Permissions,
+    useFactory: () => {
+      const m = role ? me(role, over) : null;
+      const p = new Permissions({ load: () => of(m!) } as unknown as MeService);
+      p.seed(m);
+      return p;
+    }
+  };
+}
+
+export function contactPrefs(over: Partial<ContactPreferences> = {}): ContactPreferences {
+  return {
+    patientId: 5, preferredChannel: 'EMAIL', language: null, effectiveLanguage: 'FR', contactConsent: 'UNKNOWN', consentUpdatedAt: null,
+    consentUpdatedByName: null, emailAvailable: true, smsAvailable: true, ...over
+  };
+}
+
+export function notification(over: Partial<NotificationItem> = {}): NotificationItem {
+  return {
+    id: 1, patientId: 5, followUpId: 11, appointmentId: null, template: 'FOLLOW_UP_LINK', channel: 'EMAIL', language: 'FR', status: 'SENT',
+    automated: false, attempts: 1, lastError: null, recipientMasked: 'j\u2022\u2022\u2022@example.com', createdAt: '2026-10-14T15:00:00Z',
+    sentAt: '2026-10-14T15:00:30Z', requestedByName: 'Dev Nurse', ...over
+  };
+}
+
+export function notificationSettings(over: Partial<NotificationSettings> = {}): NotificationSettings {
+  return {
+    emailEnabled: true, smsEnabled: false, emailProvider: 'LOG', smsProvider: 'LOG', checkInReminderEnabled: true, checkInReminderTime: '18:00',
+    appointmentReminderEnabled: true, appointmentReminderHours: 48, missedCheckInEnabled: true, missedCheckInCutoff: '20:00',
+    updatedAt: null, updatedByName: null, ...over
+  };
+}
+
+export function retentionSettings(over: Partial<RetentionSettings> = {}): RetentionSettings {
+  return {
+    closedFollowUpMonths: null, deletedDocumentMonths: null, messageMonths: null, notificationMonths: null, auditMonths: null,
+    purgeEnabled: false, dryRun: true, updatedAt: null, updatedByName: null, ...over
+  };
+}
+
+export function retentionRun(over: Partial<RetentionRun> = {}): RetentionRun {
+  return {
+    id: 1, mode: 'DRY_RUN', trigger: 'MANUAL', status: 'SUCCEEDED', startedAt: '2026-10-14T15:00:00Z', finishedAt: '2026-10-14T15:00:02Z',
+    counts: { followUps: 3, checkIns: 20, alerts: 4, documents: 0, messages: 12, notifications: 40, auditEvents: 0 }, actorName: 'Dev Admin', ...over
   };
 }

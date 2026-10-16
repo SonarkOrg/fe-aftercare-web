@@ -1,7 +1,7 @@
 <section class="card card--list documents-card">
   <div class="card__head">
     <h2 class="card__title--sm">Documents <span class="badge">{{ docs.length }}</span></h2>
-    <button #uploadBtn type="button" class="btn btn--accent btn--sm upload-btn" (click)="openUpload(uploadBtn)"><app-icon name="upload" [size]="16"></app-icon><span>Upload</span></button>
+    <button #uploadBtn type="button" class="btn btn--accent btn--sm upload-btn" *appCan="'CLINICAL_WRITE'" (click)="openUpload(uploadBtn)"><app-icon name="upload" [size]="16"></app-icon><span>Upload</span></button>
   </div>
 
   <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the documents. <button type="button" class="btn btn--ghost btn--sm" (click)="load()">Retry</button></span></div>
@@ -18,7 +18,7 @@
       <span class="row__end">
         <button #viewBtn type="button" class="btn btn--ghost btn--sm btn--icon view-doc" [attr.aria-label]="'View ' + d.title" [disabled]="viewBusy" (click)="view(d, viewBtn)"><app-icon name="eye" [size]="16"></app-icon></button>
         <button type="button" class="btn btn--ghost btn--sm btn--icon download-doc" [attr.aria-label]="'Download ' + d.title" (click)="download(d)"><app-icon name="download" [size]="16"></app-icon></button>
-        <app-row-menu [label]="'Actions for ' + d.title" [items]="[{ key: 'delete', label: 'Delete' }]" (selected)="onMenu(d, $event)"></app-row-menu>
+        <app-row-menu *appCan="'CLINICAL_WRITE'" [label]="'Actions for ' + d.title" [items]="[{ key: 'delete', label: 'Delete' }]" (selected)="onMenu(d, $event)"></app-row-menu>
       </span>
       <app-confirm-inline *ngIf="deleting === d.id" class="row-confirm" [requireReason]="true" [busy]="deleteBusy" [question]="'Delete ' + d.title + '?'" confirmLabel="Delete"
                           (confirmed)="confirmDelete(d, $event)" (cancelled)="deleting = null"></app-confirm-inline>

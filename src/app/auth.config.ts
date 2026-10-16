@@ -14,6 +14,9 @@ export const staffApiAllowedList = [
   `${environment.apiUrl}/staff`, `${environment.apiUrl}/staff/*`,
   `${environment.apiUrl}/settings/*`,
   `${environment.apiUrl}/reports/*`,
+  `${environment.apiUrl}/me`,
+  `${environment.apiUrl}/audit`,
+  `${environment.apiUrl}/retention/*`,
 ];
 
 function normalised(entry: string): string {

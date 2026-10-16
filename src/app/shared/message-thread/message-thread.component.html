@@ -21,7 +21,7 @@
     </ng-container>
   </div>
 
-  <div class="composer">
+  <div class="composer" *appCan="'CLINICAL_WRITE'">
     <div class="banner banner--info" role="status" *ngIf="!open"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ closedText }}</span></div>
     <div class="banner banner--error" role="alert" *ngIf="sendError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ sendError }}</span></div>
     <div class="form-group">

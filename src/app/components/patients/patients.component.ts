@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CareDataService } from '../../Services/CareData.service';
 import { PatientService } from '../../Services/Patient.service';
+import { Permissions } from '../../auth/permissions.service';
 import { Patient } from '../../models/patient.model';
 import { CareSnapshot, PatientRow, PatientStatus, SeriesPoint } from '../../shared/care.model';
 import { addDays, businessToday, humanize, relativeDay } from '../../shared/link.util';
@@ -56,6 +57,8 @@ export class PatientsComponent implements OnInit, OnDestroy {
   addError: string | null = null;
   drawerOpen = false;
 
+  /** Status, follow-up and alert data exist only with CLINICAL_READ (the server sends them as null otherwise). */
+  clinical = false;
   filters = FILTERS;
   sortOptions = SORT_OPTIONS;
   statusFilter: StatusFilter = 'all';
@@ -77,13 +80,19 @@ export class PatientsComponent implements OnInit, OnDestroy {
     private patientService: PatientService,
     private route: ActivatedRoute,
     private router: Router,
-    @Inject(DOCUMENT) private doc: Document
+    @Inject(DOCUMENT) private doc: Document,
+    public permissions: Permissions
   ) {}
 
   ngOnInit(): void {
+    this.clinical = this.permissions.can('CLINICAL_READ');
+    if (!this.clinical) {
+      this.sortOptions = SORT_OPTIONS.filter(o => o.key === 'patient' || o.key === 'next');
+      this.sortKey = 'patient';
+    }
     this.sub.add(this.route.queryParamMap.subscribe(q => {
       const status = q.get('status') as StatusFilter | null;
-      this.statusFilter = FILTERS.some(f => f.key === status) ? status! : 'all';
+      this.statusFilter = this.clinical && FILTERS.some(f => f.key === status) ? status! : 'all';
       this.query = q.get('q') ?? '';
       if (q.get('add') === '1' && !this.drawerOpen) {
         this.openDrawer(null);
@@ -122,6 +131,9 @@ export class PatientsComponent implements OnInit, OnDestroy {
   /* ---------- filtering and sorting ---------- */
 
   get activeCount(): number {
+    if (!this.clinical) {
+      return 0;
+    }
     return this.rows.filter(r => r.followUp?.status === 'ACTIVE').length;
   }
 

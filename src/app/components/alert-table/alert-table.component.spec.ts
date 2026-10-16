@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { AlertCountService } from '../../Services/AlertCount.service';
-import { alertDto } from '../../testing/fixtures';
+import { alertDto, missedAlert, providePermissions } from '../../testing/fixtures';
+import { Alert } from '../../models/alert.model';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { AlertTableComponent } from './alert-table.component';
 
@@ -19,7 +20,7 @@ describe('AlertTableComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [AlertTableComponent, ...SHARED_DECLARATIONS],
-      providers: [{ provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } }]
+      providers: [providePermissions('NURSE'), { provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AlertTableComponent);
@@ -110,5 +111,64 @@ describe('AlertTableComponent', () => {
     fixture.detectChanges();
     expect(el.textContent).toContain('This alert was updated by someone else. Reloading.');
     expect(changed).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AlertTableComponent missed check-ins and roles', () => {
+  let fixture: ComponentFixture<AlertTableComponent>;
+  let el: HTMLElement;
+
+  async function mount(role: 'NURSE' | 'ADMIN' = 'NURSE', over: Parameters<typeof providePermissions>[1] = {}) {
+    await TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      declarations: [AlertTableComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions(role, over), { provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } }]
+    }).compileComponents();
+    fixture = TestBed.createComponent(AlertTableComponent);
+    el = fixture.nativeElement;
+  }
+  const show = (alerts: Alert[], showPatient = true) => {
+    fixture.componentRef.setInput('alerts', alerts);
+    fixture.componentRef.setInput('showPatient', showPatient);
+    fixture.detectChanges();
+  };
+
+  it('a MISSED_CHECKIN row says "Missed check-in" with a calendar glyph, "—" as the answer and the missed day', async () => {
+    await mount();
+    show([missedAlert()]);
+    const row = el.querySelector('.alert-row')!;
+    expect(row.querySelector('.alert-row__label')!.textContent!.trim()).toBe('Missed check-in');
+    expect(row.querySelector('.alert-row__label app-icon svg')).not.toBeNull();
+    expect(row.querySelector('.alert-row__answer')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('Answer — · Oct 13 · No check-in received for 2026-10-13');
+    expect(row.textContent).not.toContain('null');
+    expect(Array.from(row.querySelectorAll('.chip__label')).map(c => c.textContent)).toEqual(['Medium', 'Open']);
+  });
+
+  it('has no link or expand into a check-in, and an ordinary answer row has no calendar glyph', async () => {
+    await mount();
+    show([missedAlert(), alertDto({ id: 3 })]);
+    const rows = el.querySelectorAll('.alert-row');
+    for (const r of Array.from(rows)) {
+      expect(r.querySelector('a[href*="check-in"]')).toBeNull();
+      expect(r.querySelector('.btn-toggle')).toBeNull();
+    }
+    expect(rows[1].querySelector('.alert-row__label app-icon')).toBeNull();
+    expect(rows[1].querySelector('.alert-row__label')!.textContent!.trim()).toBe('Pain level?');
+  });
+
+  it('a HIGH missed alert keeps the HIGH chip, and still offers Acknowledge and Resolve', async () => {
+    await mount();
+    show([missedAlert({ severity: 'HIGH' })]);
+    expect(el.querySelector('.alert-row .chip__label')!.textContent).toBe('High');
+    expect(el.querySelector('.btn-ack')).not.toBeNull();
+    expect(el.querySelector('.btn-resolve')).not.toBeNull();
+  });
+
+  it('hides Acknowledge and Resolve from a member without CLINICAL_WRITE', async () => {
+    await mount('NURSE', { permissions: ['CLINICAL_READ'] });
+    show([alertDto()]);
+    expect(el.querySelector('.btn-ack')).toBeNull();
+    expect(el.querySelector('.btn-resolve')).toBeNull();
+    expect(el.querySelector('.alert-row')).not.toBeNull();
   });
 });

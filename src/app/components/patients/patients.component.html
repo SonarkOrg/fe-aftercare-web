@@ -2,10 +2,10 @@
   <section class="hero">
     <div>
       <h1 class="hero__title">Patients</h1>
-      <p class="hero__sub" *ngIf="!loading && !errorMessage">{{ rows.length }} patients · {{ activeCount }} in active follow-up</p>
+      <p class="hero__sub" *ngIf="!loading && !errorMessage">{{ rows.length }} patients<ng-container *ngIf="clinical"> · {{ activeCount }} in active follow-up</ng-container></p>
     </div>
     <div class="hero__actions">
-      <button type="button" id="open-add-patient" class="btn btn--accent" #addBtn (click)="openDrawer(addBtn)"><app-icon name="plus" [size]="16"></app-icon>Add patient</button>
+      <button type="button" id="open-add-patient" class="btn btn--accent" *appCan="'PATIENT_WRITE'" #addBtn (click)="openDrawer(addBtn)"><app-icon name="plus" [size]="16"></app-icon>Add patient</button>
     </div>
   </section>
 
@@ -23,7 +23,7 @@
       <app-icon name="search" [size]="16"></app-icon>
       <input type="search" id="patient-search" aria-label="Search by name" placeholder="Search by name" [value]="query" (input)="setQuery($any($event.target).value)">
     </div>
-    <div class="pill-group" role="group" aria-label="Filter patients by status">
+    <div class="pill-group" role="group" aria-label="Filter patients by status" *ngIf="clinical">
       <button *ngFor="let f of filters" type="button" class="pill-group__item" [attr.data-filter]="f.key" [attr.aria-pressed]="statusFilter === f.key"
               [attr.aria-label]="f.label + ', ' + count(f.key)" (click)="setStatus(f.key)">
         <span class="glyph" *ngIf="f.glyph" aria-hidden="true">{{ f.glyph }}</span>{{ f.label }}
@@ -52,7 +52,7 @@
     <span class="empty__glyph" aria-hidden="true">—</span>
     <p class="empty__title">No patients yet.</p>
     <p class="empty__text">Add the first patient to start follow-ups.</p>
-    <button type="button" class="btn btn--primary" (click)="openDrawer($any($event.target))">Add patient</button>
+    <button type="button" class="btn btn--primary" *appCan="'PATIENT_WRITE'" (click)="openDrawer($any($event.target))">Add patient</button>
   </div>
 
   <div class="card empty" *ngIf="!loading && !errorMessage && rows.length > 0 && visible.length === 0">
@@ -62,13 +62,13 @@
   </div>
 
   <section class="card card--list patient-list" *ngIf="!loading && visible.length > 0" aria-label="Patients">
-    <div class="prow prow--head" aria-hidden="true">
-      <span>Patient</span><span>Status</span>
-      <span class="prow__meta"><span>Follow-up</span><span class="c-last">Last check-in</span><span>Pain</span><span class="c-next">Next appointment</span></span>
+    <div class="prow prow--head" [class.prow--plain]="!clinical" aria-hidden="true">
+      <span>Patient</span><span *ngIf="clinical">Status</span>
+      <span class="prow__meta"><ng-container *ngIf="clinical"><span>Follow-up</span><span class="c-last">Last check-in</span><span>Pain</span></ng-container><span class="c-next">Next appointment</span></span>
       <span></span>
     </div>
     <ul class="rows">
-      <li *ngFor="let r of visible" class="prow is-clickable" [class.prow--critical]="r.status === 'CRITICAL'" [class.prow--attention]="r.status === 'ATTENTION'" (click)="rowClick(r, $event)">
+      <li *ngFor="let r of visible" class="prow is-clickable" [class.prow--plain]="!clinical" [class.prow--critical]="r.status === 'CRITICAL'" [class.prow--attention]="r.status === 'ATTENTION'" (click)="rowClick(r, $event)">
         <div class="prow__person">
           <app-avatar [id]="r.patient.id" [initials]="r.initials" size="md"></app-avatar>
           <div class="prow__id">
@@ -76,13 +76,13 @@
             <div class="row__sub">{{ r.patient.email }}</div>
           </div>
         </div>
-        <div class="prow__status">
+        <div class="prow__status" *ngIf="clinical">
           <span class="sr-only">Status: </span>
           <app-status-chip [spec]="chipOf(r.status)"></app-status-chip>
           <div class="row__sub prow__reason" [title]="r.reasons.join(' · ')">{{ r.reasons[0] }}</div>
         </div>
         <div class="prow__meta">
-          <div class="c-fu">
+          <div class="c-fu" *ngIf="clinical">
             <span class="sr-only">Follow-up: </span>
             <ng-container *ngIf="r.followUp && r.followUp.status === 'ACTIVE' && r.day; else noDay">
               <span class="num">Day {{ r.day.day }} of {{ r.day.total }}</span>
@@ -90,11 +90,11 @@
             </ng-container>
             <ng-template #noDay>{{ r.followUp && r.followUp.status === 'EXPIRED' ? 'Ended ' + r.followUp.endDate : '—' }}</ng-template>
           </div>
-          <div class="c-last">
+          <div class="c-last" *ngIf="clinical">
             <span class="sr-only">Last check-in: </span>
             <span *ngIf="r.lastCheckInDate; else dash" [title]="r.lastCheckInDate">{{ relativeDay(r.lastCheckInDate, today) }}</span>
           </div>
-          <div class="c-pain">
+          <div class="c-pain" *ngIf="clinical">
             <span class="sr-only">Pain: </span>
             <ng-container *ngIf="r.lastPain !== null; else dash">
               <span class="pain-val num">{{ r.lastPain }}</span>
@@ -113,7 +113,7 @@
         </div>
         <div class="prow__actions">
           <a class="btn btn--secondary btn--sm" [routerLink]="['/patients', r.patient.id]">Open</a>
-          <button type="button" class="btn btn--ghost-danger btn--sm btn--icon" [attr.aria-label]="'Delete ' + r.name" (click)="deletePatient(r.patient)"><app-icon name="trash" [size]="16"></app-icon></button>
+          <button type="button" class="btn btn--ghost-danger btn--sm btn--icon" *appCan="'PATIENT_DELETE'" [attr.aria-label]="'Delete ' + r.name" (click)="deletePatient(r.patient)"><app-icon name="trash" [size]="16"></app-icon></button>
         </div>
       </li>
     </ul>

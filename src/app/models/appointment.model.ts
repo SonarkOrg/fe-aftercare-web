@@ -10,7 +10,8 @@ export interface Appointment {
   patientFirstName: string;
   patientLastName: string;
   type: AppointmentType;
-  specialty: Specialty;
+  /** Null when redacted for the caller (RECEPTION). */
+  specialty: Specialty | null;
   questionnaireDefinitionId: number;
   questionnaireUrl: string;
   questionnaireVersion: string;
@@ -53,6 +54,8 @@ export interface Intake {
 
 export interface AppointmentDetail extends Appointment {
   intake: Intake | null;
+  /** True when the caller may not see the answers (no CLINICAL_READ); `intake` is then null. */
+  intakeRedacted: boolean;
 }
 
 export interface CreateAppointmentRequest {

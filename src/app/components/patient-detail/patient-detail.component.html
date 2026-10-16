@@ -13,17 +13,17 @@
         <h1>{{ patient.firstName }} {{ patient.lastName }}</h1>
         <p class="profile-hero__meta">{{ patient.gender }}<ng-container *ngIf="age !== null && dob"> · {{ age }} y (born {{ dobLabel(dob) }})</ng-container> · {{ patient.address.city }}, {{ patient.address.state }} · <a [attr.href]="'tel:' + patient.phone">{{ patient.phone }}</a> · <a [attr.href]="'mailto:' + patient.email">{{ patient.email }}</a></p>
         <div class="profile-hero__chips">
-          <app-status-chip [spec]="statusChip"></app-status-chip>
-          <span class="chip chip--neutral" *ngIf="current as f"><span class="chip__label">{{ humanize(f.specialty) }}</span></span>
-          <span class="badge" *ngIf="current && day as d">Day {{ d.day }} of {{ d.total }}</span>
+          <app-status-chip *ngIf="clinical" [spec]="statusChip"></app-status-chip>
+          <span class="chip chip--neutral" *ngIf="clinical && current as f"><span class="chip__label">{{ humanize(f.specialty) }}</span></span>
+          <span class="badge" *ngIf="clinical && current && day as d">Day {{ d.day }} of {{ d.total }}</span>
           <span class="allergy-chip" *ngIf="allergyChip as a" [attr.title]="a.title"><app-status-chip [spec]="a.spec"></app-status-chip></span>
         </div>
       </div>
-      <a class="btn btn--accent" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
+      <a class="btn btn--accent" *appCan="'APPOINTMENT_WRITE'" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
     </section>
 
     <div class="kpis kpis--summary" role="group" aria-label="Summary">
-      <div class="kpi">
+ <div class="kpi" *ngIf="clinical">
         <span class="kpi__icon"><app-icon name="heart-pulse" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
           <span class="kpi__label">Follow-up</span>
@@ -34,7 +34,7 @@
           <ng-template #noFu><span class="kpi__value">None</span></ng-template>
         </span>
       </div>
-      <div class="kpi">
+ <div class="kpi" *ngIf="clinical">
         <span class="kpi__icon"><app-icon name="check-circle" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
           <span class="kpi__label">Last check-in</span>
@@ -42,7 +42,7 @@
           <ng-template #noCi><span class="kpi__value">—</span></ng-template>
         </span>
       </div>
-      <div class="kpi">
+ <div class="kpi" *ngIf="clinical">
         <span class="kpi__icon"><app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
           <span class="kpi__label">Open alerts</span>
@@ -61,15 +61,15 @@
     </div>
 
     <div class="tabs" role="tablist" aria-label="Patient sections" (keydown)="onTabKey($event)">
-      <button *ngFor="let t of tabs" #tabBtn type="button" role="tab" class="tab" [id]="'tab-' + t" [attr.aria-controls]="'panel-' + t"
+      <button *ngFor="let t of visibleTabs" #tabBtn type="button" role="tab" class="tab" [id]="'tab-' + t" [attr.aria-controls]="'panel-' + t"
               [attr.aria-selected]="tab === t" [attr.tabindex]="tab === t ? 0 : -1" (click)="selectTab(t)">{{ tabLabel(t) }}<ng-container *ngIf="tabCount(t) > 0">&ngsp;<span class="pill-group__count">{{ tabCount(t) }}</span></ng-container></button>
     </div>
 
     <!-- Overview -->
     <div class="tabpanel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview" tabindex="0" [hidden]="tab !== 'overview'">
-      <div class="overview-grid">
-        <div class="stack-20">
-          <section class="card trends-card">
+      <div class="overview-grid" [class.overview-grid--single]="!clinical">
+        <div class="stack-20" *ngIf="clinical">
+          <section class="card trends-card" *ngIf="clinical">
             <div class="card__header"><h2 class="card__title">Trends</h2></div>
             <ng-container *ngIf="chartFollowUp; else noData">
               <app-trend-chart *ngFor="let c of charts" variant="full" [label]="c.label" [unit]="c.unit" [domain]="c.domain"
@@ -82,7 +82,7 @@
         </div>
 
         <div class="stack-20">
-          <section class="card card--list recent-alerts">
+          <section class="card card--list recent-alerts" *ngIf="clinical">
             <div class="card__head">
               <h2 class="card__title--sm">Recent alerts <span class="badge">{{ unresolved.length }}</span></h2>
               <button type="button" class="card__link view-all-alerts" *ngIf="unresolved.length > 0" (click)="selectTab('alerts', true)">View all</button>
@@ -92,15 +92,15 @@
               <li class="row alert-line" *ngFor="let a of recentAlerts">
                 <span class="tone-circle" [ngClass]="'tone-' + severityChip(a.severity).tone" aria-hidden="true">{{ severityChip(a.severity).glyph }}</span>
                 <span class="row__main">
-                  <span class="row__name alert-line__q" [title]="a.questionLabel">{{ a.questionLabel }}</span>
-                  <span class="row__sub">Answer <strong>{{ a.answerValue === 'true' ? 'Yes' : a.answerValue === 'false' ? 'No' : a.answerValue }}</strong> · {{ a.checkInDate | date:'d MMM' }}</span>
+                  <span class="row__name alert-line__q" [title]="alertLabel(a)"><app-icon *ngIf="isMissed(a)" name="calendar" [size]="14"></app-icon> {{ alertLabel(a) }}</span>
+                  <span class="row__sub">Answer <strong>{{ alertAnswer(a) }}</strong> · {{ alertDay(a) | date:'d MMM' }}</span>
                 </span>
                 <span class="row__end"><app-status-chip size="sm" [spec]="severityChip(a.severity)"></app-status-chip></span>
               </li>
             </ul>
           </section>
 
-          <section class="card follow-up-card">
+          <section class="card follow-up-card" *ngIf="clinical">
             <div class="card__header"><h2 class="card__title--sm">Follow-up</h2></div>
             <ng-container *ngIf="current as f">
               <div class="sage-panel">
@@ -112,14 +112,15 @@
                 </dl>
               </div>
               <p class="mono form-url">{{ f.questionnaireUrl }}|{{ f.questionnaireVersion }}</p>
-              <div class="btn-row">
+              <div class="btn-row" *appCan="'CLINICAL_WRITE'">
                 <button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="f.status === 'ACTIVE'" (click)="regenerate(f)">Regenerate check-in link</button>
+                <ng-container *ngIf="f.status === 'ACTIVE'"><app-send-link kind="follow-up" [targetId]="f.id" [patientId]="patientId" (sent)="onLinkSent()"></app-send-link></ng-container>
                 <button type="button" id="close-follow-up" class="btn btn--ghost-danger" (click)="close(f)">Close follow-up</button>
               </div>
             </ng-container>
             <p *ngIf="!current">No active follow-up.</p>
             <app-access-link *ngIf="accessCode" [code]="accessCode"></app-access-link>
-            <div *ngIf="canEnroll" class="enroll">
+            <div *ngIf="canEnroll && permissions.can('CLINICAL_WRITE')" class="enroll">
               <h3 class="enroll-title">Enroll in follow-up</h3>
               <app-follow-up-form [patientId]="patientId" (created)="onEnrolled($event)"></app-follow-up-form>
             </div>
@@ -135,10 +136,28 @@
             </dl>
           </section>
 
+          <section class="card card--list notif-summary" *ngIf="!clinical && reminderSummary as line">
+            <div class="card__head">
+              <h2 class="card__title--sm">Notifications</h2>
+              <button type="button" class="card__link" (click)="selectTab('contacts', true)">Manage</button>
+            </div>
+            <p class="notif-summary__line">{{ line }}</p>
+          </section>
+
+          <section class="card card--list upcoming-card" *ngIf="!clinical">
+            <div class="card__head"><h2 class="card__title--sm">Upcoming appointments <span class="badge">{{ upcoming.length }}</span></h2></div>
+            <p class="muted empty-line" *ngIf="upcoming.length === 0">No upcoming appointments.</p>
+            <ul class="rows" *ngIf="upcoming.length > 0">
+              <li class="row" *ngFor="let a of upcoming">
+                <span class="row__main"><a class="row__name" [routerLink]="['/appointments', a.id]">{{ date(a) | date:'EEE d MMM' }} {{ time(a) }}</a><span class="row__sub">{{ humanize(a.type) }}</span></span>
+              </li>
+            </ul>
+          </section>
+
           <section class="card card--list care-team-card">
             <div class="card__head">
               <h2 class="card__title--sm">Care team <span class="badge">{{ careTeam.length }}</span></h2>
-              <button type="button" class="card__link" (click)="selectTab('contacts', true)">Manage</button>
+              <button type="button" class="card__link" *appCan="'CLINICAL_WRITE'" (click)="selectTab('contacts', true)">Manage</button>
             </div>
             <p class="muted empty-line" *ngIf="careTeam.length === 0">No care team assigned.</p>
             <ul class="rows" *ngIf="careTeam.length > 0">
@@ -154,39 +173,39 @@
     </div>
 
     <!-- Medical -->
-    <div class="tabpanel" id="panel-medical" role="tabpanel" aria-labelledby="tab-medical" tabindex="0" [hidden]="tab !== 'medical'">
+    <div *ngIf="show('medical')" class="tabpanel" id="panel-medical" role="tabpanel" aria-labelledby="tab-medical" tabindex="0" [hidden]="tab !== 'medical'">
       <div class="banner banner--error" *ngIf="medicalError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the medical information. <button type="button" class="btn btn--ghost btn--sm" (click)="loadFile()">Retry</button></span></div>
       <app-patient-medical *ngIf="medical && patient" [patient]="patient" [medical]="medical" [active]="tab === 'medical'"
                            (medicalChange)="medical = $event" (patientChange)="patient = $event"></app-patient-medical>
     </div>
 
     <!-- Contacts and care team -->
-    <div class="tabpanel" id="panel-contacts" role="tabpanel" aria-labelledby="tab-contacts" tabindex="0" [hidden]="tab !== 'contacts'">
-      <app-patient-contacts *ngIf="visited.has('contacts')" [patientId]="patientId" [careTeam]="careTeam" (careTeamChange)="careTeam = $event"></app-patient-contacts>
+    <div *ngIf="show('contacts')" class="tabpanel" id="panel-contacts" role="tabpanel" aria-labelledby="tab-contacts" tabindex="0" [hidden]="tab !== 'contacts'">
+      <app-patient-contacts *ngIf="visited.has('contacts')" [patientId]="patientId" [careTeam]="careTeam" (careTeamChange)="careTeam = $event" (prefsSaved)="prefs = $event"></app-patient-contacts>
     </div>
 
     <!-- Timeline -->
-    <div class="tabpanel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" tabindex="0" [hidden]="tab !== 'timeline'">
+    <div *ngIf="show('timeline')" class="tabpanel" id="panel-timeline" role="tabpanel" aria-labelledby="tab-timeline" tabindex="0" [hidden]="tab !== 'timeline'">
       <app-patient-timeline *ngIf="visited.has('timeline')" [patientId]="patientId" (openTab)="selectTab($event, true)"></app-patient-timeline>
     </div>
 
     <!-- Documents -->
-    <div class="tabpanel" id="panel-documents" role="tabpanel" aria-labelledby="tab-documents" tabindex="0" [hidden]="tab !== 'documents'">
+    <div *ngIf="show('documents')" class="tabpanel" id="panel-documents" role="tabpanel" aria-labelledby="tab-documents" tabindex="0" [hidden]="tab !== 'documents'">
       <app-patient-documents *ngIf="visited.has('documents')" [patientId]="patientId"></app-patient-documents>
     </div>
 
     <!-- Messages -->
-    <div class="tabpanel" id="panel-messages" role="tabpanel" aria-labelledby="tab-messages" tabindex="0" [hidden]="tab !== 'messages'">
+    <div *ngIf="show('messages')" class="tabpanel" id="panel-messages" role="tabpanel" aria-labelledby="tab-messages" tabindex="0" [hidden]="tab !== 'messages'">
       <app-message-thread *ngIf="visited.has('messages')" [patientId]="patientId" variant="embedded" (read)="unreadMessages = 0"></app-message-thread>
     </div>
 
     <!-- Access log -->
-    <div class="tabpanel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" tabindex="0" [hidden]="tab !== 'audit'">
+    <div *ngIf="show('audit')" class="tabpanel" id="panel-audit" role="tabpanel" aria-labelledby="tab-audit" tabindex="0" [hidden]="tab !== 'audit'">
       <app-patient-audit *ngIf="visited.has('audit')" [patientId]="patientId"></app-patient-audit>
     </div>
 
     <!-- Check-ins -->
-    <section class="table-card check-ins tabpanel" id="panel-checkins" role="tabpanel" aria-labelledby="tab-checkins" tabindex="0" [hidden]="tab !== 'checkins'">
+    <section *ngIf="show('checkins')" class="table-card check-ins tabpanel" id="panel-checkins" role="tabpanel" aria-labelledby="tab-checkins" tabindex="0" [hidden]="tab !== 'checkins'">
       <p class="empty-line" *ngIf="checkIns.length === 0">No check-ins yet.</p>
       <table class="table" *ngIf="checkIns.length > 0">
         <caption class="sr-only">Check-ins with pain and temperature</caption>
@@ -215,16 +234,16 @@
     </section>
 
     <!-- Alerts -->
-    <section class="alerts tabpanel" id="panel-alerts" role="tabpanel" aria-labelledby="tab-alerts" tabindex="0" [hidden]="tab !== 'alerts'">
+    <section *ngIf="show('alerts')" class="alerts tabpanel" id="panel-alerts" role="tabpanel" aria-labelledby="tab-alerts" tabindex="0" [hidden]="tab !== 'alerts'">
       <div class="card empty" *ngIf="alerts.length === 0"><span class="empty__glyph" aria-hidden="true">✓</span><p class="empty__title">No alerts.</p></div>
       <app-alert-table *ngIf="alerts.length > 0" [alerts]="alerts" [showPatient]="false" (changed)="reload()"></app-alert-table>
     </section>
 
     <!-- Appointments -->
-    <section class="card appointments tabpanel" id="panel-appointments" role="tabpanel" aria-labelledby="tab-appointments" tabindex="0" [hidden]="tab !== 'appointments'">
+    <section *ngIf="show('appointments')" class="card appointments tabpanel" id="panel-appointments" role="tabpanel" aria-labelledby="tab-appointments" tabindex="0" [hidden]="tab !== 'appointments'">
       <div class="card__header">
         <h2 class="card__title">Appointments</h2>
-        <a class="btn btn--secondary btn--sm" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
+        <a class="btn btn--secondary btn--sm" *appCan="'APPOINTMENT_WRITE'" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
       </div>
       <p class="empty-line" *ngIf="appointments.length === 0">No appointments.</p>
       <ul class="appts appts--dated" *ngIf="appointments.length > 0">

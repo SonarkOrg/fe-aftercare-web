@@ -9,6 +9,13 @@
     <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'inactive'" (click)="filter = 'inactive'">Inactive <span class="pill-group__count" aria-hidden="true">{{ count('inactive') }}</span></button>
     <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'all'" (click)="filter = 'all'">All <span class="pill-group__count" aria-hidden="true">{{ count('all') }}</span></button>
   </div>
+  <div class="role-filter">
+    <label for="staff-role-filter" class="sr-only">Filter by access role</label>
+    <select id="staff-role-filter" class="select" [(ngModel)]="roleFilter">
+      <option value="all">All roles</option>
+      <option *ngFor="let r of accessRoles" [value]="r">{{ r === 'ADMIN' ? 'Admin' : humanize(r) }}</option>
+    </select>
+  </div>
 
   <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the staff. <button type="button" class="btn btn--ghost btn--sm" (click)="load()">Retry</button></span></div>
   <div class="banner banner--error" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ actionError }}</span></div>
@@ -21,8 +28,11 @@
       <span class="row__end">
         <app-status-chip size="sm" [spec]="s.auth0Subject ? linked : notLinked"></app-status-chip>
         <app-status-chip size="sm" *ngIf="!s.active" [spec]="inactiveChip"></app-status-chip>
+        <app-role-badge [role]="s.accessRole"></app-role-badge>
         <app-row-menu [label]="'Actions for ' + s.displayName" [items]="menuItems(s)" (selected)="onMenu(s, $event)"></app-row-menu>
       </span>
+      <app-confirm-inline *ngIf="selfConfirm === s.id" class="row-confirm" question="You will lose access immediately." confirmLabel="Deactivate me"
+                          (confirmed)="confirmSelf(s)" (cancelled)="selfConfirm = null"></app-confirm-inline>
     </li>
   </ul>
 </section>
@@ -39,7 +49,13 @@
         <div class="banner banner--error" role="alert" *ngIf="banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ banner }}</span></div>
         <div class="form-group"><label for="st-name">Display name</label><input id="st-name" name="displayName" type="text" maxlength="120" autocomplete="off" [(ngModel)]="form.displayName"><span class="field-error" *ngIf="errors['displayName']">{{ errors['displayName'] }}</span></div>
         <div class="form-group"><label for="st-email">Email <span class="q-optional">(optional)</span></label><input id="st-email" name="email" type="email" maxlength="255" autocomplete="off" [(ngModel)]="form.email"><span class="field-error" *ngIf="errors['email']">{{ errors['email'] }}</span></div>
-        <div class="form-group"><label for="st-role">Role</label><select id="st-role" name="role" [(ngModel)]="form.role"><option *ngFor="let r of roles" [value]="r">{{ humanize(r) }}</option></select></div>
+        <div class="form-group"><label for="st-role">Profession</label><select id="st-role" name="role" [(ngModel)]="form.role"><option *ngFor="let r of roles" [value]="r">{{ humanize(r) }}</option></select></div>
+        <div class="form-group">
+          <label for="st-access">Access</label>
+          <select id="st-access" name="accessRole" required aria-describedby="st-access-h" [(ngModel)]="form.accessRole"><option *ngFor="let r of accessRoles" [value]="r">{{ r === 'ADMIN' ? 'Admin' : humanize(r) }}</option></select>
+          <span id="st-access-h" class="helper-line">Admin: settings, staff and audit, plus everything else. Physician/Nurse: full patient file. Reception: demographics, contacts and appointments only.</span>
+          <span class="field-error" *ngIf="errors['accessRole']">{{ errors['accessRole'] }}</span>
+        </div>
         <div class="form-group">
           <label for="st-sub">Auth0 subject <span class="q-optional">(optional)</span></label>
           <input id="st-sub" name="auth0Subject" type="text" class="mono" maxlength="255" autocomplete="off" spellcheck="false" [(ngModel)]="form.auth0Subject" aria-describedby="st-sub-h">

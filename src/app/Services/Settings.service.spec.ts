@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { environment } from '../../environments/environment';
-import { CLINIC } from '../testing/fixtures';
+import { CLINIC, notificationSettings } from '../testing/fixtures';
 import { SettingsService } from './Settings.service';
 
 describe('SettingsService', () => {
@@ -64,5 +64,21 @@ describe('SettingsService', () => {
     svc.clinic$.subscribe(c => (name = c.name));
     http.expectOne(url).flush(CLINIC);
     expect(name).toBe('Clinique Test');
+  });
+
+  it('reads and saves the patient notification settings without caching them', () => {
+    const body = { emailEnabled: true, smsEnabled: true, checkInReminderEnabled: true, checkInReminderTime: '17:30', appointmentReminderEnabled: false,
+      appointmentReminderHours: 36, missedCheckInEnabled: true, missedCheckInCutoff: '19:45' };
+    let got: unknown;
+    svc.notifications().subscribe(n => (got = n));
+    let r = http.expectOne(`${environment.apiUrl}/settings/notifications`);
+    expect(r.request.method).toBe('GET');
+    r.flush(notificationSettings());
+    expect(got).toEqual(notificationSettings());
+    svc.updateNotifications(body).subscribe();
+    r = http.expectOne(`${environment.apiUrl}/settings/notifications`);
+    expect(r.request.method).toBe('PUT');
+    expect(r.request.body).toEqual(body);
+    r.flush(notificationSettings(body));
   });
 });

@@ -43,11 +43,22 @@
   <div class="tabpanel" id="spanel-notifications" role="tabpanel" aria-labelledby="stab-notifications" tabindex="0" [hidden]="tab !== 'notifications'">
     <section class="card" aria-labelledby="notif-title">
       <div class="card__header"><h2 id="notif-title" class="card__title--sm">Alert notifications</h2></div>
-      <p>Choose which open alerts count toward the Alerts badge and bell in the top bar. No email or SMS is sent.</p>
+      <p>Choose which open alerts count toward the Alerts badge and bell in the top bar. No email or SMS is sent to staff.</p>
       <div class="banner banner--error" role="alert" *ngIf="notifyError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ notifyError }}</span></div>
       <div class="toggle-row"><label for="n-high"><span aria-hidden="true">▲</span> High alerts</label><input id="n-high" type="checkbox" [checked]="notifies('HIGH')" [disabled]="!current || notifyBusy" (change)="toggle('HIGH', $any($event.target).checked, $any($event.target))"></div>
       <div class="toggle-row"><label for="n-medium"><span aria-hidden="true">●</span> Medium alerts</label><input id="n-medium" type="checkbox" [checked]="notifies('MEDIUM')" [disabled]="!current || notifyBusy" (change)="toggle('MEDIUM', $any($event.target).checked, $any($event.target))"></div>
     </section>
+    <app-notification-settings *ngIf="tab === 'notifications'"></app-notification-settings>
+  </div>
+
+  <!-- Retention -->
+  <div class="tabpanel" id="spanel-retention" role="tabpanel" aria-labelledby="stab-retention" tabindex="0" [hidden]="tab !== 'retention'">
+    <app-retention-settings *ngIf="tab === 'retention'"></app-retention-settings>
+  </div>
+
+  <!-- Access log -->
+  <div class="tabpanel" id="spanel-access" role="tabpanel" aria-labelledby="stab-access" tabindex="0" [hidden]="tab !== 'access'">
+    <app-access-log *ngIf="tab === 'access'"></app-access-log>
   </div>
 
   <!-- Alert rules -->

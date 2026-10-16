@@ -17,9 +17,13 @@ describe('MessageService', () => {
 
   it('inbox and unread count', () => {
     svc.inbox().subscribe();
-    http.expectOne(`${api}/messages/inbox`).flush([]);
+    const inbox = http.expectOne(`${api}/messages/inbox`);
+    expect(inbox.request.method).toBe('GET');
+    inbox.flush([]);
     svc.unreadCount().subscribe();
-    http.expectOne(`${api}/messages/unread-count`).flush({ unreadMessages: 0, conversations: 0 });
+    const unread = http.expectOne(`${api}/messages/unread-count`);
+    expect(unread.request.method).toBe('GET');
+    unread.flush({ unreadMessages: 0, conversations: 0 });
   });
 
   it('thread: the newest page has no before; older pages send it', () => {

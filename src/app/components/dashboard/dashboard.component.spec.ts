@@ -10,7 +10,7 @@ import { StaffAuth } from '../../auth/staff-auth';
 import { Patient } from '../../models/patient.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { addDays, businessToday } from '../../shared/link.util';
-import { CLINIC, SEED_RULES, alertDto, appointment, checkInDto, followUp } from '../../testing/fixtures';
+import { CLINIC, SEED_RULES, alertDto, missedAlert, appointment, checkInDto, followUp, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { DashboardComponent } from './dashboard.component';
 
@@ -49,7 +49,7 @@ describe('DashboardComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, RouterTestingModule, FormsModule],
       declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
-      providers: [
+      providers: [providePermissions('NURSE'), 
         { provide: StaffAuth, useValue: { userName$: of('Dev Nurse') } },
         { provide: AlertCountService, useValue: alertCount },
         { provide: SettingsService, useValue: { clinic$: of(CLINIC) } }
@@ -267,6 +267,14 @@ describe('DashboardComponent', () => {
     expect(sel.options[0].textContent).toContain('Marie Tremblay'); // the critical patient with check-ins comes first
   });
 
+  it('renders a HIGH missed check-in alert in Needs attention with its missed day, not a question or answer', () => {
+    init([...alerts, missedAlert({ id: 9, patientId: 2, patientFirstName: 'Jean', patientLastName: 'Roy', severity: 'HIGH', missedDate: '2026-10-12', createdAt: '2026-10-13T09:00:00Z' })]);
+    const row = attn().find(r => r.dataset['kind'] === 'critical' && r.textContent!.includes('Missed check-in'))!;
+    expect(row.querySelector('.row__sub')!.textContent).toContain('Missed check-in Oct 12');
+    expect(row.textContent).not.toContain('null');
+    expect(row.querySelector('.chip__label')!.textContent).toBe('High');
+  });
+
   it('greets by the hour of day in America/Toronto', () => {
     const at = (h: number) => {
       (component as any).now = () => new Date(Date.UTC(2026, 9, 13, h + 4)); // EDT is UTC-4
@@ -276,5 +284,126 @@ describe('DashboardComponent', () => {
     init();
     expect(el.querySelector('.hero__sub')!.textContent).toContain(', Dev');
     expect(el.querySelector('h1')!.textContent).toBe("Today's Aftercare");
+  });
+});
+
+describe('DashboardComponent without CLINICAL_READ (reception)', () => {
+  const api = environment.apiUrl;
+  const today = businessToday();
+  let fixture: ComponentFixture<DashboardComponent>;
+  let http: HttpTestingController;
+  let el: HTMLElement;
+
+  const metrics = {
+    from: today, to: today, total: 3, scheduled: 1, ready: 1, needsReview: 1, cancelled: 0, completed: 0, noShow: 0,
+    questionnairesCompleted: 2, questionnaireMissing: 1, completionRate: 0.5
+  };
+  const appts = [
+    appointment({ id: 12, patientId: 3, patientFirstName: 'Sophie', patientLastName: 'Lavoie', scheduledAt: `${today}T14:00:00`, status: 'SCHEDULED' }),
+    appointment({ id: 11, patientId: 2, patientFirstName: 'Jean', patientLastName: 'Roy', scheduledAt: `${today}T08:30:00`, status: 'NEEDS_REVIEW', flagCount: 2 })
+  ];
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, RouterTestingModule, FormsModule],
+      declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
+      providers: [
+        providePermissions('RECEPTION'),
+        { provide: StaffAuth, useValue: { userName$: of(null) } },
+        { provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } },
+        { provide: SettingsService, useValue: { clinic$: of(CLINIC) } }
+      ]
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(DashboardComponent);
+    el = fixture.nativeElement;
+  });
+  afterEach(() => http.verify());
+
+  function init() {
+    fixture.detectChanges();
+    http.expectOne(r => r.url === `${api}/appointments`).flush(appts);
+    http.expectOne(r => r.url === `${api}/appointments/metrics`).flush(metrics);
+    fixture.detectChanges();
+  }
+
+  it('makes no clinical request at all: no alerts, check-ins, patients, definitions, messages or follow-ups', () => {
+    fixture.detectChanges();
+    http.expectNone(r => r.url === `${api}/alerts`);
+    http.expectNone(r => r.url === `${api}/check-ins`);
+    http.expectNone(`${api}/patients`);
+    http.expectNone(r => r.url.startsWith(`${api}/questionnaires`));
+    http.expectNone(r => r.url.startsWith(`${api}/messages`));
+    const appt = http.expectOne(r => r.url === `${api}/appointments`);
+    expect([appt.request.params.get('from'), appt.request.params.get('to')]).toEqual([today, today]);
+    appt.flush([]);
+    const m = http.expectOne(r => r.url === `${api}/appointments/metrics`);
+    expect([m.request.params.get('from'), m.request.params.get('to')]).toEqual([today, today]);
+    m.flush(metrics);
+  });
+
+  it('shows today\'s appointments in time order, the metrics and a Patients quick link', () => {
+    init();
+    const times = Array.from(el.querySelectorAll('.appt .appt__time')).map(t => t.textContent!.trim());
+    expect(times).toEqual(['08:30', '14:00']);
+    expect(el.querySelector('#today-title .badge')!.textContent).toBe('2');
+    expect(el.querySelector('.reception-home dl.kv')!.textContent).toContain('Appointments3');
+    expect(el.querySelector('.reception-home dl.kv')!.textContent).toContain('Needs review1');
+    expect(el.querySelector('.reception-home dl.kv')!.textContent).toContain('Questionnaire missing1');
+    expect(el.querySelector('.quick-patients')!.getAttribute('href')).toBe('/patients');
+    expect(el.querySelector('a.btn[href="/appointments/new"]')).not.toBeNull(); // APPOINTMENT_WRITE
+  });
+
+  it('copes with a redacted (null) specialty and words the hero for appointments only', () => {
+    fixture.detectChanges();
+    http.expectOne(r => r.url === `${api}/appointments`).flush(appts.map(a => ({ ...a, specialty: null })));
+    http.expectOne(r => r.url === `${api}/appointments/metrics`).flush(metrics);
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.appt').length).toBe(2);
+    expect(el.textContent).not.toMatch(/null|undefined/);
+    expect(el.querySelector('.hero__sub')!.textContent).not.toContain('Check-ins');
+    expect(el.querySelector('.hero__sub')!.textContent).toContain('appointments');
+  });
+
+  it('hides the alert, check-in, trend and KPI cards and the "Needs attention" list', () => {
+    init();
+    for (const sel of ['#needs-attention-title', '#overview-title', '#trends-title', '#critical-chart-title', '.kpis', '#kpi-critical', 'app-trend-chart', 'app-ring-tile']) {
+      expect(el.querySelector(sel)).withContext(sel).toBeNull();
+    }
+  });
+
+  it('greets with the directory name and shows a retry when the schedule cannot be loaded', () => {
+    fixture.detectChanges();
+    http.expectOne(r => r.url === `${api}/appointments`).flush('x', { status: 500, statusText: 'Server Error' });
+    expect(http.match(r => r.url === `${api}/appointments/metrics`).every(r => r.cancelled)).toBeTrue(); // forkJoin gave up on it
+    fixture.detectChanges();
+    expect(el.querySelector('.error-message')!.textContent).toContain('Could not load the dashboard.');
+    (el.querySelector('.error-message button') as HTMLButtonElement).click();
+    http.expectOne(r => r.url === `${api}/appointments`).flush([]);
+    http.expectOne(r => r.url === `${api}/appointments/metrics`).flush(metrics);
+    fixture.detectChanges();
+    expect(el.querySelector('.error-message')).toBeNull();
+    expect(el.querySelector('.hero__sub')!.textContent).toContain('Dev');
+  });
+});
+
+describe('DashboardComponent buttons by permission', () => {
+  it('hides New appointment and Add patient from a member without those permissions', async () => {
+    await TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, RouterTestingModule, FormsModule],
+      declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
+      providers: [
+        providePermissions('NURSE', { permissions: ['CLINICAL_READ', 'PATIENT_READ'] }),
+        { provide: StaffAuth, useValue: { userName$: of('Dev Nurse') } },
+        { provide: AlertCountService, useValue: { refresh: () => undefined } },
+        { provide: SettingsService, useValue: { clinic$: of(CLINIC) } }
+      ]
+    }).compileComponents();
+    const f = TestBed.createComponent(DashboardComponent);
+    f.detectChanges();
+    const e: HTMLElement = f.nativeElement;
+    expect(e.querySelector('a[href="/appointments/new"]')).toBeNull();
+    expect(e.querySelector('a[href="/patients?add=1"]')).toBeNull();
+    TestBed.inject(HttpTestingController).match(() => true);
   });
 });

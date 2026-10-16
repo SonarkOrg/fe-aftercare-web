@@ -4,7 +4,7 @@ import { environment } from '../environments/environment';
 describe('staffApiAllowedList', () => {
   const api = environment.apiUrl;
 
-  it('contains exactly the 17 staff entries', () => {
+  it('contains exactly the 20 staff entries', () => {
     expect(staffApiAllowedList).toEqual([
       `${api}/patients`, `${api}/patients/*`,
       `${api}/follow-ups/*`,
@@ -17,7 +17,10 @@ describe('staffApiAllowedList', () => {
       `${api}/messages/*`,
       `${api}/staff`, `${api}/staff/*`,
       `${api}/settings/*`,
-      `${api}/reports/*`
+      `${api}/reports/*`,
+      `${api}/me`,
+      `${api}/audit`,
+      `${api}/retention/*`
     ]);
   });
 
@@ -53,6 +56,23 @@ describe('staffApiAllowedList', () => {
     for (const path of ['/public/q/abc/messages', '/public/q/abc/messages/read', '/public/q/abc/messages?before=4', '/messages', '/staffing',
       '/documents', '/notes', '/messages/../public/q/x/messages', '/messages/%2e%2e/public/q/x', '/settings', '/reports']) {
       expect(isStaffApiUrl(api + path)).withContext(path).toBeFalse();
+    }
+  });
+
+  it('matches the role, audit, retention, notification and send-link endpoints', () => {
+    for (const path of ['/me', '/audit', '/audit?page=0&size=50&actorSub=dev%7Cadmin-1', '/retention/dry-run', '/retention/runs',
+      '/settings/notifications', '/settings/retention', '/follow-ups/1/send-link', '/appointments/4/send-link',
+      '/patients/5/contact-preferences', '/patients/5/notifications?page=0&size=20', '/patients/5/audit?actorSub=dev%7Cnurse-1']) {
+      expect(isStaffApiUrl(api + path)).withContext(path).toBeTrue();
+    }
+  });
+
+  it('still never attaches the staff token to public or dev URLs, or to look-alikes of the new entries', () => {
+    const root = api.replace(/\/api$/, '');
+    for (const url of [`${api}/public/q/x`, `${api}/public/q/x/messages`, `${root}/dev/token?role=ADMIN`, `${root}/dev/token?sub=dev%7Cunlinked`,
+      `${api}/me/`, `${api}/meX`, `${api}/audit/`, `${api}/auditX`, `${api}/retention`, `${api}/retention/`, `${api}/public/me`, `${api}/public/audit`,
+      `${api}/public/retention/runs`, `${api}/me/../public/q/x`, `${api}/retention/%2e%2e/public/q/x`, 'https://evil.example/api/me']) {
+      expect(isStaffApiUrl(url)).withContext(url).toBeFalse();
     }
   });
 });

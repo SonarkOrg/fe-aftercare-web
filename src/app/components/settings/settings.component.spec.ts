@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { AlertCountService } from '../../Services/AlertCount.service';
-import { CLINIC, FULL_Q, SEED_RULES, staffMember } from '../../testing/fixtures';
+import { CLINIC, FULL_Q, SEED_RULES, staffMember, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { AlertRulesComponent } from './alert-rules/alert-rules.component';
 import { SettingsComponent } from './settings.component';
@@ -29,7 +29,7 @@ describe('SettingsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [SettingsComponent, StaffDirectoryComponent, AlertRulesComponent, ...SHARED_DECLARATIONS],
-      providers: [{ provide: AlertCountService, useValue: { refresh: alertRefresh } }]
+      providers: [providePermissions('ADMIN'), { provide: AlertCountService, useValue: { refresh: alertRefresh } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
@@ -65,11 +65,11 @@ describe('SettingsComponent', () => {
   };
   const staffRows = () => Array.from(el.querySelectorAll('.staff-row')).map(r => r.querySelector('.row__name')!.textContent!.trim());
 
-  it('has the title, the clinic name as subtitle and the four tabs', async () => {
+  it('has the title, the clinic name as subtitle and the six tabs', async () => {
     await init();
     expect(q('h1').textContent).toBe('Settings');
     expect(q('.hero__sub').textContent).toBe('Clinique Test');
-    expect(Array.from(el.querySelectorAll('.tabs .tab')).map(t => t.textContent!.trim())).toEqual(['Clinic', 'Staff', 'Notifications', 'Alert rules']);
+    expect(Array.from(el.querySelectorAll('.tabs .tab')).map(t => t.textContent!.trim())).toEqual(['Clinic', 'Staff', 'Notifications', 'Alert rules', 'Retention', 'Access log']);
     expect(el.querySelector('.tabs .tab[aria-selected=true]')!.textContent).toBe('Clinic');
   });
 
@@ -130,7 +130,7 @@ describe('SettingsComponent', () => {
   describe('notifications', () => {
     it('shows both severities with glyph and word, reflecting the saved choice', async () => {
       await init({ ...CLINIC, notifySeverities: ['HIGH'] });
-      expect(q('#spanel-notifications').textContent).toContain('Choose which open alerts count toward the Alerts badge and bell in the top bar. No email or SMS is sent.');
+      expect(q('#spanel-notifications').textContent).toContain('Choose which open alerts count toward the Alerts badge and bell in the top bar. No email or SMS is sent to staff.');
       expect(q('label[for=n-high]').textContent!.trim()).toBe('▲ High alerts');
       expect(q('label[for=n-medium]').textContent!.trim()).toBe('● Medium alerts');
       expect(q<HTMLInputElement>('#n-high').checked).toBeTrue();
@@ -218,7 +218,7 @@ describe('SettingsComponent', () => {
       q<HTMLFormElement>('.drawer form').dispatchEvent(new Event('submit'));
       const r = http.expectOne(`${api}/staff`);
       expect(r.request.method).toBe('POST');
-      expect(r.request.body).toEqual({ displayName: 'Alex Aide', email: null, role: 'ADMINISTRATIVE', auth0Subject: null });
+      expect(r.request.body).toEqual({ displayName: 'Alex Aide', email: null, role: 'ADMINISTRATIVE', accessRole: 'NURSE', auth0Subject: null });
       r.flush(staffMember({ id: 9, displayName: 'Alex Aide', role: 'ADMINISTRATIVE', email: null }), { status: 201, statusText: 'Created' });
       await settle();
       expect(el.querySelector('.drawer')).toBeNull();
@@ -252,7 +252,7 @@ describe('SettingsComponent', () => {
       q<HTMLFormElement>('.drawer form').dispatchEvent(new Event('submit'));
       const r = http.expectOne(`${api}/staff/1`);
       expect(r.request.method).toBe('PUT');
-      expect(r.request.body).toEqual({ displayName: 'Marie N.', email: 'marie@example.com', role: 'NURSE', auth0Subject: 'auth0|abc' });
+      expect(r.request.body).toEqual({ displayName: 'Marie N.', email: 'marie@example.com', role: 'NURSE', accessRole: 'NURSE', auth0Subject: 'auth0|abc' });
       r.flush({ ...staff[0], displayName: 'Marie N.' });
       await settle();
       expect(staffRows()).toContain('Marie N.');

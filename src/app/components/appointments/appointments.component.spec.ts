@@ -4,7 +4,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { AppointmentMetrics } from '../../models/appointment.model';
-import { appointment } from '../../testing/fixtures';
+import { appointment, providePermissions } from '../../testing/fixtures';
 import { AppointmentsComponent } from './appointments.component';
 
 describe('AppointmentsComponent', () => {
@@ -21,6 +21,7 @@ describe('AppointmentsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [providePermissions('NURSE')],
       imports: [HttpClientTestingModule, RouterTestingModule],
       declarations: [AppointmentsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
@@ -155,6 +156,23 @@ describe('AppointmentsComponent', () => {
     expect(Array.from(el.querySelectorAll('.appt-card .chip__label')).map(b => b.textContent))
       .toContain('Needs review');
     expect(el.textContent).not.toContain('No appointments.');
+  });
+
+  it('omits a redacted (null) specialty in the board, the list and the week grid', () => {
+    const redacted = [
+      appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00', status: 'NEEDS_REVIEW', specialty: null }),
+      appointment({ id: 2, scheduledAt: '2026-10-14T09:30:00', status: 'READY', specialty: null })
+    ];
+    fixture.detectChanges();
+    flush('2026-10-14', '2026-10-14', redacted);
+    const card = el.querySelector('.appt-card')!;
+    expect(card.textContent).toContain('Pre op consult');
+    expect(card.querySelector('.appt-card__meta')!.textContent!.trim()).toBe('Pre op consult');
+    expect(el.textContent).not.toMatch(/null|undefined/);
+    click('view-week');
+    flush('2026-10-12', '2026-10-18', redacted);
+    expect(el.querySelectorAll('.week-block').length).toBe(2);
+    expect(el.textContent).not.toMatch(/null|undefined/);
   });
 
   it('Mark reviewed posts and reloads', () => {

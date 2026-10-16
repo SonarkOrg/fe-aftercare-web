@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../../environments/environment';
 import { TimelineItem } from '../../../models/timeline.model';
-import { careNote, timelineItem } from '../../../testing/fixtures';
+import { careNote, timelineItem, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { PatientTimelineComponent } from './patient-timeline.component';
 
@@ -19,6 +19,7 @@ describe('PatientTimelineComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [providePermissions('NURSE')],
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientTimelineComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();

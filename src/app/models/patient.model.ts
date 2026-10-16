@@ -10,7 +10,8 @@ export interface Patient {
   dateOfBirth?: string | null; // optional on the add form
   address: Address;
   activeFollowUp?: FollowUp | null;
-  unresolvedAlertCount?: number;
+  /** Null when the caller lacks CLINICAL_READ. */
+  unresolvedAlertCount?: number | null;
 }
 
 export interface Address {

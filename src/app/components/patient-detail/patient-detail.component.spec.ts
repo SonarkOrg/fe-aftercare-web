@@ -1,15 +1,19 @@
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { By } from '@angular/platform-browser';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questionnaire-form.component';
 import { CheckIn } from '../../models/follow-up.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { addDays, businessToday } from '../../shared/link.util';
-import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, followUp, medical, conversation } from '../../testing/fixtures';
+import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, contactPrefs, followUp, medical, conversation, missedAlert, providePermissions } from '../../testing/fixtures';
+import { AccessRole } from '../../models/me.model';
 import { MessageThreadComponent } from '../../shared/message-thread/message-thread.component';
 import { PatientAuditComponent } from '../patient-file/patient-audit/patient-audit.component';
 import { PatientContactsComponent } from '../patient-file/patient-contacts/patient-contacts.component';
@@ -18,7 +22,15 @@ import { PatientMedicalComponent } from '../patient-file/patient-medical/patient
 import { PatientTimelineComponent } from '../patient-file/patient-timeline/patient-timeline.component';
 import { AlertTableComponent } from '../alert-table/alert-table.component';
 import { FollowUpFormComponent } from '../follow-up-form/follow-up-form.component';
+import { ActorSelectComponent } from '../../shared/actor-select/actor-select.component';
+import { SendLinkComponent } from '../../shared/send-link/send-link.component';
 import { PatientDetailComponent } from './patient-detail.component';
+
+@Component({ selector: 'app-patient-notifications', template: '' })
+class StubNotificationsComponent {
+  @Input() patientId = 0;
+  @Output() saved = new EventEmitter<any>();
+}
 
 describe('PatientDetailComponent', () => {
   let fixture: ComponentFixture<PatientDetailComponent>;
@@ -40,11 +52,11 @@ describe('PatientDetailComponent', () => {
   beforeEach(async () => {
     query = {};
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
         QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
-        PatientAuditComponent, MessageThreadComponent, ...SHARED_DECLARATIONS],
-      providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
+        PatientAuditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions('ADMIN'), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PatientDetailComponent);
@@ -376,6 +388,267 @@ describe('PatientDetailComponent', () => {
       const missedDays = Array.from(el.querySelectorAll('.trends-card .bc-bar--miss')).length;
       expect(missedDays).toBeLessThanOrEqual(2); // days 1 and 2 only
       expect(el.querySelectorAll('.trends-card .bc-bar--miss').length).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('PatientDetailComponent by access role', () => {
+  const api = environment.apiUrl;
+  const today = businessToday();
+  let fixture: ComponentFixture<PatientDetailComponent>;
+  let http: HttpTestingController;
+  let el: HTMLElement;
+  let query: Record<string, string> = {};
+  let queryParams$ = new BehaviorSubject(convertToParamMap({}));
+
+  const TABS: Record<AccessRole, string[]> = {
+    ADMIN: ['Overview', 'Medical', 'Contacts', 'Timeline', 'Documents', 'Messages', 'Check-ins', 'Alerts', 'Appointments', 'Access log'],
+    PHYSICIAN: ['Overview', 'Medical', 'Contacts', 'Timeline', 'Documents', 'Messages', 'Check-ins', 'Alerts', 'Appointments'],
+    NURSE: ['Overview', 'Medical', 'Contacts', 'Timeline', 'Documents', 'Messages', 'Check-ins', 'Alerts', 'Appointments'],
+    RECEPTION: ['Overview', 'Contacts', 'Appointments']
+  };
+
+  async function mount(role: AccessRole, q: Record<string, string> = {}, over: Parameters<typeof providePermissions>[1] = {}) {
+    query = q;
+    queryParams$ = new BehaviorSubject(convertToParamMap(q));
+    await TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
+      declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
+        QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
+        PatientAuditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions(role, over), { provide: ActivatedRoute, useValue: { queryParamMap: queryParams$.asObservable(), snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(PatientDetailComponent);
+    el = fixture.nativeElement;
+    fixture.detectChanges();
+  }
+  afterEach(() => {
+    // tabs opened by a test load their own data (contacts, access log): answer it so verify() checks the rest
+    http.match(() => true).forEach(r => r.flush(r.request.url.includes('/audit') ? { items: [], page: 0, size: 50, hasMore: false } : []));
+    http.verify();
+  });
+
+  /** Answers the calls a clinical member makes. */
+  function flushClinical(data: { followUps?: object[]; alerts?: object[]; appointments?: object[]; careTeam?: object[] } = {}) {
+    http.expectOne(`${api}/patients/5/medical`).flush(medical());
+    http.expectOne(`${api}/patients/5/care-team`).flush(data.careTeam ?? []);
+    http.expectOne(`${api}/messages/inbox`).flush([]);
+    http.expectOne(`${api}/patients/5`).flush(JANE);
+    http.expectOne(`${api}/patients/5/follow-ups`).flush(data.followUps ?? []);
+    http.expectOne(`${api}/patients/5/check-ins`).flush([]);
+    http.expectOne(`${api}/patients/5/alerts`).flush(data.alerts ?? []);
+    http.expectOne(`${api}/patients/5/appointments`).flush(data.appointments ?? []);
+    http.match(`${api}/questionnaires/7`).forEach(r => r.flush({ id: 7, title: { fr: 'a', en: 'b' }, questionnaire: FULL_Q, rules: [] }));
+    fixture.detectChanges();
+  }
+
+  /** Answers the calls reception makes: the patient, the care team, the schedule and the contact preferences. */
+  function flushReception(data: { appointments?: object[]; careTeam?: object[]; prefs?: object } = {}) {
+    http.expectOne(`${api}/patients/5`).flush({ ...JANE, activeFollowUp: null, unresolvedAlertCount: null });
+    http.expectOne(`${api}/patients/5/care-team`).flush(data.careTeam ?? []);
+    http.expectOne(`${api}/patients/5/appointments`).flush(data.appointments ?? []);
+    http.expectOne(`${api}/patients/5/contact-preferences`).flush(data.prefs ?? contactPrefs());
+    fixture.detectChanges();
+  }
+
+  const tabs = () => Array.from(el.querySelectorAll('[role=tab]')).map(t => t.textContent!.replace(/\s+/g, ' ').trim());
+  const selected = () => el.querySelector('[role=tab][aria-selected=true]')!.textContent!.trim();
+  const key = (k: string) => {
+    el.querySelector('[role=tablist]')!.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+    fixture.detectChanges();
+  };
+
+  for (const role of ['ADMIN', 'PHYSICIAN', 'NURSE', 'RECEPTION'] as AccessRole[]) {
+    it(`${role} sees exactly these tabs: ${TABS[role].join(', ')}`, async () => {
+      await mount(role);
+      role === 'RECEPTION' ? flushReception() : flushClinical();
+      expect(tabs()).toEqual(TABS[role]);
+      expect(el.querySelectorAll('[role=tabpanel]').length).toBe(TABS[role].length);
+    });
+  }
+
+  describe('RECEPTION', () => {
+    it('makes no clinical request: no medical, follow-ups, check-ins, alerts or inbox', async () => {
+      await mount('RECEPTION');
+      const clinical = [`${api}/patients/5/medical`, `${api}/patients/5/follow-ups`, `${api}/patients/5/check-ins`, `${api}/patients/5/alerts`, `${api}/messages/inbox`];
+      for (const u of clinical) {
+        expect(http.match(u).length).withContext(u).toBe(0);
+      }
+      expect(http.match(r => r.url.startsWith(`${api}/questionnaires`)).length).toBe(0);
+      flushReception();
+    });
+
+    it('a ?tab=medical deep link falls back to Overview', async () => {
+      await mount('RECEPTION', { tab: 'medical' });
+      flushReception();
+      expect(selected()).toBe('Overview');
+      expect(el.querySelector('app-patient-medical')).toBeNull();
+    });
+
+    it('a ?tab=contacts deep link opens Contacts', async () => {
+      await mount('RECEPTION', { tab: 'contacts' });
+      flushReception();
+      expect(selected()).toBe('Contacts');
+    });
+
+    it('arrow keys, Home and End move over the three visible tabs only', async () => {
+      await mount('RECEPTION');
+      flushReception();
+      key('ArrowRight');
+      expect(selected()).toBe('Contacts');
+      key('ArrowRight');
+      expect(selected()).toBe('Appointments');
+      key('ArrowRight');
+      expect(selected()).toBe('Overview');
+      key('ArrowLeft');
+      expect(selected()).toBe('Appointments');
+      key('Home');
+      expect(selected()).toBe('Overview');
+      key('End');
+      expect(selected()).toBe('Appointments');
+    });
+
+    it('the overview shows demographics, the care team read-only, upcoming appointments and the reminders line', async () => {
+      await mount('RECEPTION');
+      flushReception({
+        careTeam: [careTeamMember()],
+        appointments: [appointment({ id: 4, scheduledAt: addDays(today, 2) + 'T09:00:00' }), appointment({ id: 5, scheduledAt: addDays(today, -2) + 'T09:00:00', status: 'COMPLETED' })],
+        prefs: contactPrefs({ contactConsent: 'GRANTED', preferredChannel: 'SMS', effectiveLanguage: 'FR' })
+      });
+      expect(el.querySelector('.demographics')!.textContent).toContain('jane@example.com');
+      expect(el.querySelector('.care-team-card')!.textContent).toContain('Marie Nurse');
+      expect(el.querySelector('.care-team-card .card__link')).toBeNull(); // "Manage" needs CLINICAL_WRITE
+      expect(Array.from(el.querySelectorAll('.upcoming-card .row')).length).toBe(1);
+      expect(el.querySelector('.notif-summary__line')!.textContent).toBe('Reminders: consent granted, SMS, French');
+      (el.querySelector('.notif-summary .card__link') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(selected()).toBe('Contacts');
+    });
+
+    it('switches tab when ?tab= changes after init, and ignores tabs it may not show', async () => {
+      await mount('RECEPTION');
+      flushReception();
+      expect(selected()).toBe('Overview');
+      queryParams$.next(convertToParamMap({ tab: 'contacts' }));
+      fixture.detectChanges();
+      expect(selected()).toBe('Contacts');
+      queryParams$.next(convertToParamMap({ tab: 'medical' }));
+      fixture.detectChanges();
+      expect(selected()).toBe('Contacts');
+    });
+
+    it('uses a single-column overview and updates the reminders line when the preferences are saved', async () => {
+      await mount('RECEPTION');
+      flushReception({ prefs: contactPrefs({ contactConsent: 'UNKNOWN', preferredChannel: 'EMAIL', effectiveLanguage: 'EN' }) });
+      expect(el.querySelector('.overview-grid')!.classList).toContain('overview-grid--single');
+      expect(el.querySelectorAll('.overview-grid > .stack-20').length).toBe(1);
+      expect(el.querySelector('.notif-summary__line')!.textContent).toBe('Reminders: consent not recorded, email, English');
+      (queryParams$ as BehaviorSubject<any>).next(convertToParamMap({ tab: 'contacts' }));
+      fixture.detectChanges();
+      const stub = fixture.debugElement.query(By.directive(StubNotificationsComponent)).componentInstance as StubNotificationsComponent;
+      stub.saved.emit(contactPrefs({ contactConsent: 'GRANTED', preferredChannel: 'SMS', effectiveLanguage: 'FR' }));
+      fixture.detectChanges();
+      expect(el.querySelector('.notif-summary__line')!.textContent).toBe('Reminders: consent granted, SMS, French');
+    });
+
+    it('hides the trends, recent alerts, follow-up card, allergy chip and the clinical summary tiles', async () => {
+      await mount('RECEPTION');
+      flushReception();
+      for (const sel of ['.trends-card', '.recent-alerts', '.follow-up-card', '.allergy-chip', '#regenerate-link', '#close-follow-up', 'app-follow-up-form', 'app-send-link', '.profile-hero .chip']) {
+        expect(el.querySelector(sel)).withContext(sel).toBeNull();
+      }
+      expect(el.querySelectorAll('.kpis--summary .kpi').length).toBe(1); // next appointment only
+      expect(el.querySelector('.kpis--summary')!.textContent).toContain('Next appointment');
+    });
+
+    it('keeps New appointment (APPOINTMENT_WRITE)', async () => {
+      await mount('RECEPTION');
+      flushReception();
+      expect(Array.from(el.querySelectorAll('a')).some(a => a.textContent!.includes('New appointment'))).toBeTrue();
+    });
+
+    it('the notifications line stays out when the preferences cannot be loaded', async () => {
+      await mount('RECEPTION');
+      http.expectOne(`${api}/patients/5`).flush(JANE);
+      http.expectOne(`${api}/patients/5/care-team`).flush([]);
+      http.expectOne(`${api}/patients/5/appointments`).flush([]);
+      http.expectOne(`${api}/patients/5/contact-preferences`).flush('x', { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+      expect(el.querySelector('.notif-summary')).toBeNull();
+    });
+  });
+
+  describe('clinical members', () => {
+    it('NURSE: a ?tab=audit deep link falls back to Overview', async () => {
+      await mount('NURSE', { tab: 'audit' });
+      flushClinical();
+      expect(selected()).toBe('Overview');
+    });
+
+    it('NURSE: arrow keys wrap over the nine visible tabs (no Access log)', async () => {
+      await mount('NURSE');
+      flushClinical();
+      key('End');
+      expect(selected()).toBe('Appointments');
+      key('ArrowRight');
+      expect(selected()).toBe('Overview');
+      key('ArrowLeft');
+      expect(selected()).toBe('Appointments');
+    });
+
+    it('ADMIN: End reaches the Access log', async () => {
+      await mount('ADMIN');
+      flushClinical();
+      key('End');
+      expect(selected()).toBe('Access log');
+    });
+
+    it('NURSE sees Regenerate, Close, Send link and the enroll form where they apply', async () => {
+      await mount('NURSE');
+      flushClinical({ followUps: [followUp()] });
+      expect(el.querySelector('#regenerate-link')).not.toBeNull();
+      expect(el.querySelector('#close-follow-up')).not.toBeNull();
+      const send = el.querySelector('.follow-up-card app-send-link')!;
+      expect(send.querySelector('.send-link__btn')!.textContent).toContain('Send link');
+      expect(el.querySelector('app-follow-up-form')).toBeNull();
+    });
+
+    it('no Send link on an EXPIRED follow-up, which offers enrolment again', async () => {
+      await mount('NURSE');
+      flushClinical({ followUps: [followUp({ status: 'EXPIRED' })] });
+      expect(el.querySelector('app-send-link')).toBeNull();
+      expect(el.querySelector('#regenerate-link')).toBeNull();
+      expect(el.querySelector('app-follow-up-form')).not.toBeNull();
+    });
+
+    it('Send link opens the channel menu from the follow-up card (preferences load on click)', async () => {
+      await mount('NURSE');
+      flushClinical({ followUps: [followUp()] });
+      (el.querySelector('.follow-up-card .send-link__btn') as HTMLButtonElement).click();
+      http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs({ preferredChannel: 'SMS' }));
+      fixture.detectChanges();
+      expect(Array.from(el.querySelectorAll('.send-link__item')).map(i => i.textContent!.trim())).toEqual(['By SMS (preferred)', 'By email']);
+    });
+
+    it('hides the write buttons from a member who can read but not write clinically', async () => {
+      await mount('NURSE', {}, { permissions: ['PATIENT_READ', 'CLINICAL_READ', 'APPOINTMENT_READ'] });
+      flushClinical({ followUps: [followUp()], careTeam: [careTeamMember()] });
+      for (const sel of ['#regenerate-link', '#close-follow-up', 'app-send-link', 'app-follow-up-form', '.care-team-card .card__link', '.profile-hero a.btn--accent']) {
+        expect(el.querySelector(sel)).withContext(sel).toBeNull();
+      }
+      expect(tabs()).toEqual(['Overview', 'Medical', 'Contacts', 'Timeline', 'Documents', 'Messages', 'Check-ins', 'Alerts', 'Appointments']);
+    });
+
+    it('renders a missed check-in alert in Recent alerts without a question or answer value', async () => {
+      await mount('NURSE');
+      flushClinical({ alerts: [missedAlert({ missedDate: '2026-10-13' }), alertDto({ id: 3, questionLabel: 'Pain level?', answerValue: '8' })] });
+      const lines = Array.from(el.querySelectorAll('.recent-alerts .alert-line')).map(l => l.textContent!.replace(/\s+/g, ' ').trim());
+      expect(lines[0]).toContain('Missed check-in');
+      expect(lines[0]).toContain('Answer —');
+      expect(lines[0]).toContain('13 Oct');
+      expect(lines[1]).toContain('Pain level?');
+      expect(lines[1]).toContain('Answer 8');
     });
   });
 });

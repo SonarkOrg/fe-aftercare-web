@@ -3,13 +3,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AlertCountService } from '../../Services/AlertCount.service';
 import { SettingsService } from '../../Services/Settings.service';
-import { apiErrorOf } from '../../models/api-error.model';
+import { apiErrorOf, errorText } from '../../models/api-error.model';
 import { AlertSeverity } from '../../models/alert.model';
 import { ClinicSettings, ClinicSettingsRequest, Language } from '../../models/settings.model';
 
-export type SettingsTab = 'clinic' | 'staff' | 'notifications' | 'rules';
+export type SettingsTab = 'clinic' | 'staff' | 'notifications' | 'rules' | 'retention' | 'access';
 export const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
-  { key: 'clinic', label: 'Clinic' }, { key: 'staff', label: 'Staff' }, { key: 'notifications', label: 'Notifications' }, { key: 'rules', label: 'Alert rules' }
+  { key: 'clinic', label: 'Clinic' }, { key: 'staff', label: 'Staff' }, { key: 'notifications', label: 'Notifications' }, { key: 'rules', label: 'Alert rules' },
+  { key: 'retention', label: 'Retention' }, { key: 'access', label: 'Access log' }
 ];
 
 interface ClinicForm { name: string; addressLine: string; city: string; province: string; postalCode: string; phone: string; defaultLanguage: Language }
@@ -125,7 +126,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         if (api && Object.keys(api.fieldErrors).length) {
           this.errors = { ...api.fieldErrors };
         } else {
-          this.banner = 'Could not save the settings.';
+          this.banner = errorText(err, 'Could not save the settings.');
         }
       }
     });
@@ -156,9 +157,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.notifyBusy = false;
         this.alertCount.refresh();
       },
-      error: () => {
+      error: err => {
         this.notifyBusy = false;
-        this.notifyError = 'Could not save the notification settings.';
+        this.notifyError = errorText(err, 'Could not save the notification settings.');
         if (box) {
           box.checked = !on; // put the checkbox back: nothing was saved
         }

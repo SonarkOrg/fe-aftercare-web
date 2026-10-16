@@ -7,11 +7,13 @@ import { StaffAuth } from './staff-auth';
 export class Auth0StaffAuth extends StaffAuth {
   readonly isAuthenticated$: Observable<boolean>;
   readonly userName$: Observable<string | null>;
+  readonly subject$: Observable<string | null>;
 
   constructor(private auth: AuthService) {
     super();
     this.isAuthenticated$ = auth.isAuthenticated$;
     this.userName$ = auth.user$.pipe(map(u => u?.name ?? u?.email ?? null));
+    this.subject$ = auth.user$.pipe(map(u => u?.sub ?? null));
   }
 
   login(targetUrl?: string): void {

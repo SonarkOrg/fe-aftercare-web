@@ -2,7 +2,7 @@
   <section class="hero">
     <div>
       <h1 class="hero__title">Today's Aftercare</h1>
-      <p class="hero__sub"><ng-container *ngIf="firstName$ | async as n">{{ greetingText }}, {{ n }}. </ng-container>Check-ins, alerts and appointments for every patient in follow-up, in one place.</p>
+      <p class="hero__sub"><ng-container *ngIf="firstName$ | async as n">{{ greetingText }}, {{ n }}. </ng-container><ng-container *ngIf="clinical; else apptHero">Check-ins, alerts and appointments for every patient in follow-up, in one place.</ng-container><ng-template #apptHero>Today's appointments and questionnaires, in one place.</ng-template></p>
     </div>
     <div class="hero__actions">
       <div class="hero__meta">
@@ -10,8 +10,8 @@
         <div class="hero__date">{{ today | date:'EEEE, d MMMM y' }}</div>
       </div>
       <div class="btn-row">
-        <a class="btn btn--secondary" routerLink="/appointments/new">New appointment</a>
-        <a class="btn btn--accent" routerLink="/patients" [queryParams]="{ add: 1 }"><app-icon name="plus" [size]="16"></app-icon>Add patient</a>
+        <a class="btn btn--secondary" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new">New appointment</a>
+        <a class="btn btn--accent" *appCan="'PATIENT_WRITE'" routerLink="/patients" [queryParams]="{ add: 1 }"><app-icon name="plus" [size]="16"></app-icon>Add patient</a>
       </div>
     </div>
   </section>
@@ -21,7 +21,7 @@
   <div class="banner banner--error error-message" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ actionError }}</span></div>
   <p class="sr-only" aria-live="polite">{{ live }}</p>
 
-  <div class="grid-a" *ngIf="loading || snapshot">
+  <div class="grid-a" *ngIf="clinical && (loading || snapshot)">
     <!-- Patient Care Overview -->
     <section class="card overview" aria-labelledby="overview-title" [attr.aria-busy]="loading">
       <div class="card__head">
@@ -128,39 +128,15 @@
         <p class="note medium-line card__foot" *ngIf="mediumCount > 0">{{ mediumCount }} medium alerts open → <a routerLink="/alerts">View alerts</a></p>
       </ng-container>
     </section>
-
-    <!-- Appointments -->
-    <section class="card card--appts" aria-labelledby="today-title" [attr.aria-busy]="loading">
-      <div class="card__head">
-        <h2 id="today-title" class="card__title--sm">Appointments <span class="badge" *ngIf="!loading && snapshot">{{ todayAppts.length }}</span></h2>
-        <a class="card__link" routerLink="/appointments/new"><app-icon name="plus" [size]="16"></app-icon>Add new</a>
-      </div>
-      <div *ngIf="loading"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
-      <ng-container *ngIf="!loading && snapshot">
-        <div class="empty" *ngIf="todayAppts.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">No appointments today.</p></div>
-        <ol class="appts" *ngIf="todayAppts.length > 0">
-          <li class="appt" *ngFor="let a of todayAppts.slice(0, limit)" [class.appt--closed]="isClosed(a)">
-            <span class="appt__time">{{ time(a) }}</span>
-            <app-avatar [id]="a.patientId" [initials]="initialsOf(a)"></app-avatar>
-            <span class="row__main">
-              <div class="row__name">{{ nameOf(a) }}</div>
-              <div class="row__sub">{{ humanize(a.type) }}</div>
-              <app-status-chip *ngIf="appointmentChip(a).tone !== 'info'" size="sm" [short]="true" [spec]="appointmentChip(a)"></app-status-chip>
-            </span>
-            <a class="chev-hit" [routerLink]="['/appointments', a.id]" [attr.aria-label]="'Open ' + nameOf(a) + ' ' + time(a)"><span class="chev"><app-icon name="chevron-right" [size]="14" [stroke]="2"></app-icon></span></a>
-          </li>
-        </ol>
-        <div class="card__foot" *ngIf="todayAppts.length > limit"><a class="card__link" routerLink="/appointments">View schedule ({{ todayAppts.length }})</a></div>
-      </ng-container>
-    </section>
+    <ng-container *ngTemplateOutlet="apptCard"></ng-container>
   </div>
 
   <!-- Pastel KPI row -->
-  <div class="kpis" *ngIf="loading" aria-busy="true">
+  <div class="kpis" *ngIf="clinical && loading" aria-busy="true">
     <span class="sr-only">Loading…</span>
     <div class="skeleton skeleton--kpi" *ngFor="let i of [1, 2, 3, 4]"></div>
   </div>
-  <div class="kpis" *ngIf="!loading && snapshot">
+  <div class="kpis" *ngIf="clinical && !loading && snapshot">
     <a class="kpi" routerLink="/alerts" id="kpi-critical" [title]="kpi.newToday + ' new today · ' + kpi.ackHigh + ' acknowledged'">
       <span class="kpi__icon"><app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon></span>
       <span class="kpi__body">
@@ -194,7 +170,7 @@
   </div>
 
   <!-- Row B: critical patient chart + pain trends -->
-  <div class="grid-b" *ngIf="loading || snapshot">
+  <div class="grid-b" *ngIf="clinical && (loading || snapshot)">
     <section class="card critical-chart" aria-labelledby="critical-chart-title" *ngIf="!loading && chartRow as cr">
       <div class="card__head">
         <h2 id="critical-chart-title" class="card__title">Critical patient</h2>
@@ -234,4 +210,51 @@
       </ng-container>
     </section>
   </div>
+
+  <!-- Without CLINICAL_READ (reception): the schedule only; no alert, check-in or trend data is requested -->
+  <div class="grid-2 reception-home" *ngIf="!clinical && (loading || ready)">
+    <ng-container *ngTemplateOutlet="apptCard"></ng-container>
+    <section class="card" aria-labelledby="today-summary-title" [attr.aria-busy]="loading">
+      <div class="card__head"><h2 id="today-summary-title" class="card__title--sm">Today at a glance</h2></div>
+      <div *ngIf="loading"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
+      <dl class="kv" *ngIf="!loading && metrics as m">
+        <dt>Appointments</dt><dd>{{ m.total }}</dd>
+        <dt>Needs review</dt><dd>{{ m.needsReview }}</dd>
+        <dt>Questionnaire missing</dt><dd>{{ m.questionnaireMissing }}</dd>
+        <dt>Completed</dt><dd>{{ m.completed }}</dd>
+        <dt>Cancelled / no-show</dt><dd>{{ m.cancelled }} / {{ m.noShow }}</dd>
+      </dl>
+      <div class="btn-row">
+        <a class="btn btn--secondary quick-patients" routerLink="/patients"><app-icon name="users" [size]="16"></app-icon>Patients</a>
+        <a class="btn btn--secondary" *appCan="'APPOINTMENT_READ'" routerLink="/appointments">Appointments</a>
+      </div>
+    </section>
+  </div>
 </div>
+
+<ng-template #apptCard>
+    <!-- Appointments -->
+    <section class="card card--appts" aria-labelledby="today-title" [attr.aria-busy]="loading">
+      <div class="card__head">
+        <h2 id="today-title" class="card__title--sm">Appointments <span class="badge" *ngIf="!loading && ready">{{ todayAppts.length }}</span></h2>
+        <a class="card__link" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new"><app-icon name="plus" [size]="16"></app-icon>Add new</a>
+      </div>
+      <div *ngIf="loading"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
+      <ng-container *ngIf="!loading && ready">
+        <div class="empty" *ngIf="todayAppts.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">No appointments today.</p></div>
+        <ol class="appts" *ngIf="todayAppts.length > 0">
+          <li class="appt" *ngFor="let a of todayAppts.slice(0, limit)" [class.appt--closed]="isClosed(a)">
+            <span class="appt__time">{{ time(a) }}</span>
+            <app-avatar [id]="a.patientId" [initials]="initialsOf(a)"></app-avatar>
+            <span class="row__main">
+              <div class="row__name">{{ nameOf(a) }}</div>
+              <div class="row__sub">{{ humanize(a.type) }}</div>
+              <app-status-chip *ngIf="appointmentChip(a).tone !== 'info'" size="sm" [short]="true" [spec]="appointmentChip(a)"></app-status-chip>
+            </span>
+            <a class="chev-hit" [routerLink]="['/appointments', a.id]" [attr.aria-label]="'Open ' + nameOf(a) + ' ' + time(a)"><span class="chev"><app-icon name="chevron-right" [size]="14" [stroke]="2"></app-icon></span></a>
+          </li>
+        </ol>
+        <div class="card__foot" *ngIf="todayAppts.length > limit"><a class="card__link" *appCan="'APPOINTMENT_READ'" routerLink="/appointments">View schedule ({{ todayAppts.length }})</a></div>
+      </ng-container>
+    </section>
+</ng-template>

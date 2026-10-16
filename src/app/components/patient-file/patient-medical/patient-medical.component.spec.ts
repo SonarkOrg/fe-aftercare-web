@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../../environments/environment';
 import { addDays, businessToday } from '../../../shared/link.util';
-import { JANE, medical, staffMember } from '../../../testing/fixtures';
+import { JANE, medical, staffMember, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { PatientMedicalComponent, REVEAL_MS } from './patient-medical.component';
 
@@ -19,6 +19,7 @@ describe('PatientMedicalComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers: [providePermissions('NURSE')],
       imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientMedicalComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();

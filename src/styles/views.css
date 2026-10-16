@@ -73,6 +73,7 @@ app-trend-chart[variant="micro"] { display: inline-block; vertical-align: middle
 .tabpanel[hidden] { display: none; }
 .overview-grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
 .overview-grid > * { min-width: 0; }
+.overview-grid--single { grid-template-columns: minmax(0, 1fr) !important; }
 @media (min-width: 1200px) { .overview-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
 .trends-card app-trend-chart + app-trend-chart { margin-top: 28px; }
 .alert-line { min-height: 56px; }
@@ -291,3 +292,47 @@ span.row__name, span.row__sub { display: block; }
 .conv-row .conv-time { flex: 0 0 auto; }
 .row .appt__date { flex: 0 0 110px; }
 button.plain-link { padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+
+/* ---------- roles, notifications, retention, access log ---------- */
+.role-badge { margin-left: 6px; vertical-align: middle; }
+.user-pill .role-badge { margin-left: 0; }
+.prow.prow--plain { grid-template-columns: minmax(220px, 2.2fr) minmax(0, 2fr) 104px; }
+.prow--plain .prow__meta { grid-template-columns: minmax(130px, 1fr); }
+.prow--plain .prow__meta .c-next { display: block; }
+@media (max-width: 899px) { .prow.prow--plain { grid-template-columns: minmax(0, 1fr) auto; } }
+.send-link .row-menu { left: 0; right: auto; top: 44px; }
+.send-link__ok, .send-link__err { margin-top: 8px; width: 100%; }
+app-actor-select { display: flex; flex-direction: column; gap: 6px; }
+.audit-filter { margin-bottom: 12px; }
+.radio-group { border: 0; padding: 0; margin: 0 0 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.radio-group legend { font: 500 13px/1.45 var(--font-display); color: var(--muted); padding: 0; margin-bottom: 4px; }
+.radio-row { display: flex; align-items: center; gap: 8px; min-height: 32px; font: 400 14px/1.45 var(--font-text); }
+.radio-row input { width: 18px; height: 18px; }
+.radio-group .helper-line { margin-top: 0; }
+.notif-settings > .card, .retention-form, .dry-result { margin-bottom: 20px; }
+.notif-settings > .banner, .retention-notice { margin-bottom: 16px; }
+.toggle-row .ns-provider { margin-left: auto; margin-right: 12px; }
+.ret-row .ret-input { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ret-row .ret-input input[type=number] { width: 120px; }
+.ret-keep { display: inline-flex; align-items: center; gap: 8px; font: 400 14px/1.45 var(--font-text); }
+.ret-keep input { width: 18px; height: 18px; }
+.ret-status { margin-bottom: 12px; }
+.run-counts summary { cursor: pointer; }
+.not-staff { text-align: left; }
+.not-staff__sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.not-staff__code { padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, .7); overflow-wrap: anywhere; }
+.dev-identity { margin-top: 16px; text-align: left; }
+.menu-pop .dev-identity { padding: 8px 12px; margin: 0; }
+.forbidden { text-align: center; }
+.notif-summary__line { margin: 0; padding: 8px 4px; }
+.role-filter { margin: 8px 0; }
+
+/* retention: help text sits tight under its label; recent runs stack as cards on phones */
+.ret-row .ret-help { margin: 2px 0 8px; }
+@media (max-width: 639px) {
+  .retention-runs .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .retention-runs .table, .retention-runs .table tbody, .retention-runs .table tr, .retention-runs .table td { display: block; width: 100%; }
+  .retention-runs .table tr { padding: 10px 4px; border-bottom: 1px solid var(--line, rgba(0, 0, 0, .12)); }
+  .retention-runs .table td { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border: 0; text-align: right; }
+  .retention-runs .table td::before { content: attr(data-label); color: var(--muted); font-weight: 500; text-align: left; }
+}
