@@ -16,7 +16,15 @@ export class NotificationService {
   /** Emits the patient id whenever a link was queued, so open notification histories can refresh. */
   readonly sent$ = this.sentSubject.asObservable();
 
+  private readonly prefsSubject = new Subject<ContactPreferences>();
+  /** Emits fresh preferences when something other than the preferences form changed them (e.g. a contact edit reset the consent). */
+  readonly prefsChanged$ = this.prefsSubject.asObservable();
+
   constructor(private http: HttpClient) {}
+
+  notifyPrefsChanged(prefs: ContactPreferences): void {
+    this.prefsSubject.next(prefs);
+  }
 
   notifySent(patientId: number): void {
     this.sentSubject.next(patientId);

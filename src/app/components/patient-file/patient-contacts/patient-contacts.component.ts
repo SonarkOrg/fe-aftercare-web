@@ -28,6 +28,8 @@ export class PatientContactsComponent implements OnInit {
   @Input() patientId = 0;
   @Input() careTeam: CareTeamMember[] = [];
   @Output() prefsSaved = new EventEmitter<ContactPreferences>();
+  /** The "Edit details" button was used; carries it so the drawer can return the focus. */
+  @Output() editDetails = new EventEmitter<HTMLElement>();
   @Output() careTeamChange = new EventEmitter<CareTeamMember[]>();
 
   contacts: EmergencyContact[] = [];

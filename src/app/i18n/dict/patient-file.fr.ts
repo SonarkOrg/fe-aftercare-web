@@ -199,4 +199,18 @@ export const PATIENT_FILE_FR: DictOf<typeof PATIENT_FILE_EN> = {
   'pf.audit.item': 'Élément',
   'pf.audit.emptyActor': 'Aucun accès consigné pour cette personne.',
   'pf.audit.empty': 'Aucun accès consigné pour l\'instant.',
+  // edit details
+  'pf.edit.action': 'Modifier les renseignements',
+  'pf.edit.actionAria': 'Modifier les renseignements de {name}',
+  'pf.edit.title': 'Modifier les renseignements du patient',
+  'pf.edit.consentNotice': 'Modifier le courriel ou le téléphone réinitialise le consentement aux rappels — reconfirmez-le avec le patient.',
+  'pf.edit.submit': 'Enregistrer les modifications',
+  'pf.edit.saved': 'Renseignements mis à jour.',
+  'pf.edit.savedConsent': 'Renseignements mis à jour. Consentement aux rappels : {consent}.',
+  'pf.edit.error.save': 'Les renseignements n\'ont pas pu être enregistrés.',
+  'pf.edit.err.required': 'Ce champ est obligatoire.',
+  'pf.edit.err.max': '{max} caractères au maximum.',
+  'pf.edit.err.email': 'Saisissez une adresse courriel valide.',
+  'pf.edit.err.dobFuture': 'Doit être une date passée.',
+  'pf.edit.err.dobOld': 'Ne doit pas précéder le 1900-01-01.',
 };

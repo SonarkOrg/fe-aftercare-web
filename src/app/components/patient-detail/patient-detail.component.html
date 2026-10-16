@@ -4,6 +4,8 @@
   <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
   <div class="banner banner--error error-message" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ actionError }}</span></div>
 
+  <div class="banner banner--info edit-notice" role="status" *ngIf="editNotice"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ editNotice }}</span></div>
+
   <a class="back-link" routerLink="/patients"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>{{ 'shell.nav.patients' | t }}</a>
 
   <ng-container *ngIf="patient">
@@ -19,6 +21,7 @@
           <span class="allergy-chip" *ngIf="allergyChip as a" [attr.title]="a.title"><app-status-chip [spec]="a.spec"></app-status-chip></span>
         </div>
       </div>
+      <button type="button" class="btn btn--secondary edit-details" *appCan="'PATIENT_WRITE'" #editBtn [attr.aria-label]="'pf.edit.actionAria' | t:{ name: patient.firstName + ' ' + patient.lastName }" (click)="openEdit(editBtn)">{{ 'pf.edit.action' | t }}</button>
       <a class="btn btn--accent" *appCan="'APPOINTMENT_WRITE'" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">{{ 'dashboard.newAppointment' | t }}</a>
     </section>
 
@@ -127,7 +130,7 @@
           </section>
 
           <section class="card card--warm demographics">
-            <div class="card__header"><h2 class="card__title--sm">{{ 'pd.contact' | t }}</h2></div>
+            <div class="card__header"><h2 class="card__title--sm">{{ 'pd.contact' | t }}</h2><button type="button" class="card__link edit-details-card" *appCan="'PATIENT_WRITE'" #editCardBtn (click)="openEdit(editCardBtn)">{{ 'pf.edit.action' | t }}</button></div>
             <dl class="kv">
               <dt>{{ 'pd.email' | t }}</dt><dd>{{ patient.email }}</dd>
               <dt>{{ 'pd.phone' | t }}</dt><dd>{{ patient.phone }}</dd>
@@ -181,7 +184,7 @@
 
     <!-- Contacts and care team -->
     <div *ngIf="show('contacts')" class="tabpanel" id="panel-contacts" role="tabpanel" aria-labelledby="tab-contacts" tabindex="0" [hidden]="tab !== 'contacts'">
-      <app-patient-contacts *ngIf="visited.has('contacts')" [patientId]="patientId" [careTeam]="careTeam" (careTeamChange)="careTeam = $event" (prefsSaved)="prefs = $event"></app-patient-contacts>
+      <app-patient-contacts *ngIf="visited.has('contacts')" [patientId]="patientId" [careTeam]="careTeam" (careTeamChange)="careTeam = $event" (prefsSaved)="prefs = $event" (editDetails)="openEdit($event)"></app-patient-contacts>
     </div>
 
     <!-- Timeline -->
@@ -263,3 +266,5 @@
     </section>
   </ng-container>
 </div>
+
+<app-patient-edit *ngIf="editPatient" [patient]="editPatient" [trigger]="editTrigger" (saved)="onEditSaved($event)" (closed)="closeEdit()"></app-patient-edit>

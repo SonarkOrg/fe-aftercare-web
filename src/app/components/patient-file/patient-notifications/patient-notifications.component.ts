@@ -75,6 +75,13 @@ export class PatientNotificationsComponent implements OnInit, OnDestroy {
         this.loadHistory();
       }
     });
+    this.sub.add(this.notifications.prefsChanged$.subscribe(p => {
+      if (p.patientId === this.patientId) {
+        this.apply(p);
+        this.showSaved = false;
+        this.loadHistory(); // queued messages on the changed channel were cancelled
+      }
+    }));
   }
 
   ngOnDestroy(): void {

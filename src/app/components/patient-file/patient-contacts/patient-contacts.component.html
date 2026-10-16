@@ -1,4 +1,5 @@
 <div class="banner banner--error" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ actionError }}</span></div>
+<div class="btn-row edit-row" *appCan="'PATIENT_WRITE'"><button type="button" class="btn btn--secondary btn--sm edit-details-contacts" #editBtn (click)="editDetails.emit(editBtn)">{{ 'pf.edit.action' | t }}</button></div>
 <app-patient-notifications [patientId]="patientId" (saved)="prefsSaved.emit($event)"></app-patient-notifications>
 <div class="grid-2">
   <section class="card card--list contacts-card">

@@ -16,6 +16,7 @@ import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, contactPre
 import { AccessRole } from '../../models/me.model';
 import { MessageThreadComponent } from '../../shared/message-thread/message-thread.component';
 import { PatientAuditComponent } from '../patient-file/patient-audit/patient-audit.component';
+import { PatientEditComponent } from '../patient-file/patient-edit/patient-edit.component';
 import { PatientContactsComponent } from '../patient-file/patient-contacts/patient-contacts.component';
 import { PatientDocumentsComponent } from '../patient-file/patient-documents/patient-documents.component';
 import { PatientMedicalComponent } from '../patient-file/patient-medical/patient-medical.component';
@@ -56,7 +57,7 @@ describe('PatientDetailComponent', () => {
       imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
         QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
-        PatientAuditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
+        PatientAuditComponent, PatientEditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('ADMIN'), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -416,7 +417,7 @@ describe('PatientDetailComponent by access role', () => {
       imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
         QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
-        PatientAuditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
+        PatientAuditComponent, PatientEditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions(role, over), { provide: ActivatedRoute, useValue: { queryParamMap: queryParams$.asObservable(), snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -650,6 +651,75 @@ describe('PatientDetailComponent by access role', () => {
       expect(lines[0]).toContain('13 Oct');
       expect(lines[1]).toContain('Pain level?');
       expect(lines[1]).toContain('Answer 8');
+    });
+
+    describe('edit details', () => {
+      it('RECEPTION sees the action in the header, the overview card and the Contacts tab', async () => {
+        await mount('RECEPTION', { tab: 'contacts' });
+        flushReception();
+        expect(el.querySelector('.profile-hero .edit-details')).not.toBeNull();
+        expect(el.querySelector('.demographics .edit-details-card')).not.toBeNull();
+        expect(el.querySelector('app-patient-contacts .edit-details-contacts')).not.toBeNull();
+      });
+
+      it('is hidden from a member without PATIENT_WRITE', async () => {
+        await mount('NURSE', { tab: 'contacts' }, { permissions: ['PATIENT_READ', 'CLINICAL_READ', 'APPOINTMENT_READ'] });
+        flushClinical();
+        expect(el.querySelector('.edit-details')).toBeNull();
+        expect(el.querySelector('.edit-details-card')).toBeNull();
+        expect(el.querySelector('.edit-details-contacts')).toBeNull();
+      });
+
+      it('saves a city change, refreshes the header and the preferences, and shows no consent notice', async () => {
+        await mount('RECEPTION');
+        flushReception();
+        const trigger = el.querySelector('.profile-hero .edit-details') as HTMLButtonElement;
+        trigger.click();
+        fixture.detectChanges();
+        http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'GRANTED' }));
+        fixture.detectChanges();
+        await fixture.whenStable(); // ngModel writes the initial values asynchronously
+        expect(el.querySelector('.consent-notice')).toBeNull();
+        const city = el.querySelector('#edit-city') as HTMLInputElement;
+        city.value = 'Laval';
+        city.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+        expect(el.querySelector('.consent-notice')).toBeNull();
+        (el.querySelector('app-patient-edit form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+        const put = http.expectOne(`${api}/patients/5`);
+        expect(put.request.method).toBe('PUT');
+        expect(put.request.body.address.city).toBe('Laval');
+        put.flush({ ...put.request.body });
+        http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'GRANTED' }));
+        fixture.detectChanges();
+        await fixture.whenStable(); // ngModel writes the initial values asynchronously
+        expect(el.querySelector('app-patient-edit')).toBeNull();
+        expect(el.querySelector('.profile-hero__meta')!.textContent).toContain('Laval, IL');
+        expect(el.querySelector('.edit-notice')!.textContent).toContain('Details updated.');
+        expect(document.activeElement).toBe(trigger);
+      });
+
+      it('after changing the email under GRANTED consent, reports the reset consent', async () => {
+        await mount('RECEPTION');
+        flushReception();
+        (el.querySelector('.profile-hero .edit-details') as HTMLButtonElement).click();
+        fixture.detectChanges();
+        http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'GRANTED' }));
+        fixture.detectChanges();
+        await fixture.whenStable(); // ngModel writes the initial values asynchronously
+        const email = el.querySelector('#edit-email') as HTMLInputElement;
+        email.value = 'jane.new@example.com';
+        email.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+        expect(el.querySelector('.consent-notice')).not.toBeNull();
+        (el.querySelector('app-patient-edit form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+        const put = http.expectOne(`${api}/patients/5`);
+        put.flush({ ...put.request.body });
+        http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'UNKNOWN' }));
+        fixture.detectChanges();
+        expect(el.querySelector('.edit-notice')!.textContent).toContain('Reminder consent: not recorded.');
+        expect(el.textContent).toContain('jane.new@example.com');
+      });
     });
   });
 });

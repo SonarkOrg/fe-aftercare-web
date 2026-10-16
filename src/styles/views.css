@@ -5,7 +5,7 @@
 .attn { position: relative; }
 .attn .row__end { gap: 6px; }
 .attn .row__name { white-space: normal; overflow-wrap: anywhere; }
-.attn .row__sub { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.attn .row__sub, .card--appts .appt .row__sub { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .row-menu-wrap { position: relative; display: inline-flex; }
 .more-btn { width: 28px; height: 28px; }
 .row-menu { position: absolute; right: 0; top: 34px; z-index: 20; min-width: 168px; padding: 6px; border-radius: 16px; background: #fff; box-shadow: var(--shadow-3); display: flex; flex-direction: column; gap: 2px; }
@@ -356,3 +356,4 @@ app-actor-select { display: flex; flex-direction: column; gap: 6px; }
   .staff-row .row__end { flex: 1 0 100%; justify-content: flex-start; padding-left: 44px; }
   .staff-card .add-staff { width: 100%; }
 }
+.edit-row { margin-bottom: 12px; }

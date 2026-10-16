@@ -26,6 +26,7 @@ import { Appointment } from '../../models/appointment.model';
 import { CheckIn, FollowUp, FollowUpWithCode } from '../../models/follow-up.model';
 import { CareTeamMember, PatientMedical } from '../../models/medical.model';
 import { Patient } from '../../models/patient.model';
+import { PatientEditResult } from '../patient-file/patient-edit/patient-edit.component';
 import { QuestionnaireDefinitionDetail } from '../../models/questionnaire-definition.model';
 import { SeriesPoint } from '../../shared/care.model';
 import { ageOn } from '../../shared/age.util';
@@ -78,6 +79,11 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   /** CLINICAL_READ: the follow-up, check-ins, alerts, medical file, timeline, documents and messages. */
   clinical = false;
   prefs: ContactPreferences | null = null;
+  /** The "Edit details" drawer. */
+  editPatient: Patient | null = null;
+  editTrigger: HTMLElement | null = null;
+  editNotice: string | null = null;
+  private editNoticeTimer?: ReturnType<typeof setTimeout>;
   question = (a: Alert) => alertQuestion(a, this.i18n.lang, k => this.i18n.t(k));
   answer = (a: Alert) => alertAnswer(a, this.i18n.lang, k => this.i18n.t(k));
   alertDay = alertDay;
@@ -152,6 +158,39 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.querySub?.unsubscribe();
+    clearTimeout(this.editNoticeTimer);
+  }
+
+  /* ---------- edit details ---------- */
+
+  openEdit(trigger: HTMLElement | null): void {
+    if (!this.patient) {
+      return;
+    }
+    this.editTrigger = trigger;
+    this.editPatient = { ...this.patient, dateOfBirth: this.patient.dateOfBirth ?? this.medical?.dateOfBirth ?? null };
+  }
+
+  closeEdit(): void {
+    this.editPatient = null;
+  }
+
+  onEditSaved(r: PatientEditResult): void {
+    // the server answers with the demographics only: keep the follow-up and alert fields the page already had
+    this.patient = { ...this.patient, ...r.patient, activeFollowUp: this.patient?.activeFollowUp, unresolvedAlertCount: this.patient?.unresolvedAlertCount };
+    this.titles.setText(`${r.patient.firstName} ${r.patient.lastName}`);
+    if (this.medical) {
+      this.medical = { ...this.medical, dateOfBirth: r.patient.dateOfBirth ?? null };
+    }
+    if (r.prefs) {
+      this.prefs = r.prefs;
+      this.notifications.notifyPrefsChanged(r.prefs);
+    }
+    this.editNotice = r.contactChanged && r.prefs
+      ? this.i18n.t('pf.edit.savedConsent', { consent: this.i18n.t(`pd.notif.consent.${r.prefs.contactConsent}` as TKey) })
+      : this.i18n.t('pf.edit.saved');
+    clearTimeout(this.editNoticeTimer);
+    this.editNoticeTimer = setTimeout(() => (this.editNotice = null), 8000);
   }
 
   /** A link was queued from the follow-up card: refresh any open notification history. */

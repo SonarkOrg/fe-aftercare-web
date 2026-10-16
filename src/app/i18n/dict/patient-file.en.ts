@@ -196,6 +196,20 @@ export const PATIENT_FILE_EN = {
   'pf.audit.item': 'Item',
   'pf.audit.emptyActor': 'No access recorded for this person.',
   'pf.audit.empty': 'No access recorded yet.',
+  // edit details
+  'pf.edit.action': 'Edit details',
+  'pf.edit.actionAria': 'Edit details of {name}',
+  'pf.edit.title': 'Edit patient details',
+  'pf.edit.consentNotice': 'Changing the email or phone resets reminder consent — reconfirm it with the patient.',
+  'pf.edit.submit': 'Save changes',
+  'pf.edit.saved': 'Details updated.',
+  'pf.edit.savedConsent': 'Details updated. Reminder consent: {consent}.',
+  'pf.edit.error.save': 'The details could not be saved.',
+  'pf.edit.err.required': 'This field is required.',
+  'pf.edit.err.max': 'At most {max} characters.',
+  'pf.edit.err.email': 'Enter a valid email address.',
+  'pf.edit.err.dobFuture': 'Must be a date in the past.',
+  'pf.edit.err.dobOld': 'Must not be before 1900-01-01.',
 } as const;
 
 export type PatientFileKey = keyof typeof PATIENT_FILE_EN;

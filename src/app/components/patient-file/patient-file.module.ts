@@ -11,6 +11,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { PatientDetailComponent } from '../patient-detail/patient-detail.component';
 import { PatientAuditComponent } from './patient-audit/patient-audit.component';
 import { PatientContactsComponent } from './patient-contacts/patient-contacts.component';
+import { PatientEditComponent } from './patient-edit/patient-edit.component';
 import { PatientNotificationsComponent } from './patient-notifications/patient-notifications.component';
 import { PatientDocumentsComponent } from './patient-documents/patient-documents.component';
 import { PatientMedicalComponent } from './patient-medical/patient-medical.component';
@@ -18,7 +19,7 @@ import { PatientTimelineComponent } from './patient-timeline/patient-timeline.co
 
 /** The patient file: lazy-loaded so the initial bundle stays small. */
 @NgModule({
-  declarations: [PatientDetailComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent, PatientAuditComponent, PatientNotificationsComponent],
+  declarations: [PatientDetailComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent, PatientAuditComponent, PatientNotificationsComponent, PatientEditComponent],
   imports: [
     SharedModule, MenusModule, MessagingModule, SendLinkComponent, ActorSelectComponent,
     RouterModule.forChild([{ path: '', component: PatientDetailComponent, data: { title: 'page.patient', parent: { label: 'page.patients', link: '/patients' } } }])

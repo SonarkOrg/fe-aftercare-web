@@ -1,0 +1,69 @@
+<div class="drawer-backdrop" (click)="close()"></div>
+<div class="drawer patient-edit" #drawerEl role="dialog" aria-modal="true" aria-labelledby="edit-patient-title">
+  <form (ngSubmit)="save()" novalidate>
+    <div class="drawer__header">
+      <h2 id="edit-patient-title">{{ 'pf.edit.title' | t }}</h2>
+      <button type="button" class="btn btn--ghost btn--icon" [attr.aria-label]="'common.close' | t" (click)="close()"><app-icon name="close"></app-icon></button>
+    </div>
+    <div class="drawer__body">
+      <div class="banner banner--error error-message" role="alert" *ngIf="banner"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ banner }}</span></div>
+      <div class="banner banner--warning consent-notice" role="status" *ngIf="showConsentNotice"><span class="banner__glyph" aria-hidden="true">●</span><span>{{ 'pf.edit.consentNotice' | t }}</span></div>
+      <div class="grid-form">
+          <div class="form-group">
+            <label for="edit-firstName">{{ 'patients.form.firstName' | t }}</label>
+            <input type="text" id="edit-firstName" name="firstName" [(ngModel)]="form.firstName" (ngModelChange)="touch('firstName')" [attr.aria-invalid]="error('firstName') ? 'true' : null" [attr.aria-describedby]="error('firstName') ? 'edit-firstName-err' : null" autocomplete="off">
+            <span class="field-error" id="edit-firstName-err" *ngIf="error('firstName') as msg">{{ msg }}</span>
+          </div>
+          <div class="form-group">
+            <label for="edit-lastName">{{ 'patients.form.lastName' | t }}</label>
+            <input type="text" id="edit-lastName" name="lastName" [(ngModel)]="form.lastName" (ngModelChange)="touch('lastName')" [attr.aria-invalid]="error('lastName') ? 'true' : null" [attr.aria-describedby]="error('lastName') ? 'edit-lastName-err' : null" autocomplete="off">
+            <span class="field-error" id="edit-lastName-err" *ngIf="error('lastName') as msg">{{ msg }}</span>
+          </div>
+          <div class="form-group">
+            <label for="edit-email">{{ 'patients.form.email' | t }}</label>
+            <input type="email" id="edit-email" name="email" [(ngModel)]="form.email" (ngModelChange)="touch('email')" [attr.aria-invalid]="error('email') ? 'true' : null" [attr.aria-describedby]="error('email') ? 'edit-email-err' : null" autocomplete="off">
+            <span class="field-error" id="edit-email-err" *ngIf="error('email') as msg">{{ msg }}</span>
+          </div>
+          <div class="form-group">
+            <label for="edit-phone">{{ 'patients.form.phone' | t }}</label>
+            <input type="tel" id="edit-phone" name="phone" [(ngModel)]="form.phone" (ngModelChange)="touch('phone')" [attr.aria-invalid]="error('phone') ? 'true' : null" [attr.aria-describedby]="error('phone') ? 'edit-phone-err' : null" autocomplete="off">
+            <span class="field-error" id="edit-phone-err" *ngIf="error('phone') as msg">{{ msg }}</span>
+          </div>
+          <div class="form-group">
+            <label for="edit-gender">{{ 'patients.form.gender' | t }}</label>
+            <select id="edit-gender" name="gender" [(ngModel)]="form.gender" (ngModelChange)="touch('gender')" [attr.aria-invalid]="error('gender') ? 'true' : null" [attr.aria-describedby]="error('gender') ? 'edit-gender-err' : null">
+              <option value="male">{{ 'patients.form.male' | t }}</option>
+              <option value="female">{{ 'patients.form.female' | t }}</option>
+            </select>
+            <span class="field-error" id="edit-gender-err" *ngIf="error('gender') as msg">{{ msg }}</span>
+          </div>
+          <div class="form-group">
+            <label for="edit-dob">{{ 'patients.form.dobOptional' | t }}</label>
+            <input type="date" id="edit-dob" name="dateOfBirth" [(ngModel)]="form.dateOfBirth" (ngModelChange)="touch('dateOfBirth')" [max]="dobMax" [attr.aria-invalid]="error('dateOfBirth') ? 'true' : null" [attr.aria-describedby]="error('dateOfBirth') ? 'edit-dob-err' : null">
+            <span class="field-error" id="edit-dob-err" *ngIf="error('dateOfBirth') as msg">{{ msg }}</span>
+          </div>
+      </div>
+      <div class="grid-form grid-form--3">
+          <div class="form-group">
+            <label for="edit-city">{{ 'patients.form.city' | t }}</label>
+            <input type="text" id="edit-city" name="city" [(ngModel)]="form.city" (ngModelChange)="touch('address.city')" [attr.aria-invalid]="error('address.city') ? 'true' : null" [attr.aria-describedby]="error('address.city') ? 'edit-city-err' : null">
+            <span class="field-error" id="edit-city-err" *ngIf="error('address.city') as msg">{{ msg }}</span>
+          </div>
+          <div class="form-group">
+            <label for="edit-state">{{ 'patients.form.state' | t }}</label>
+            <input type="text" id="edit-state" name="state" [(ngModel)]="form.state" (ngModelChange)="touch('address.state')" [attr.aria-invalid]="error('address.state') ? 'true' : null" [attr.aria-describedby]="error('address.state') ? 'edit-state-err' : null">
+            <span class="field-error" id="edit-state-err" *ngIf="error('address.state') as msg">{{ msg }}</span>
+          </div>
+          <div class="form-group">
+            <label for="edit-zip">{{ 'patients.form.zip' | t }}</label>
+            <input type="text" id="edit-zip" name="zip" [(ngModel)]="form.zip" (ngModelChange)="touch('address.zip')" [attr.aria-invalid]="error('address.zip') ? 'true' : null" [attr.aria-describedby]="error('address.zip') ? 'edit-zip-err' : null">
+            <span class="field-error" id="edit-zip-err" *ngIf="error('address.zip') as msg">{{ msg }}</span>
+          </div>
+      </div>
+    </div>
+    <div class="drawer__footer">
+      <button type="button" class="btn btn--secondary" (click)="close()">{{ 'common.cancel' | t }}</button>
+      <button type="submit" class="btn btn--primary" [disabled]="saving">{{ (saving ? 'common.saving' : 'pf.edit.submit') | t }}</button>
+    </div>
+  </form>
+</div>
