@@ -17,8 +17,10 @@ import { AccessRole } from '../models/me.model';
 import { providePermissions } from '../testing/fixtures';
 import { RoleBadgeComponent } from '../shared/role-badge/role-badge.component';
 import { IconComponent } from '../shared/icon/icon.component';
+import { LanguageSwitchComponent } from '../i18n/language-switch/language-switch.component';
 import { PageTitleService } from './page-title.service';
 import { ShellComponent } from './shell.component';
+import { I18nTestingModule } from '../testing/i18n-testing.module';
 
 @Component({ template: '<p>page</p>' })
 class DummyComponent {}
@@ -43,12 +45,12 @@ describe('ShellComponent', () => {
     msgStop = jasmine.createSpy('stop');
     auth = { userName$: of('Dev Nurse'), logout: jasmine.createSpy('logout') };
     await TestBed.configureTestingModule({
-      imports: [RouterTestingModule.withRoutes([
-        { path: 'a', component: DummyComponent, data: { title: 'A' } },
-        { path: 'b', component: DummyComponent, data: { title: 'B' } },
-        { path: 'settings', component: DummyComponent, data: { title: 'Settings' } }
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule.withRoutes([
+        { path: 'a', component: DummyComponent, data: { title: 'page.alerts' } },
+        { path: 'b', component: DummyComponent, data: { title: 'page.reports' } },
+        { path: 'settings', component: DummyComponent, data: { title: 'page.settings' } }
       ]), FormsModule],
-      declarations: [ShellComponent, IconComponent, RoleBadgeComponent, DummyComponent],
+      declarations: [ShellComponent, IconComponent, RoleBadgeComponent, LanguageSwitchComponent, DummyComponent],
       providers: [
         providePermissions('ADMIN'),
         { provide: StaffAuth, useValue: auth },
@@ -197,14 +199,14 @@ describe('ShellComponent', () => {
       expect(focus).toHaveBeenCalledTimes(1);
       expect(refresh).toHaveBeenCalledTimes(1);
       expect(msgRefresh).toHaveBeenCalledTimes(1);
-      expect(setTitle).toHaveBeenCalledWith('B');
+      expect(setTitle).toHaveBeenCalledWith('page.reports');
 
       // typing in the patients search and switching tabs both use replaceUrl query-param navigations
       focus.calls.reset();
       refresh.calls.reset();
       msgRefresh.calls.reset();
       setTitle.calls.reset();
-      titles.set('Custom page title'); // e.g. the patient name set by a page
+      titles.setText('Custom page title'); // e.g. the patient name set by a page
       setTitle.calls.reset();
       for (const q of ['r', 'ro', 'roy']) {
         await router.navigate([], { queryParams: { q }, replaceUrl: true });
@@ -217,6 +219,16 @@ describe('ShellComponent', () => {
       expect(msgRefresh).not.toHaveBeenCalled();
       expect(setTitle).not.toHaveBeenCalled();
       expect(titles.title$.value).toBe('Custom page title');
+    });
+
+    it('a shell created after the first navigation ended keeps a page-set title on a tab (query-only) change', async () => {
+      const router = TestBed.inject(Router);
+      const titles = TestBed.inject(PageTitleService);
+      await router.navigateByUrl('/a');
+      TestBed.createComponent(ShellComponent).detectChanges();
+      titles.setText('Jane Doe');
+      await router.navigate([], { queryParams: { tab: 'medical' }, replaceUrl: true });
+      expect(titles.title$.value).toBe('Jane Doe');
     });
   });
 });
@@ -240,8 +252,8 @@ describe('ShellComponent by access role', () => {
 
   function setup(role: AccessRole, extra: object[] = []) {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
-      declarations: [ShellComponent, IconComponent, RoleBadgeComponent],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
+      declarations: [ShellComponent, IconComponent, RoleBadgeComponent, LanguageSwitchComponent],
       providers: [providePermissions(role), { provide: StaffAuth, useValue: { userName$: of(null), logout: jasmine.createSpy('logout') } }, ...extra]
     });
     http = TestBed.inject(HttpTestingController);
@@ -362,8 +374,8 @@ describe('ShellComponent logout', () => {
   it('forgets the member before logging out', () => {
     const logout = jasmine.createSpy('logout');
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
-      declarations: [ShellComponent, IconComponent, RoleBadgeComponent],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
+      declarations: [ShellComponent, IconComponent, RoleBadgeComponent, LanguageSwitchComponent],
       providers: [providePermissions('ADMIN'), { provide: StaffAuth, useValue: { userName$: of(null), logout } }]
     });
     const http = TestBed.inject(HttpTestingController);

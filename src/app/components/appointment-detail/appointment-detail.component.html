@@ -1,11 +1,11 @@
 <div class="page">
-  <a class="back-link" routerLink="/appointments"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>Appointments</a>
-  <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--card"></div></div>
-  <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> Appointment not found.</span></div>
-  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
+  <a class="back-link" routerLink="/appointments"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>{{ 'shell.nav.appointments' | t }}</a>
+  <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--card"></div></div>
+  <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ 'error.msg.appointmentNotFound' | t }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
 
   <ng-container *ngIf="appt as a">
-    <section class="profile-hero profile-hero--sm" aria-label="Appointment">
+    <section class="profile-hero profile-hero--sm" [attr.aria-label]="'page.appointment' | t">
       <app-avatar [id]="a.patientId" [initials]="initials(a.patientFirstName, a.patientLastName)" size="lg"></app-avatar>
       <div class="profile-hero__main">
         <h1><a class="plain-link" [routerLink]="['/patients', a.patientId]">{{ a.patientFirstName }} {{ a.patientLastName }}</a></h1>
@@ -15,51 +15,51 @@
 
     <section class="card">
       <dl class="kv kv--2">
-        <dt>Patient</dt><dd><a [routerLink]="['/patients', a.patientId]">{{ a.patientFirstName }} {{ a.patientLastName }}</a></dd>
-        <dt>Type</dt><dd>{{ humanize(a.type) }}</dd>
-        <ng-container *ngIf="a.specialty"><dt>Specialty</dt><dd>{{ humanize(a.specialty) }}</dd></ng-container>
-        <dt>Date</dt><dd>{{ a.scheduledAt.substring(0, 10) }}</dd>
-        <dt>Time</dt><dd>{{ a.scheduledAt.substring(11, 16) }}</dd>
-        <dt>Duration</dt><dd>{{ a.durationMinutes }} min</dd>
-        <dt>Location</dt><dd>{{ a.location || '—' }}</dd>
-        <dt>Clinician</dt><dd>{{ a.clinician || '—' }}</dd>
-        <dt>Form</dt><dd>{{ a.questionnaireUrl }}|{{ a.questionnaireVersion }}</dd>
+        <dt>{{ 'common.patient' | t }}</dt><dd><a [routerLink]="['/patients', a.patientId]">{{ a.patientFirstName }} {{ a.patientLastName }}</a></dd>
+        <dt>{{ 'appt.type' | t }}</dt><dd>{{ a.type | enumLabel:'appointmentType' }}</dd>
+        <ng-container *ngIf="a.specialty"><dt>{{ 'appt.specialty' | t }}</dt><dd>{{ a.specialty | enumLabel:'specialty' }}</dd></ng-container>
+        <dt>{{ 'chart.table.date' | t }}</dt><dd>{{ a.scheduledAt.substring(0, 10) | tzDate:'dayLongYear' }}</dd>
+        <dt>{{ 'appt.time' | t }}</dt><dd>{{ clock(a) }}</dd>
+        <dt>{{ 'appt.duration' | t }}</dt><dd>{{ a.durationMinutes | duration }}</dd>
+        <dt>{{ 'appt.location' | t }}</dt><dd>{{ a.location || '—' }}</dd>
+        <dt>{{ 'appt.clinician' | t }}</dt><dd>{{ a.clinician || '—' }}</dd>
+        <dt>{{ 'appt.form' | t }}</dt><dd>{{ a.questionnaireUrl }}|{{ a.questionnaireVersion }}</dd>
       </dl>
       <div class="btn-row actions" *appCan="'APPOINTMENT_WRITE'">
-        <ng-container *appCan="'CLINICAL_WRITE'"><button type="button" id="mark-reviewed" class="btn btn--primary" *ngIf="a.status === 'NEEDS_REVIEW'" (click)="markReviewed()">Mark reviewed</button></ng-container>
+        <ng-container *appCan="'CLINICAL_WRITE'"><button type="button" id="mark-reviewed" class="btn btn--primary" *ngIf="a.status === 'NEEDS_REVIEW'" (click)="markReviewed()">{{ 'dashboard.menu.markReviewed' | t }}</button></ng-container>
         <button type="button" id="cancel-appt" class="btn btn--secondary" *ngIf="open"
-                (click)="setStatus('CANCELLED', 'Cancel this appointment?')">Cancel</button>
+                (click)="setStatus('CANCELLED', 'appt.confirm.cancel')">{{ 'common.cancel' | t }}</button>
         <button type="button" id="complete-appt" class="btn btn--secondary" *ngIf="open"
-                (click)="setStatus('COMPLETED', 'Mark this appointment as completed?')">Mark completed</button>
+                (click)="setStatus('COMPLETED', 'appts.confirmComplete')">{{ 'appts.markCompleted' | t }}</button>
         <button type="button" id="no-show-appt" class="btn btn--secondary" *ngIf="open"
-                (click)="setStatus('NO_SHOW', 'Mark this appointment as a no-show?')">Mark no-show</button>
-        <a class="btn btn--secondary" id="edit-appt" *ngIf="open" [routerLink]="['/appointments', a.id, 'edit']">Edit</a>
-        <button type="button" id="delete-appt" class="btn btn--danger" *ngIf="a.status === 'SCHEDULED' && !a.intake && !a.intakeSubmittedAt" (click)="delete()">Delete</button>
+                (click)="setStatus('NO_SHOW', 'appt.confirm.noShow')">{{ 'appt.markNoShow' | t }}</button>
+        <a class="btn btn--secondary" id="edit-appt" *ngIf="open" [routerLink]="['/appointments', a.id, 'edit']">{{ 'common.edit' | t }}</a>
+        <button type="button" id="delete-appt" class="btn btn--danger" *ngIf="a.status === 'SCHEDULED' && !a.intake && !a.intakeSubmittedAt" (click)="delete()">{{ 'common.delete' | t }}</button>
         <app-send-link *ngIf="canSendLink" kind="appointment" [targetId]="a.id" [patientId]="a.patientId" (sent)="onLinkSent(a.patientId)"></app-send-link>
       </div>
     </section>
 
     <section class="card intake">
-      <div class="card__header"><h2>Questionnaire</h2></div>
+      <div class="card__header"><h2>{{ 'appt.questionnaire' | t }}</h2></div>
       <ng-container *ngIf="a.intakeRedacted; else visibleIntake">
-        <div class="banner banner--info intake-redacted"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>Questionnaire answers are visible to clinical staff only.</span></div>
-        <p *ngIf="a.intakeSubmittedAt; else notYet">Submitted {{ a.intakeSubmittedAt | date:'yyyy-MM-dd HH:mm' }}</p>
-        <ng-template #notYet><p>Not submitted yet.</p></ng-template>
-        <p *ngIf="a.flagCount > 0" class="flag-count">{{ a.flagCount }} flag(s) for review</p>
+        <div class="banner banner--info intake-redacted"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ 'appt.redacted' | t }}</span></div>
+        <p *ngIf="a.intakeSubmittedAt; else notYet">{{ 'appt.submitted' | t:{ when: (a.intakeSubmittedAt | tzDate:'isoDateTime') } }}</p>
+        <ng-template #notYet><p>{{ 'appt.notSubmitted' | t }}</p></ng-template>
+        <p *ngIf="a.flagCount > 0" class="flag-count">{{ 'appt.flagsForReview' | t:{ count: a.flagCount } }}</p>
       </ng-container>
       <ng-template #visibleIntake>
       <ng-container *ngIf="a.intake as i; else noIntake">
-        <p>Submitted {{ i.submittedAt | date:'yyyy-MM-dd HH:mm' }}</p>
+        <p>{{ 'appt.submitted' | t:{ when: (i.submittedAt | tzDate:'isoDateTime') } }}</p>
         <ul class="flags" *ngIf="i.flags.length > 0; else noFlags">
-          <li *ngFor="let f of i.flags" class="flag banner banner--warning"><span class="banner__glyph" aria-hidden="true">◆</span><span>{{ f.label }} — {{ f.message }}</span></li>
+          <li *ngFor="let f of i.flags" class="flag banner banner--warning"><span class="banner__glyph" aria-hidden="true">◆</span><span>{{ flagLabel(f) }} — {{ flagMessage(f) }}</span></li>
         </ul>
-        <ng-template #noFlags><p>No issues flagged.</p></ng-template>
-        <app-questionnaire-form *ngIf="questionnaire" mode="readonly" lang="en"
+        <ng-template #noFlags><p>{{ 'appt.noFlags' | t }}</p></ng-template>
+        <app-questionnaire-form *ngIf="questionnaire" mode="readonly" [lang]="formLang"
                                 [questionnaire]="questionnaire" [response]="i.response"></app-questionnaire-form>
       </ng-container>
       <ng-template #noIntake>
-        <p>Not submitted yet.</p>
-        <ng-container *appCan="'APPOINTMENT_WRITE'"><button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="a.status === 'SCHEDULED'" (click)="regenerate()">Regenerate questionnaire link</button></ng-container>
+        <p>{{ 'appt.notSubmitted' | t }}</p>
+        <ng-container *appCan="'APPOINTMENT_WRITE'"><button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="a.status === 'SCHEDULED'" (click)="regenerate()">{{ 'appt.regenerate' | t }}</button></ng-container>
         <app-access-link *ngIf="accessCode" [code]="accessCode"></app-access-link>
       </ng-template>
       </ng-template>

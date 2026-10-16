@@ -1,3 +1,4 @@
+import { testChartText } from '../../testing/i18n-testing.module';
 import { SeriesPoint } from '../care.model';
 import { ChartInputs, computeBars, dayWindow, firstDay, isAlert, missedDays, yDomain, yTicks } from './trend-chart.geometry';
 
@@ -7,6 +8,8 @@ const pts = (days: number[], vals?: number[]): SeriesPoint[] =>
 const inputs = (over: Partial<ChartInputs> = {}): ChartInputs => ({
   points: pts([1, 2, 3, 5], [3, 8, 5, 6]), totalDays: 7, threshold: 7, label: 'Pain', unit: '', domain: [0, 10], variant: 'full', todayDay: 5, ...over
 });
+
+const text = testChartText('en');
 
 describe('trend-chart.geometry', () => {
   it('isAlert uses >=', () => {
@@ -42,7 +45,7 @@ describe('trend-chart.geometry', () => {
   });
 
   describe('full chart bars (width 640)', () => {
-    const m = computeBars(inputs(), 640);
+    const m = computeBars(inputs(), 640, text);
     const bar = (d: number) => m.days.find(x => x.day === d)!;
 
     it('one band per day with a clamped gap; bars start at the left padding', () => {
@@ -116,7 +119,7 @@ describe('trend-chart.geometry', () => {
       expect(labels).toContain('0');
       expect(labels).toContain('10');
       // threshold 7 sits between ticks 6 and 8; 6 and 8 are > 14 px away from the pill centre here, so a tick exactly on the threshold is dropped
-      const m6 = computeBars(inputs({ threshold: 6 }), 640);
+      const m6 = computeBars(inputs({ threshold: 6 }), 640, text);
       expect(m6.yTicks.map(t => t.label)).not.toContain('6');
       expect(m6.yTicks.map(t => t.label)).toContain('8');
     });
@@ -124,12 +127,12 @@ describe('trend-chart.geometry', () => {
     it('rows list values and missed days in order with their status words', () => {
       expect(m.rows.map(r => r.status)).toEqual(['Below threshold', 'At or above alert threshold', 'Below threshold', 'No check-in', 'Below threshold']);
       expect(m.desc).toContain('4 check-ins over 7 days');
-      expect(m.desc).toContain('1 missed days');
+      expect(m.desc).toContain('1 missed day');
     });
   });
 
   it('without a threshold there is no limit, no alert bar and no pill is an alert', () => {
-    const m = computeBars(inputs({ threshold: null }), 640);
+    const m = computeBars(inputs({ threshold: null }), 640, text);
     expect(m.limit).toBeNull();
     expect(m.alertCount).toBe(0);
     expect(m.days.every(d => !d.alert)).toBeTrue();
@@ -139,7 +142,7 @@ describe('trend-chart.geometry', () => {
   it('long follow-ups (narrow bands) drop pills except the last value and alerts, as 24px floating pills', () => {
     const days = Array.from({ length: 14 }, (_, i) => i + 1);
     const vals = days.map(d => (d === 4 ? 9 : 2));
-    const m = computeBars(inputs({ points: pts(days, vals), totalDays: 30, todayDay: 14 }), 600);
+    const m = computeBars(inputs({ points: pts(days, vals), totalDays: 30, todayDay: 14 }), 600, text);
     expect(m.band).toBeLessThan(40);
     expect(m.mode).toBe('floating');
     const withPill = m.days.filter(d => d.pill).map(d => d.day);
@@ -155,7 +158,7 @@ describe('trend-chart.geometry', () => {
   });
 
   it('compact: 96 high, limit pill "≥7" 30x18 at x 0, pills only for alerts and the latest value', () => {
-    const m = computeBars(inputs({ variant: 'compact' }), 300);
+    const m = computeBars(inputs({ variant: 'compact' }), 300, text);
     expect(m.h).toBe(96);
     expect(m.pad).toEqual({ l: 34, r: 0, t: 28, b: 4 });
     expect(m.limit!.pill.text).toBe('≥7');
@@ -172,7 +175,7 @@ describe('trend-chart.geometry', () => {
   });
 
   it('micro: 64x20, last 7 days as bars, no pills, no limit', () => {
-    const m = computeBars(inputs({ variant: 'micro', points: pts([1, 2, 3], [3, 8, 5]), todayDay: 3 }), 999);
+    const m = computeBars(inputs({ variant: 'micro', points: pts([1, 2, 3], [3, 8, 5]), todayDay: 3 }), 999, text);
     expect(m.w).toBe(64);
     expect(m.h).toBe(20);
     expect(m.limit).toBeNull();
@@ -182,7 +185,7 @@ describe('trend-chart.geometry', () => {
   });
 
   it('temperature bars start at 35 and clamp lower values to a zero-height bar', () => {
-    const m = computeBars(inputs({ points: pts([1, 2], [34, 38.4]), domain: 'auto', unit: '°C', threshold: 38, todayDay: 2 }), 640);
+    const m = computeBars(inputs({ points: pts([1, 2], [34, 38.4]), domain: 'auto', unit: '°C', threshold: 38, todayDay: 2 }), 640, text);
     expect(m.domain[0]).toBe(35);
     expect(m.days[0].bar.h).toBe(0);
     expect(m.days[1].alert).toBeTrue();
@@ -192,7 +195,7 @@ describe('trend-chart.geometry', () => {
 
   it('day labels keep >= 30px between neighbours on narrow screens, always keep day 1 and the real current day (bold)', () => {
     const days = Array.from({ length: 14 }, (_, i) => i + 1);
-    const m = computeBars(inputs({ points: pts(days.slice(0, 6), [1, 2, 3, 4, 5, 6]), totalDays: 14, todayDay: 5, nowDay: 6 }), 300);
+    const m = computeBars(inputs({ points: pts(days.slice(0, 6), [1, 2, 3, 4, 5, 6]), totalDays: 14, todayDay: 5, nowDay: 6 }), 300, text);
     const xs = m.labels.map(l => l.x);
     for (let i = 1; i < xs.length; i++) {
       expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(29);
@@ -212,7 +215,7 @@ describe('trend-chart.geometry', () => {
     });
 
     it('full: the axis starts at D0, the day-0 bar sits at the left padding and carries the value', () => {
-      const m = computeBars(d0(), 640);
+      const m = computeBars(d0(), 640, text);
       expect(m.band).toBeCloseTo((640 - 48) / 8, 5); // D0..D7 = 8 bands
       const b = m.days.find(x => x.day === 0)!;
       expect(b.kind).toBe('value');
@@ -224,7 +227,7 @@ describe('trend-chart.geometry', () => {
     });
 
     it('narrow screens: labels never touch; the real current day wins over D0', () => {
-      const m = computeBars({ ...d0(), totalDays: 14 }, 300);
+      const m = computeBars({ ...d0(), totalDays: 14 }, 300, text);
       const xs = m.labels.map(l => l.x);
       for (let i = 1; i < xs.length; i++) {
         expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(29);
@@ -233,21 +236,21 @@ describe('trend-chart.geometry', () => {
     });
 
     it('without a day-0 value the axis still starts at D1', () => {
-      const m = computeBars(inputs(), 640);
+      const m = computeBars(inputs(), 640, text);
       expect(m.labels[0].text).toBe('D1');
       expect(m.days.some(x => x.day === 0)).toBeFalse();
     });
 
     it('day 0 is never a missed day, even when other days are missed', () => {
       expect(missedDays(pts([0]), 3, 7)).toEqual([1, 2, 3]);
-      const m = computeBars(inputs({ points: pts([0, 2], [4, 3]), todayDay: 3 }), 640);
+      const m = computeBars(inputs({ points: pts([0, 2], [4, 3]), todayDay: 3 }), 640, text);
       expect(m.days.filter(x => x.kind === 'missed').map(x => x.day)).toEqual([1, 3]);
       expect(m.rows.map(r => r.day)).toEqual([0, 1, 2, 3]);
     });
 
     it('compact and micro include day 0 too (same rule)', () => {
       for (const variant of ['compact', 'micro'] as const) {
-        const m = computeBars({ ...d0(), variant }, 320);
+        const m = computeBars({ ...d0(), variant }, 320, text);
         expect(m.days.find(x => x.day === 0)?.value).toBe(4);
         expect(m.days[0].bar.x).toBeCloseTo(m.pad.l + m.gap / 2, 5);
       }
@@ -258,5 +261,14 @@ describe('trend-chart.geometry', () => {
       expect(dayWindow('compact', 30, 1, 0)).toEqual({ start: 0, end: 6 });
       expect(dayWindow('compact', 30, 1, 1)).toEqual({ start: 1, end: 7 });
     });
+  });
+
+  it('writes the summary and aria texts in French', () => {
+    const fr = testChartText('fr');
+    const m = computeBars(inputs({ points: pts([1, 2], [34, 38.4]), domain: 'auto', unit: '°C', threshold: 38, todayDay: 2, label: 'Température' }), 640, fr);
+    expect(m.summary).toContain('Dernière valeur\u00a0: 38,4\u00a0°C');
+    expect(m.days[1].aria).toContain('Jour 2, 2026-10-12');
+    expect(m.limit!.pill.text).toBe('Alerte ≥ 38\u00a0°C');
+    expect(m.labels[0].text).toBe('J1');
   });
 });

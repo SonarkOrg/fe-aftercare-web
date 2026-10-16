@@ -1,22 +1,22 @@
 <form class="follow-up-form" (ngSubmit)="submit()">
   <div class="form-group">
-    <label for="fu-specialty">Specialty</label>
+    <label for="fu-specialty">{{ 'appt.specialty' | t }}</label>
     <select id="fu-specialty" name="specialty" [(ngModel)]="specialty">
-      <option value="VISCERAL_SURGERY">Visceral surgery</option>
-      <option value="ORTHOPEDIC_SURGERY">Orthopedic surgery</option>
+      <option value="VISCERAL_SURGERY">{{ 'enum.specialty.VISCERAL_SURGERY' | t }}</option>
+      <option value="ORTHOPEDIC_SURGERY">{{ 'enum.specialty.ORTHOPEDIC_SURGERY' | t }}</option>
     </select>
     <span class="field-error" *ngIf="fieldErrors['specialty']"><span aria-hidden="true">▲ </span>{{ fieldErrors['specialty'] }}</span>
   </div>
   <div class="form-group">
-    <label for="fu-discharge">Discharge date</label>
+    <label for="fu-discharge">{{ 'followUp.dischargeDate' | t }}</label>
     <input id="fu-discharge" type="date" name="dischargeDate" [(ngModel)]="dischargeDate" [max]="today" required>
     <span class="field-error" *ngIf="fieldErrors['dischargeDate']"><span aria-hidden="true">▲ </span>{{ fieldErrors['dischargeDate'] }}</span>
   </div>
   <div class="form-group">
-    <label for="fu-duration">Duration (days)</label>
+    <label for="fu-duration">{{ 'followUp.durationDays' | t }}</label>
     <input id="fu-duration" type="number" name="durationDays" [(ngModel)]="durationDays" min="1" max="30" required>
     <span class="field-error" *ngIf="fieldErrors['durationDays']"><span aria-hidden="true">▲ </span>{{ fieldErrors['durationDays'] }}</span>
   </div>
-  <div class="banner banner--error error-message" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ error }}</span></div>
-  <button type="submit" class="btn btn--primary" [disabled]="saving || !dischargeDate || !durationDays">Enroll in follow-up</button>
+  <div class="banner banner--error error-message" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ error }}</span></div>
+  <button type="submit" class="btn btn--primary" [disabled]="saving || !dischargeDate || !durationDays">{{ 'followUp.enroll' | t }}</button>
 </form>

@@ -8,10 +8,12 @@ import { DEV_IDENTITY_UI } from '../auth/dev-identity';
 import { Permissions } from '../auth/permissions.service';
 import { StaffAuth } from '../auth/staff-auth';
 import { AccessRole, Me, Permission, ROLE_LABEL } from '../models/me.model';
+import { I18nService } from '../i18n/i18n.service';
+import { TKey } from '../i18n/i18n.types';
 import { IconName } from '../shared/icon/icon.component';
 import { PageTitleService } from './page-title.service';
 
-interface NavItem { label: string; link: string; icon: IconName; badge?: 'alerts' | 'messages'; permission?: Permission }
+interface NavItem { label: TKey; link: string; icon: IconName; badge?: 'alerts' | 'messages'; permission?: Permission }
 
 @Component({
   selector: 'app-shell',
@@ -20,13 +22,13 @@ interface NavItem { label: string; link: string; icon: IconName; badge?: 'alerts
 })
 export class ShellComponent implements OnInit, OnDestroy {
   readonly items: NavItem[] = [
-    { label: 'Dashboard', link: '/dashboard', icon: 'dashboard' },
-    { label: 'Patients', link: '/patients', icon: 'users' },
-    { label: 'Appointments', link: '/appointments', icon: 'calendar', permission: 'APPOINTMENT_READ' },
-    { label: 'Alerts', link: '/alerts', icon: 'bell', badge: 'alerts', permission: 'CLINICAL_READ' },
-    { label: 'Messages', link: '/messages', icon: 'message', badge: 'messages', permission: 'CLINICAL_READ' },
-    { label: 'Reports', link: '/reports', icon: 'bar-chart', permission: 'REPORTS_READ' },
-    { label: 'Forms', link: '/questionnaires', icon: 'file', permission: 'FORMS_READ' }
+    { label: 'shell.nav.dashboard', link: '/dashboard', icon: 'dashboard' },
+    { label: 'shell.nav.patients', link: '/patients', icon: 'users' },
+    { label: 'shell.nav.appointments', link: '/appointments', icon: 'calendar', permission: 'APPOINTMENT_READ' },
+    { label: 'shell.nav.alerts', link: '/alerts', icon: 'bell', badge: 'alerts', permission: 'CLINICAL_READ' },
+    { label: 'shell.nav.messages', link: '/messages', icon: 'message', badge: 'messages', permission: 'CLINICAL_READ' },
+    { label: 'shell.nav.reports', link: '/reports', icon: 'bar-chart', permission: 'REPORTS_READ' },
+    { label: 'shell.nav.forms', link: '/questionnaires', icon: 'file', permission: 'FORMS_READ' }
   ];
   /** The items this member may open (hidden, not disabled). */
   navItems: NavItem[] = [];
@@ -55,6 +57,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     public messageCount: MessageCountService,
     private host: ElementRef<HTMLElement>,
     public permissions: Permissions,
+    public i18n: I18nService,
     @Optional() @Inject(DEV_IDENTITY_UI) public devUi: unknown
   ) {
     // The directory name (from /api/me) wins; the login's own name is the fallback.
@@ -74,6 +77,11 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.messageCount.start();
     this.sub.add(this.alertCount.openCount$.subscribe(n => (this.alerts = n)));
     this.sub.add(this.messageCount.unread$.subscribe(n => (this.messages = n)));
+    // The shell can be created after the first navigation has ended (it sits behind async guards): start from that path,
+    // so a later query-only change (a tab click) is not mistaken for a new page and does not reset a page-set title.
+    if (this.router.navigated) {
+      this.lastPath = this.router.url.split(/[?#]/)[0];
+    }
     this.sub.add(this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(e => {
       // Query-param-only navigations (search typing, filters, tabs) keep the same path: they must not steal focus,
       // reset the title or refetch the alert count.
@@ -104,7 +112,7 @@ export class ShellComponent implements OnInit, OnDestroy {
     while (snap.firstChild) {
       snap = snap.firstChild;
     }
-    const data = snap.data as { title?: string; parent?: { label: string; link: string } };
+    const data = snap.data as { title?: TKey; parent?: { label: TKey; link: string } };
     if (data.title) {
       this.titles.set(data.title);
     }
@@ -118,7 +126,7 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   badgeLabel(item: NavItem): string | null {
     const n = this.count(item);
-    return item.badge && n > 0 ? `${item.label}, ${n} ${item.badge === 'alerts' ? 'open' : 'unread'}` : null;
+    return item.badge && n > 0 ? this.i18n.t(item.badge === 'alerts' ? 'shell.nav.badge.alerts' : 'shell.nav.badge.messages', { count: n }) : null;
   }
 
   search(): void {
@@ -128,7 +136,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   }
 
   get roleLabel(): string {
-    return this.me ? ROLE_LABEL[this.me.accessRole] : 'Unlinked';
+    return this.me ? this.i18n.t(ROLE_LABEL[this.me.accessRole]) : 'Unlinked';
   }
 
   get role(): AccessRole | null {

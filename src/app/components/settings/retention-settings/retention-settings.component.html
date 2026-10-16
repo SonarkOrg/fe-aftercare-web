@@ -1,62 +1,62 @@
-<div class="banner banner--warning retention-notice" role="note"><span class="banner__glyph" aria-hidden="true">●</span><span><strong>{{ notice }}</strong></span></div>
-<div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ loadError }} <button type="button" class="btn btn--ghost btn--sm" (click)="load()">Retry</button></span></div>
+<div class="banner banner--warning retention-notice" role="note"><span class="banner__glyph" aria-hidden="true">●</span><span><strong>{{ notice | t }}</strong></span></div>
+<div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ loadError }} <button type="button" class="btn btn--ghost btn--sm" (click)="load()">{{ 'common.retry' | t }}</button></span></div>
 
 <form class="card retention-form" *ngIf="current" (ngSubmit)="save()" aria-labelledby="ret-title">
-  <div class="card__header"><h2 id="ret-title" class="card__title--sm">Retention periods</h2></div>
+  <div class="card__header"><h2 id="ret-title" class="card__title--sm">{{ 'settings.ret.title' | t }}</h2></div>
   <div class="ret-status" *ngIf="purgeStatus as ps"><app-status-chip class="purge-status" [spec]="ps.chip"></app-status-chip></div>
-  <div class="banner banner--info" role="status" *ngIf="saved"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>Saved.</span></div>
+  <div class="banner banner--info" role="status" *ngIf="saved"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ 'common.saved' | t }}</span></div>
   <div class="banner banner--error" role="alert" *ngIf="banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ banner }}</span></div>
 
   <div class="ret-row" *ngFor="let f of fields" [attr.data-field]="f.key">
     <div class="form-group">
-      <label [attr.for]="'ret-' + f.key">{{ f.label }}</label>
-      <span class="helper-line ret-help" *ngIf="f.help">{{ f.help }}</span>
+      <label [attr.for]="'ret-' + f.key">{{ f.label | t }}</label>
+      <span class="helper-line ret-help" *ngIf="f.help">{{ f.help | t }}</span>
       <div class="ret-input">
         <input [id]="'ret-' + f.key" [name]="f.key" type="number" [attr.min]="f.min ?? 1" max="1200" step="1" inputmode="numeric" [disabled]="keep[f.key]"
                [(ngModel)]="values[f.key]" (ngModelChange)="touch()" [attr.aria-invalid]="!!errors[f.key]">
-        <span class="muted">months</span>
-        <label class="ret-keep"><input type="checkbox" [name]="f.key + 'Keep'" [ngModel]="keep[f.key]" (ngModelChange)="setKeep(f.key, $event); touch()"> Keep indefinitely</label>
+        <span class="muted">{{ 'settings.ret.months' | t }}</span>
+        <label class="ret-keep"><input type="checkbox" [name]="f.key + 'Keep'" [ngModel]="keep[f.key]" (ngModelChange)="setKeep(f.key, $event); touch()"> {{ 'settings.ret.keep' | t }}</label>
       </div>
       <span class="field-error" role="alert" *ngIf="errors[f.key]">{{ errors[f.key] }}</span>
     </div>
   </div>
 
-  <app-confirm-inline *ngIf="confirming" question="Shortening a period can delete data on the next purge. Continue?" confirmLabel="Continue"
+  <app-confirm-inline *ngIf="confirming" [question]="'settings.ret.confirm' | t" [confirmLabel]="'settings.ret.continue' | t"
                       (confirmed)="confirmSave()" (cancelled)="confirming = false"></app-confirm-inline>
 
   <div class="btn-row">
-    <button type="submit" class="btn btn--accent save-retention" [disabled]="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
-    <button type="button" class="btn btn--secondary dry-run" [disabled]="dryRunning" (click)="dryRun()">{{ dryRunning ? 'Counting…' : 'Preview (dry run)' }}</button>
+    <button type="submit" class="btn btn--accent save-retention" [disabled]="saving">{{ (saving ? 'common.saving' : 'common.save') | t }}</button>
+    <button type="button" class="btn btn--secondary dry-run" [disabled]="dryRunning" (click)="dryRun()">{{ (dryRunning ? 'settings.ret.counting' : 'settings.ret.preview') | t }}</button>
   </div>
 </form>
 
 <div class="banner banner--error" role="alert" *ngIf="dryError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ dryError }}</span></div>
 <section class="card dry-result" *ngIf="dryResult as d" aria-labelledby="dry-title">
-  <div class="card__header"><h2 id="dry-title" class="card__title--sm">Preview result</h2></div>
+  <div class="card__header"><h2 id="dry-title" class="card__title--sm">{{ 'settings.ret.previewResult' | t }}</h2></div>
   <table class="table">
-    <caption class="sr-only">Records that a purge with these periods would delete</caption>
-    <thead><tr><th scope="col">Record</th><th scope="col">Would be deleted</th></tr></thead>
-    <tbody><tr *ngFor="let r of countRows"><td>{{ r.label }}</td><td class="num">{{ d.counts[r.key] }}</td></tr></tbody>
+    <caption class="sr-only">{{ 'settings.ret.previewCaption' | t }}</caption>
+    <thead><tr><th scope="col">{{ 'settings.ret.record' | t }}</th><th scope="col">{{ 'settings.ret.wouldDelete' | t }}</th></tr></thead>
+    <tbody><tr *ngFor="let r of countRows"><td>{{ r.label | t }}</td><td class="num">{{ d.counts[r.key] }}</td></tr></tbody>
   </table>
-  <p class="helper-line"><span aria-hidden="true">ℹ</span> Nothing was deleted.</p>
+  <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.ret.nothingDeleted' | t }}</p>
 </section>
 
 <section class="table-card retention-runs" aria-labelledby="runs-title">
-  <h2 id="runs-title" class="card__title--sm">Recent runs</h2>
-  <div class="banner banner--error" role="alert" *ngIf="runsError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ runsError }} <button type="button" class="btn btn--ghost btn--sm" (click)="loadRuns()">Retry</button></span></div>
-  <p class="muted empty-line" *ngIf="!runsError && runs.length === 0">No runs yet.</p>
+  <h2 id="runs-title" class="card__title--sm">{{ 'settings.ret.runs' | t }}</h2>
+  <div class="banner banner--error" role="alert" *ngIf="runsError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ runsError }} <button type="button" class="btn btn--ghost btn--sm" (click)="loadRuns()">{{ 'common.retry' | t }}</button></span></div>
+  <p class="muted empty-line" *ngIf="!runsError && runs.length === 0">{{ 'settings.ret.noRuns' | t }}</p>
   <div *ngIf="runs.length > 0">
     <table class="table">
-      <caption class="sr-only">Recent retention runs</caption>
-      <thead><tr><th scope="col">Started</th><th scope="col">Mode</th><th scope="col">Trigger</th><th scope="col">Status</th><th scope="col">Records</th><th scope="col">By</th></tr></thead>
+      <caption class="sr-only">{{ 'settings.ret.runsCaption' | t }}</caption>
+      <thead><tr><th scope="col">{{ 'settings.ret.started' | t }}</th><th scope="col">{{ 'settings.ret.mode' | t }}</th><th scope="col">{{ 'settings.ret.trigger' | t }}</th><th scope="col">{{ 'patients.col.status' | t }}</th><th scope="col">{{ 'settings.ret.records' | t }}</th><th scope="col">{{ 'settings.ret.by' | t }}</th></tr></thead>
       <tbody>
         <tr *ngFor="let r of runs">
-          <td data-label="Started" class="num">{{ when(r.startedAt) }}</td>
-          <td data-label="Mode">{{ r.mode === 'DRY_RUN' ? 'Dry run' : 'Purge' }}</td>
-          <td data-label="Trigger">{{ r.trigger === 'SCHEDULED' ? 'Scheduled' : 'Manual' }}</td>
-          <td data-label="Status"><app-status-chip size="sm" [spec]="statusChip(r)"></app-status-chip></td>
-          <td data-label="Records" class="num"><details class="run-counts"><summary [attr.title]="detail(r.counts)">{{ total(r.counts) }}</summary><span>{{ detail(r.counts) }}</span></details></td>
-          <td data-label="By">{{ r.actorName || 'Automatic' }}</td>
+          <td [attr.data-label]="'settings.ret.started' | t" class="num">{{ when(r.startedAt) }}</td>
+          <td [attr.data-label]="'settings.ret.mode' | t">{{ r.mode | enumLabel:'retentionMode' }}</td>
+          <td [attr.data-label]="'settings.ret.trigger' | t">{{ r.trigger | enumLabel:'retentionTrigger' }}</td>
+          <td [attr.data-label]="'patients.col.status' | t"><app-status-chip size="sm" [spec]="statusChip(r)"></app-status-chip></td>
+          <td [attr.data-label]="'settings.ret.records' | t" class="num"><details class="run-counts"><summary [attr.title]="detail(r.counts)">{{ total(r.counts) }}</summary><span>{{ detail(r.counts) }}</span></details></td>
+          <td [attr.data-label]="'settings.ret.by' | t">{{ r.actorName || ('pf.notif.automatic' | t) }}</td>
         </tr>
       </tbody>
     </table>

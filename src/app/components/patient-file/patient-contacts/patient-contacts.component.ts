@@ -5,17 +5,19 @@ import { Permissions } from '../../../auth/permissions.service';
 import { PatientFileService } from '../../../Services/PatientFile.service';
 import { SettingsService } from '../../../Services/Settings.service';
 import { StaffService } from '../../../Services/Staff.service';
-import { apiErrorOf, errorText } from '../../../models/api-error.model';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { collate } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
+import { apiErrorOf } from '../../../models/api-error.model';
 import { CareTeamMember, EmergencyContact } from '../../../models/medical.model';
 import { Language } from '../../../models/settings.model';
 import { STAFF_ROLES, Staff, StaffRole } from '../../../models/staff.model';
-import { humanize } from '../../../shared/link.util';
 import { ChipSpec, staffActiveChip } from '../../../shared/status';
 
 interface ContactForm { id: number | null; name: string; relationship: string; phone: string; preferredLanguage: Language; errors: Record<string, string>; banner: string | null; saving: boolean }
 
 export function sortCareTeam(list: CareTeamMember[]): CareTeamMember[] {
-  return [...list].sort((a, b) => STAFF_ROLES.indexOf(a.role) - STAFF_ROLES.indexOf(b.role) || a.displayName.localeCompare(b.displayName));
+  return [...list].sort((a, b) => STAFF_ROLES.indexOf(a.role) - STAFF_ROLES.indexOf(b.role) || collate(a.displayName, b.displayName));
 }
 
 @Component({
@@ -43,10 +45,13 @@ export class PatientContactsComponent implements OnInit {
   actionError: string | null = null;
 
   readonly roles = STAFF_ROLES;
-  readonly humanize = humanize;
   readonly inactiveChip: ChipSpec = staffActiveChip(false);
 
-  constructor(private files: PatientFileService, private staffService: StaffService, private settings: SettingsService, public permissions: Permissions) {}
+  constructor(private files: PatientFileService, private staffService: StaffService, private settings: SettingsService, public permissions: Permissions, private i18n: I18nService, private errors: ApiErrorsService) {}
+
+  menuItems(): { key: string; label: string }[] {
+    return [{ key: 'edit', label: this.i18n.t('common.edit') }, { key: 'remove', label: this.i18n.t('common.remove') }];
+  }
 
   ngOnInit(): void {
     this.loadContacts();
@@ -113,9 +118,9 @@ export class PatientContactsComponent implements OnInit {
         f.saving = false;
         const api = apiErrorOf(err);
         if (api && Object.keys(api.fieldErrors).length) {
-          f.errors = { ...api.fieldErrors };
+          f.errors = this.errors.fieldTexts(err);
         } else {
-          f.banner = 'Could not save. Try again.';
+          f.banner = this.errors.text(err, 'pf.medical.error.save');
         }
       }
     });
@@ -136,7 +141,7 @@ export class PatientContactsComponent implements OnInit {
         this.contacts = this.contacts.filter(x => x.id !== c.id);
         this.removingContact = null;
       },
-      error: err => (this.actionError = errorText(err, 'Could not remove the contact.'))
+      error: err => (this.actionError = this.errors.text(err, 'pf.contacts.error.remove'))
     });
   }
 
@@ -158,7 +163,7 @@ export class PatientContactsComponent implements OnInit {
       error: err => {
         this.assigning = false;
         const api = apiErrorOf(err);
-        this.assignError = api?.error === 'ALREADY_ASSIGNED' || api?.error === 'STAFF_INACTIVE' ? api.message : errorText(err, 'Could not assign the staff member.');
+        this.assignError = this.errors.text(err, 'pf.contacts.error.assign');
       }
     });
   }
@@ -169,7 +174,7 @@ export class PatientContactsComponent implements OnInit {
         this.removingMember = null;
         this.careTeamChange.emit(this.careTeam.filter(x => x.assignmentId !== m.assignmentId));
       },
-      error: err => (this.actionError = errorText(err, 'Could not remove the team member.'))
+      error: err => (this.actionError = this.errors.text(err, 'pf.contacts.error.unassign'))
     });
   }
 }

@@ -4,8 +4,10 @@ import { Observable } from 'rxjs';
 import { DEV_IDENTITY_UI } from '../../auth/dev-identity';
 import { Permissions } from '../../auth/permissions.service';
 import { StaffAuth } from '../../auth/staff-auth';
+import { I18nService } from '../../i18n/i18n.service';
 import { apiErrorOf } from '../../models/api-error.model';
 import { environment } from '../../../environments/environment';
+import { PageTitleService } from '../../shell/page-title.service';
 import { SharedModule } from '../shared.module';
 
 @Component({
@@ -24,9 +26,12 @@ export class NotStaffComponent implements OnInit {
     private auth: StaffAuth,
     private permissions: Permissions,
     private router: Router,
+    private i18n: I18nService,
+    titles: PageTitleService,
     @Optional() @Inject(DEV_IDENTITY_UI) public devUi: unknown
   ) {
     this.subject$ = auth.subject$;
+    titles.set('page.notLinked');
   }
 
   ngOnInit(): void {
@@ -36,9 +41,9 @@ export class NotStaffComponent implements OnInit {
 
   copy(sub: string): void {
     try {
-      navigator.clipboard.writeText(sub).then(() => (this.message = 'Copied.'), () => (this.message = 'Select the text and press Ctrl+C to copy.'));
+      navigator.clipboard.writeText(sub).then(() => (this.message = this.i18n.t('auth.notStaff.copied')), () => (this.message = this.i18n.t('auth.notStaff.copyManual')));
     } catch {
-      this.message = 'Select the text and press Ctrl+C to copy.';
+      this.message = this.i18n.t('auth.notStaff.copyManual');
     }
   }
 
@@ -53,8 +58,8 @@ export class NotStaffComponent implements OnInit {
       error: err => {
         this.busy = false;
         this.message = apiErrorOf(err)?.error === 'NOT_STAFF'
-          ? 'Still not linked. Ask a clinic administrator to link this login.'
-          : 'Could not check your account. Please try again.';
+          ? this.i18n.t('auth.notStaff.stillNotLinked')
+          : this.i18n.t('auth.notStaff.checkFailed');
       }
     });
   }

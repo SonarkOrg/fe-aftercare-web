@@ -1,66 +1,66 @@
 <div class="page">
-  <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--card" style="margin-top: 32px"></div><div class="skeleton skeleton--card"></div></div>
-  <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> Patient not found.</span></div>
-  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
-  <div class="banner banner--error error-message" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ actionError }}</span></div>
+  <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--card" style="margin-top: 32px"></div><div class="skeleton skeleton--card"></div></div>
+  <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ 'pd.notFound' | t }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ actionError }}</span></div>
 
-  <a class="back-link" routerLink="/patients"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>Patients</a>
+  <a class="back-link" routerLink="/patients"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>{{ 'shell.nav.patients' | t }}</a>
 
   <ng-container *ngIf="patient">
-    <section class="profile-hero" aria-label="Patient">
+    <section class="profile-hero" [attr.aria-label]="'common.patient' | t">
       <app-avatar [id]="patient.id" [initials]="patient.firstName.charAt(0) + patient.lastName.charAt(0)" size="xl"></app-avatar>
       <div class="profile-hero__main">
         <h1>{{ patient.firstName }} {{ patient.lastName }}</h1>
-        <p class="profile-hero__meta">{{ patient.gender }}<ng-container *ngIf="age !== null && dob"> · {{ age }} y (born {{ dobLabel(dob) }})</ng-container> · {{ patient.address.city }}, {{ patient.address.state }} · <a [attr.href]="'tel:' + patient.phone">{{ patient.phone }}</a> · <a [attr.href]="'mailto:' + patient.email">{{ patient.email }}</a></p>
+        <p class="profile-hero__meta">{{ genderLabel(patient.gender) }}<ng-container *ngIf="age !== null && dob"> · {{ 'pd.hero.age' | t:{ age: age, date: dobLabel(dob) } }}</ng-container> · {{ patient.address.city }}, {{ patient.address.state }} · <a [attr.href]="'tel:' + patient.phone">{{ patient.phone }}</a> · <a [attr.href]="'mailto:' + patient.email">{{ patient.email }}</a></p>
         <div class="profile-hero__chips">
           <app-status-chip *ngIf="clinical" [spec]="statusChip"></app-status-chip>
-          <span class="chip chip--neutral" *ngIf="clinical && current as f"><span class="chip__label">{{ humanize(f.specialty) }}</span></span>
-          <span class="badge" *ngIf="clinical && current && day as d">Day {{ d.day }} of {{ d.total }}</span>
+          <span class="chip chip--neutral" *ngIf="clinical && current as f"><span class="chip__label">{{ f.specialty | enumLabel:'specialty' }}</span></span>
+          <span class="badge" *ngIf="clinical && current && day as d">{{ 'common.dayOf' | t:{ day: d.day, total: d.total } }}</span>
           <span class="allergy-chip" *ngIf="allergyChip as a" [attr.title]="a.title"><app-status-chip [spec]="a.spec"></app-status-chip></span>
         </div>
       </div>
-      <a class="btn btn--accent" *appCan="'APPOINTMENT_WRITE'" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
+      <a class="btn btn--accent" *appCan="'APPOINTMENT_WRITE'" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">{{ 'dashboard.newAppointment' | t }}</a>
     </section>
 
-    <div class="kpis kpis--summary" role="group" aria-label="Summary">
+    <div class="kpis kpis--summary" role="group" [attr.aria-label]="'pd.summary' | t">
  <div class="kpi" *ngIf="clinical">
         <span class="kpi__icon"><app-icon name="heart-pulse" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
-          <span class="kpi__label">Follow-up</span>
+          <span class="kpi__label">{{ 'patients.col.followUp' | t }}</span>
           <ng-container *ngIf="current as f; else noFu">
-            <span class="kpi__value" *ngIf="f.status === 'ACTIVE' && day as d; else ended">Day {{ d.day }} / {{ d.total }}<small>days</small></span>
-            <ng-template #ended><span class="kpi__value">Ended<small>{{ f.endDate }}</small></span></ng-template>
+            <span class="kpi__value" *ngIf="f.status === 'ACTIVE' && day as d; else ended">{{ 'pd.kpi.dayOf' | t:{ day: d.day, total: d.total } }}</span>
+            <ng-template #ended><span class="kpi__value">{{ 'pd.kpi.ended' | t }}<small>{{ f.endDate | tzDate:'date' }}</small></span></ng-template>
           </ng-container>
-          <ng-template #noFu><span class="kpi__value">None</span></ng-template>
+          <ng-template #noFu><span class="kpi__value">{{ 'pd.kpi.none' | t }}</span></ng-template>
         </span>
       </div>
  <div class="kpi" *ngIf="clinical">
         <span class="kpi__icon"><app-icon name="check-circle" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
-          <span class="kpi__label">Last check-in</span>
-          <span class="kpi__value" *ngIf="lastCheckInDate as d; else noCi">{{ relativeDay(d, today) }}<small>{{ d }}</small></span>
+          <span class="kpi__label">{{ 'patients.col.lastCheckIn' | t }}</span>
+          <span class="kpi__value" *ngIf="lastCheckInDate as d; else noCi">{{ relativeDay(d, today) | t }}<small>{{ d | tzDate:'date' }}</small></span>
           <ng-template #noCi><span class="kpi__value">—</span></ng-template>
         </span>
       </div>
  <div class="kpi" *ngIf="clinical">
         <span class="kpi__icon"><app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
-          <span class="kpi__label">Open alerts</span>
-          <span class="kpi__value">{{ unresolved.length }}<small>unresolved</small></span>
-          <span class="chip chip--critical chip--sm kpi__chip" *ngIf="openHigh > 0"><span class="chip__glyph" aria-hidden="true">▲</span><span class="chip__label">{{ openHigh }} high</span></span>
+          <span class="kpi__label">{{ 'pd.kpi.openAlerts' | t }}</span>
+          <span class="kpi__value">{{ unresolved.length }}<small>{{ 'pd.kpi.unresolved' | t }}</small></span>
+          <span class="chip chip--critical chip--sm kpi__chip" *ngIf="openHigh > 0"><span class="chip__glyph" aria-hidden="true">▲</span><span class="chip__label">{{ 'pd.kpi.highCount' | t:{ count: openHigh } }}</span></span>
         </span>
       </div>
       <div class="kpi">
         <span class="kpi__icon"><app-icon name="calendar" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
-          <span class="kpi__label">Next appointment</span>
-          <span class="kpi__value" *ngIf="nextAppointment as a; else noAp">{{ date(a) | date:'EEE d MMM' }} {{ time(a) }}<small>{{ humanize(a.type) }}</small></span>
-          <ng-template #noAp><span class="kpi__value">None</span></ng-template>
+          <span class="kpi__label">{{ 'patients.col.next' | t }}</span>
+          <span class="kpi__value" *ngIf="nextAppointment as a; else noAp">{{ date(a) | tzDate:'dayShort' }} {{ time(a) }}<small>{{ a.type | enumLabel:'appointmentType' }}</small></span>
+          <ng-template #noAp><span class="kpi__value">{{ 'pd.kpi.none' | t }}</span></ng-template>
         </span>
       </div>
     </div>
 
-    <div class="tabs" role="tablist" aria-label="Patient sections" (keydown)="onTabKey($event)">
+    <div class="tabs" role="tablist" [attr.aria-label]="'pd.sections' | t" (keydown)="onTabKey($event)">
       <button *ngFor="let t of visibleTabs" #tabBtn type="button" role="tab" class="tab" [id]="'tab-' + t" [attr.aria-controls]="'panel-' + t"
               [attr.aria-selected]="tab === t" [attr.tabindex]="tab === t ? 0 : -1" (click)="selectTab(t)">{{ tabLabel(t) }}<ng-container *ngIf="tabCount(t) > 0">&ngsp;<span class="pill-group__count">{{ tabCount(t) }}</span></ng-container></button>
     </div>
@@ -70,13 +70,13 @@
       <div class="overview-grid" [class.overview-grid--single]="!clinical">
         <div class="stack-20" *ngIf="clinical">
           <section class="card trends-card" *ngIf="clinical">
-            <div class="card__header"><h2 class="card__title">Trends</h2></div>
+            <div class="card__header"><h2 class="card__title">{{ 'pd.trends' | t }}</h2></div>
             <ng-container *ngIf="chartFollowUp; else noData">
-              <app-trend-chart *ngFor="let c of charts" variant="full" [label]="c.label" [unit]="c.unit" [domain]="c.domain"
+              <app-trend-chart *ngFor="let c of charts" variant="full" [label]="c.label | t" [unit]="c.unit" [domain]="c.domain"
                                [points]="c.points" [threshold]="c.threshold" [thresholdState]="thresholdState" [totalDays]="chartTotal" [todayDay]="chartToday" [nowDay]="day ? day.day : null"></app-trend-chart>
             </ng-container>
             <ng-template #noData>
-              <div class="empty"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">No follow-up data to chart.</p></div>
+              <div class="empty"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">{{ 'pd.noChart' | t }}</p></div>
             </ng-template>
           </section>
         </div>
@@ -84,16 +84,16 @@
         <div class="stack-20">
           <section class="card card--list recent-alerts" *ngIf="clinical">
             <div class="card__head">
-              <h2 class="card__title--sm">Recent alerts <span class="badge">{{ unresolved.length }}</span></h2>
-              <button type="button" class="card__link view-all-alerts" *ngIf="unresolved.length > 0" (click)="selectTab('alerts', true)">View all</button>
+              <h2 class="card__title--sm">{{ 'pd.recentAlerts' | t }} <span class="badge">{{ unresolved.length }}</span></h2>
+              <button type="button" class="card__link view-all-alerts" *ngIf="unresolved.length > 0" (click)="selectTab('alerts', true)">{{ 'dashboard.trends.viewAll' | t }}</button>
             </div>
-            <p class="muted empty-line" *ngIf="recentAlerts.length === 0">No unresolved alerts.</p>
+            <p class="muted empty-line" *ngIf="recentAlerts.length === 0">{{ 'pd.noUnresolved' | t }}</p>
             <ul class="rows" *ngIf="recentAlerts.length > 0">
               <li class="row alert-line" *ngFor="let a of recentAlerts">
                 <span class="tone-circle" [ngClass]="'tone-' + severityChip(a.severity).tone" aria-hidden="true">{{ severityChip(a.severity).glyph }}</span>
                 <span class="row__main">
-                  <span class="row__name alert-line__q" [title]="alertLabel(a)"><app-icon *ngIf="isMissed(a)" name="calendar" [size]="14"></app-icon> {{ alertLabel(a) }}</span>
-                  <span class="row__sub">Answer <strong>{{ alertAnswer(a) }}</strong> · {{ alertDay(a) | date:'d MMM' }}</span>
+                  <span class="row__name alert-line__q" [title]="question(a).text"><app-icon *ngIf="isMissed(a)" name="calendar" [size]="14"></app-icon> <span [attr.lang]="question(a).english ? 'en' : null">{{ question(a).text }}</span></span>
+                  <span class="row__sub">{{ 'alert.answerPrefix' | t }} <strong>{{ answer(a) }}</strong> · {{ alertDay(a) | tzDate:'dateShort' }}</span>
                 </span>
                 <span class="row__end"><app-status-chip size="sm" [spec]="severityChip(a.severity)"></app-status-chip></span>
               </li>
@@ -101,69 +101,69 @@
           </section>
 
           <section class="card follow-up-card" *ngIf="clinical">
-            <div class="card__header"><h2 class="card__title--sm">Follow-up</h2></div>
+            <div class="card__header"><h2 class="card__title--sm">{{ 'patients.col.followUp' | t }}</h2></div>
             <ng-container *ngIf="current as f">
               <div class="sage-panel">
                 <dl class="kv kv--grid">
-                  <div><dt>Specialty</dt><dd>{{ humanize(f.specialty) }}</dd></div>
-                  <div><dt>Status</dt><dd>{{ f.status }}</dd></div>
-                  <div><dt>Discharge</dt><dd>{{ f.dischargeDate }}</dd></div>
-                  <div><dt>End</dt><dd>{{ f.endDate }}</dd></div>
+                  <div><dt>{{ 'appt.specialty' | t }}</dt><dd>{{ f.specialty | enumLabel:'specialty' }}</dd></div>
+                  <div><dt>{{ 'patients.col.status' | t }}</dt><dd>{{ f.status | enumLabel:'followUpDisplayStatus' }}</dd></div>
+                  <div><dt>{{ 'pd.discharge' | t }}</dt><dd>{{ f.dischargeDate | tzDate:'date' }}</dd></div>
+                  <div><dt>{{ 'pd.end' | t }}</dt><dd>{{ f.endDate | tzDate:'date' }}</dd></div>
                 </dl>
               </div>
               <p class="mono form-url">{{ f.questionnaireUrl }}|{{ f.questionnaireVersion }}</p>
               <div class="btn-row" *appCan="'CLINICAL_WRITE'">
-                <button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="f.status === 'ACTIVE'" (click)="regenerate(f)">Regenerate check-in link</button>
+                <button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="f.status === 'ACTIVE'" (click)="regenerate(f)">{{ 'pd.regenerate' | t }}</button>
                 <ng-container *ngIf="f.status === 'ACTIVE'"><app-send-link kind="follow-up" [targetId]="f.id" [patientId]="patientId" (sent)="onLinkSent()"></app-send-link></ng-container>
-                <button type="button" id="close-follow-up" class="btn btn--ghost-danger" (click)="close(f)">Close follow-up</button>
+                <button type="button" id="close-follow-up" class="btn btn--ghost-danger" (click)="close(f)">{{ 'pd.closeFollowUp' | t }}</button>
               </div>
             </ng-container>
-            <p *ngIf="!current">No active follow-up.</p>
+            <p *ngIf="!current">{{ 'status.reason.noFollowUp' | t }}.</p>
             <app-access-link *ngIf="accessCode" [code]="accessCode"></app-access-link>
             <div *ngIf="canEnroll && permissions.can('CLINICAL_WRITE')" class="enroll">
-              <h3 class="enroll-title">Enroll in follow-up</h3>
+              <h3 class="enroll-title">{{ 'followUp.enroll' | t }}</h3>
               <app-follow-up-form [patientId]="patientId" (created)="onEnrolled($event)"></app-follow-up-form>
             </div>
           </section>
 
           <section class="card card--warm demographics">
-            <div class="card__header"><h2 class="card__title--sm">Contact</h2></div>
+            <div class="card__header"><h2 class="card__title--sm">{{ 'pd.contact' | t }}</h2></div>
             <dl class="kv">
-              <dt>Email</dt><dd>{{ patient.email }}</dd>
-              <dt>Phone</dt><dd>{{ patient.phone }}</dd>
-              <dt>Gender</dt><dd>{{ patient.gender }}</dd>
-              <dt>City</dt><dd>{{ patient.address.city }}, {{ patient.address.state }} {{ patient.address.zip }}</dd>
+              <dt>{{ 'pd.email' | t }}</dt><dd>{{ patient.email }}</dd>
+              <dt>{{ 'pd.phone' | t }}</dt><dd>{{ patient.phone }}</dd>
+              <dt>{{ 'pd.gender' | t }}</dt><dd>{{ genderLabel(patient.gender) }}</dd>
+              <dt>{{ 'pd.city' | t }}</dt><dd>{{ patient.address.city }}, {{ patient.address.state }} {{ patient.address.zip }}</dd>
             </dl>
           </section>
 
           <section class="card card--list notif-summary" *ngIf="!clinical && reminderSummary as line">
             <div class="card__head">
-              <h2 class="card__title--sm">Notifications</h2>
-              <button type="button" class="card__link" (click)="selectTab('contacts', true)">Manage</button>
+              <h2 class="card__title--sm">{{ 'pd.notifications' | t }}</h2>
+              <button type="button" class="card__link" (click)="selectTab('contacts', true)">{{ 'pd.manage' | t }}</button>
             </div>
             <p class="notif-summary__line">{{ line }}</p>
           </section>
 
           <section class="card card--list upcoming-card" *ngIf="!clinical">
-            <div class="card__head"><h2 class="card__title--sm">Upcoming appointments <span class="badge">{{ upcoming.length }}</span></h2></div>
-            <p class="muted empty-line" *ngIf="upcoming.length === 0">No upcoming appointments.</p>
+            <div class="card__head"><h2 class="card__title--sm">{{ 'pd.upcoming' | t }} <span class="badge">{{ upcoming.length }}</span></h2></div>
+            <p class="muted empty-line" *ngIf="upcoming.length === 0">{{ 'pd.noUpcoming' | t }}</p>
             <ul class="rows" *ngIf="upcoming.length > 0">
               <li class="row" *ngFor="let a of upcoming">
-                <span class="row__main"><a class="row__name" [routerLink]="['/appointments', a.id]">{{ date(a) | date:'EEE d MMM' }} {{ time(a) }}</a><span class="row__sub">{{ humanize(a.type) }}</span></span>
+                <span class="row__main"><a class="row__name" [routerLink]="['/appointments', a.id]">{{ date(a) | tzDate:'dayShort' }} {{ time(a) }}</a><span class="row__sub">{{ a.type | enumLabel:'appointmentType' }}</span></span>
               </li>
             </ul>
           </section>
 
           <section class="card card--list care-team-card">
             <div class="card__head">
-              <h2 class="card__title--sm">Care team <span class="badge">{{ careTeam.length }}</span></h2>
-              <button type="button" class="card__link" *appCan="'CLINICAL_WRITE'" (click)="selectTab('contacts', true)">Manage</button>
+              <h2 class="card__title--sm">{{ 'pd.careTeam' | t }} <span class="badge">{{ careTeam.length }}</span></h2>
+              <button type="button" class="card__link" *appCan="'CLINICAL_WRITE'" (click)="selectTab('contacts', true)">{{ 'pd.manage' | t }}</button>
             </div>
-            <p class="muted empty-line" *ngIf="careTeam.length === 0">No care team assigned.</p>
+            <p class="muted empty-line" *ngIf="careTeam.length === 0">{{ 'pd.noCareTeam' | t }}</p>
             <ul class="rows" *ngIf="careTeam.length > 0">
               <li class="row" *ngFor="let m of careTeam">
                 <app-avatar [id]="m.staffId" [initials]="initialsOf(m.displayName)"></app-avatar>
-                <span class="row__main"><span class="row__name">{{ m.displayName }}</span><span class="row__sub">{{ humanize(m.role) }}</span></span>
+                <span class="row__main"><span class="row__name">{{ m.displayName }}</span><span class="row__sub">{{ m.role | enumLabel:'staffRole' }}</span></span>
                 <span class="row__end"><app-status-chip size="sm" *ngIf="!m.active" [spec]="inactiveChip"></app-status-chip></span>
               </li>
             </ul>
@@ -174,7 +174,7 @@
 
     <!-- Medical -->
     <div *ngIf="show('medical')" class="tabpanel" id="panel-medical" role="tabpanel" aria-labelledby="tab-medical" tabindex="0" [hidden]="tab !== 'medical'">
-      <div class="banner banner--error" *ngIf="medicalError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the medical information. <button type="button" class="btn btn--ghost btn--sm" (click)="loadFile()">Retry</button></span></div>
+      <div class="banner banner--error" *ngIf="medicalError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ 'pd.medicalError' | t }} <button type="button" class="btn btn--ghost btn--sm" (click)="loadFile()">{{ 'common.retry' | t }}</button></span></div>
       <app-patient-medical *ngIf="medical && patient" [patient]="patient" [medical]="medical" [active]="tab === 'medical'"
                            (medicalChange)="medical = $event" (patientChange)="patient = $event"></app-patient-medical>
     </div>
@@ -206,24 +206,24 @@
 
     <!-- Check-ins -->
     <section *ngIf="show('checkins')" class="table-card check-ins tabpanel" id="panel-checkins" role="tabpanel" aria-labelledby="tab-checkins" tabindex="0" [hidden]="tab !== 'checkins'">
-      <p class="empty-line" *ngIf="checkIns.length === 0">No check-ins yet.</p>
+      <p class="empty-line" *ngIf="checkIns.length === 0">{{ 'pd.noCheckIns' | t }}</p>
       <table class="table" *ngIf="checkIns.length > 0">
-        <caption class="sr-only">Check-ins with pain and temperature</caption>
-        <thead><tr><th scope="col">Date</th><th scope="col">Submitted</th><th scope="col">Pain</th><th scope="col">Temp</th><th scope="col">Answers</th></tr></thead>
+        <caption class="sr-only">{{ 'pd.checkInsCaption' | t }}</caption>
+        <thead><tr><th scope="col">{{ 'chart.table.date' | t }}</th><th scope="col">{{ 'pd.submittedCol' | t }}</th><th scope="col">{{ 'patients.col.pain' | t }}</th><th scope="col">{{ 'pd.tempCol' | t }}</th><th scope="col">{{ 'pd.answersCol' | t }}</th></tr></thead>
         <tbody>
           <ng-container *ngFor="let c of checkIns">
             <tr>
               <td>{{ c.checkInDate }}</td>
-              <td>{{ c.submittedAt | date:'yyyy-MM-dd HH:mm' }}</td>
+              <td>{{ c.submittedAt | tzDate:'isoDateTime' }}</td>
               <td class="num">
-                <ng-container *ngIf="numeric(c, 'PAIN') !== null; else dash">{{ numeric(c, 'PAIN') }}<ng-container *ngIf="painAlert(c)"> <span aria-hidden="true">▲</span><span class="sr-only">, at or above alert threshold</span></ng-container></ng-container>
+                <ng-container *ngIf="numeric(c, 'PAIN') !== null; else dash">{{ numeric(c, 'PAIN') | num }}<ng-container *ngIf="painAlert(c)"> <span aria-hidden="true">▲</span><span class="sr-only">, {{ 'patients.painAbove' | t }}</span></ng-container></ng-container>
               </td>
-              <td class="num"><ng-container *ngIf="numeric(c, 'TEMPERATURE') !== null; else dash">{{ numeric(c, 'TEMPERATURE') }}</ng-container></td>
-              <td><button type="button" class="btn btn--ghost btn--sm btn-toggle" (click)="toggle(c)">{{ expanded.has(c.id) ? 'Hide' : 'Show' }}</button></td>
+              <td class="num"><ng-container *ngIf="numeric(c, 'TEMPERATURE') !== null; else dash">{{ numeric(c, 'TEMPERATURE') | num:'1.1-1' }}</ng-container></td>
+              <td><button type="button" class="btn btn--ghost btn--sm btn-toggle" (click)="toggle(c)">{{ (expanded.has(c.id) ? 'common.hide' : 'common.show') | t }}</button></td>
             </tr>
             <tr *ngIf="expanded.has(c.id)" class="answers-row">
               <td colspan="5">
-                <app-questionnaire-form *ngIf="defs[c.questionnaireDefinitionId] as q" mode="readonly" lang="en"
+                <app-questionnaire-form *ngIf="defs[c.questionnaireDefinitionId] as q" mode="readonly" [lang]="formLang"
                                         [questionnaire]="q" [response]="c.response"></app-questionnaire-form>
               </td>
             </tr>
@@ -235,28 +235,28 @@
 
     <!-- Alerts -->
     <section *ngIf="show('alerts')" class="alerts tabpanel" id="panel-alerts" role="tabpanel" aria-labelledby="tab-alerts" tabindex="0" [hidden]="tab !== 'alerts'">
-      <div class="card empty" *ngIf="alerts.length === 0"><span class="empty__glyph" aria-hidden="true">✓</span><p class="empty__title">No alerts.</p></div>
+      <div class="card empty" *ngIf="alerts.length === 0"><span class="empty__glyph" aria-hidden="true">✓</span><p class="empty__title">{{ 'pd.noAlerts' | t }}</p></div>
       <app-alert-table *ngIf="alerts.length > 0" [alerts]="alerts" [showPatient]="false" (changed)="reload()"></app-alert-table>
     </section>
 
     <!-- Appointments -->
     <section *ngIf="show('appointments')" class="card appointments tabpanel" id="panel-appointments" role="tabpanel" aria-labelledby="tab-appointments" tabindex="0" [hidden]="tab !== 'appointments'">
       <div class="card__header">
-        <h2 class="card__title">Appointments</h2>
-        <a class="btn btn--secondary btn--sm" *appCan="'APPOINTMENT_WRITE'" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">New appointment</a>
+        <h2 class="card__title">{{ 'shell.nav.appointments' | t }}</h2>
+        <a class="btn btn--secondary btn--sm" *appCan="'APPOINTMENT_WRITE'" [routerLink]="['/appointments/new']" [queryParams]="{ patientId: patientId }">{{ 'dashboard.newAppointment' | t }}</a>
       </div>
-      <p class="empty-line" *ngIf="appointments.length === 0">No appointments.</p>
+      <p class="empty-line" *ngIf="appointments.length === 0">{{ 'appts.empty' | t }}</p>
       <ul class="appts appts--dated" *ngIf="appointments.length > 0">
         <li class="appt appt--dated" *ngFor="let a of appointments">
-          <span class="appt__date">{{ date(a) | date:'EEE d MMM' }}</span>
+          <span class="appt__date">{{ date(a) | tzDate:'dayShort' }}</span>
           <a class="appt__time appt-row__when" [routerLink]="['/appointments', a.id]">{{ time(a) }}</a>
           <span class="row__main">
-            <div class="row__name">{{ humanize(a.type) }}</div>
+            <div class="row__name">{{ a.type | enumLabel:'appointmentType' }}</div>
             <div class="row__sub">{{ a.clinician || '—' }} · {{ a.location || '—' }}</div>
           </span>
           <span class="appt__end">
             <app-appointment-badge [appointment]="a" size="sm"></app-appointment-badge>
-            <a class="chev-hit" [routerLink]="['/appointments', a.id]" [attr.aria-label]="'Open appointment ' + date(a) + ' ' + time(a)"><span class="chev"><app-icon name="chevron-right" [size]="14" [stroke]="2"></app-icon></span></a>
+            <a class="chev-hit" [routerLink]="['/appointments', a.id]" [attr.aria-label]="'pd.openAppt' | t:{ date: (date(a) | tzDate:'dayShort'), time: time(a) }"><span class="chev"><app-icon name="chevron-right" [size]="14" [stroke]="2"></app-icon></span></a>
           </span>
         </li>
       </ul>

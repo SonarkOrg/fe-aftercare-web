@@ -6,6 +6,8 @@ import { AlertTableComponent } from '../components/alert-table/alert-table.compo
 import { FollowUpFormComponent } from '../components/follow-up-form/follow-up-form.component';
 import { QuestionnaireFormComponent } from '../fhir/questionnaire-form/questionnaire-form.component';
 import { CanDirective } from '../auth/can.directive';
+import { I18nModule } from '../i18n/i18n.module';
+import { LanguageSwitchComponent } from '../i18n/language-switch/language-switch.component';
 import { AccessLinkComponent } from './access-link/access-link.component';
 import { AppointmentBadgeComponent } from './appointment-badge/appointment-badge.component';
 import { AvatarComponent } from './avatar/avatar.component';
@@ -18,13 +20,13 @@ import { TrendChartComponent } from './trend-chart/trend-chart.component';
 const DECLARED = [
   IconComponent, StatusChipComponent, AvatarComponent, RingTileComponent, TrendChartComponent, AppointmentBadgeComponent,
   AccessLinkComponent, AlertTableComponent, FollowUpFormComponent, QuestionnaireFormComponent,
-  CanDirective, RoleBadgeComponent
+  CanDirective, RoleBadgeComponent, LanguageSwitchComponent
 ];
 
 /** Presentational building blocks shared by the eager app and the lazy feature modules. */
 @NgModule({
   declarations: DECLARED,
-  imports: [CommonModule, FormsModule, RouterModule],
-  exports: [...DECLARED, CommonModule, FormsModule, RouterModule]
+  imports: [CommonModule, FormsModule, RouterModule, I18nModule],
+  exports: [...DECLARED, CommonModule, FormsModule, RouterModule, I18nModule]
 })
 export class SharedModule {}

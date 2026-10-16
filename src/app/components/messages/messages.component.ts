@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MessageService } from '../../Services/Message.service';
 import { MessageCountService } from '../../Services/MessageCount.service';
+import { I18nService } from '../../i18n/i18n.service';
 import { Conversation } from '../../models/message.model';
 import { businessDateOf, businessToday, initials } from '../../shared/link.util';
 import { fmtDayShort, fmtTime } from '../../shared/messages.util';
@@ -21,7 +22,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
   readonly closedChip: ChipSpec = messagingChip(false, null);
   private sub = new Subscription();
 
-  constructor(private messages: MessageService, private route: ActivatedRoute, private messageCount: MessageCountService) {}
+  constructor(private messages: MessageService, private route: ActivatedRoute, private messageCount: MessageCountService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.sub.add(this.route.paramMap.subscribe(p => {
@@ -70,6 +71,6 @@ export class MessagesComponent implements OnInit, OnDestroy {
 
   /** HH:mm for today, otherwise "d MMM" (America/Toronto). */
   when(c: Conversation): string {
-    return businessDateOf(c.lastMessageAt) === businessToday() ? fmtTime(c.lastMessageAt, 'en') : fmtDayShort(c.lastMessageAt);
+    return businessDateOf(c.lastMessageAt) === businessToday() ? fmtTime(c.lastMessageAt, this.i18n.lang) : fmtDayShort(c.lastMessageAt, this.i18n.lang);
   }
 }

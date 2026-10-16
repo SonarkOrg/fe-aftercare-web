@@ -1,14 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ReportService } from '../../Services/Report.service';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { I18nService } from '../../i18n/i18n.service';
+import { Msg } from '../../i18n/i18n.types';
 import { apiErrorOf } from '../../models/api-error.model';
 import { ReportSummary } from '../../models/report.model';
 import { addDays, businessToday, daysBetween } from '../../shared/link.util';
-import { downloadText, minutes, pct, reportCsv } from '../../shared/report.util';
-import { WbCategory, WbSeries, dMMM } from '../../shared/week-bars/week-bars.geometry';
+import { downloadText, reportCsv } from '../../shared/report.util';
+import { fmtDate } from '../../i18n/format';
+import { WbCategory, WbSeries } from '../../shared/week-bars/week-bars.geometry';
 
-export const PRESETS: { label: string; days: number }[] = [
-  { label: '7 days', days: 7 }, { label: '28 days', days: 28 }, { label: '90 days', days: 90 }, { label: '12 months', days: 365 }
+export const PRESETS: { label: Msg; days: number }[] = [
+  { label: { key: 'reports.preset.days', params: { count: 7 } }, days: 7 }, { label: { key: 'reports.preset.days', params: { count: 28 } }, days: 28 },
+  { label: { key: 'reports.preset.days', params: { count: 90 } }, days: 90 }, { label: { key: 'reports.preset.months', params: { count: 12 } }, days: 365 }
 ];
 export const MAX_DAYS = 366;
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -20,8 +25,6 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 export class ReportsComponent implements OnInit {
   readonly presets = PRESETS;
   readonly today = businessToday();
-  readonly pct = pct;
-  readonly minutes = minutes;
   /** Replaceable in tests (the real one triggers a browser download). */
   save: (name: string, text: string) => void = downloadText;
 
@@ -32,7 +35,7 @@ export class ReportsComponent implements OnInit {
   error: string | null = null;
   rangeError: string | null = null;
 
-  constructor(private reports: ReportService, private route: ActivatedRoute, private router: Router) {}
+  constructor(private reports: ReportService, private route: ActivatedRoute, private router: Router, private i18n: I18nService, private errors: ApiErrorsService) {}
 
   ngOnInit(): void {
     const q = this.route.snapshot.queryParamMap;
@@ -63,11 +66,11 @@ export class ReportsComponent implements OnInit {
   private validate(): boolean {
     this.rangeError = null;
     if (!ISO.test(this.from) || !ISO.test(this.to)) {
-      this.rangeError = 'Enter a valid start and end date.';
+      this.rangeError = this.i18n.t('reports.range.invalid');
     } else if (this.to < this.from) {
-      this.rangeError = 'The end date must not be before the start date.';
+      this.rangeError = this.i18n.t('error.field.toBeforeFrom');
     } else if (daysBetween(this.from, this.to) + 1 > MAX_DAYS) {
-      this.rangeError = 'The range must not exceed 366 days.';
+      this.rangeError = this.i18n.t('error.field.rangeMax', { days: MAX_DAYS });
     }
     return this.rangeError === null;
   }
@@ -92,10 +95,10 @@ export class ReportsComponent implements OnInit {
         this.loading = false;
         const f = apiErrorOf(err)?.fieldErrors ?? {};
         if (f['to'] || f['from']) {
-          this.rangeError = f['to']?.includes('before') ? 'The end date must not be before the start date.'
-            : f['to']?.includes('exceed') ? 'The range must not exceed 366 days.' : 'Enter a valid start and end date.';
+          const msg = f['to'] ?? f['from'];
+          this.rangeError = this.errors.fieldText(f['to'] ? 'to' : 'from', msg);
         } else {
-          this.error = 'Could not load the report.';
+          this.error = this.errors.text(err, 'reports.error.load');
         }
       }
     });
@@ -104,27 +107,27 @@ export class ReportsComponent implements OnInit {
   exportCsv(): void {
     const s = this.summary;
     if (s) {
-      this.save(`aftercare-report-${s.from}-to-${s.to}.csv`, reportCsv(s));
+      this.save(`aftercare-report-${s.from}-${s.to}.csv`, reportCsv(s, k => this.i18n.t(k)));
     }
   }
 
   /* ---------- chart inputs ---------- */
 
   get categories(): WbCategory[] {
-    return (this.summary?.weeks ?? []).map(w => ({ label: dMMM(w.from), from: w.from, to: w.to }));
+    return (this.summary?.weeks ?? []).map(w => ({ label: fmtDate(w.from, 'dateShort', this.i18n.lang), from: w.from, to: w.to }));
   }
 
   get alertSeries(): WbSeries[] {
     const w = this.summary?.weeks ?? [];
     return [
-      { key: 'high', label: 'High', tone: 'critical', glyph: '▲', values: w.map(x => x.alertsHigh) },
-      { key: 'medium', label: 'Medium', tone: 'warning', glyph: '●', values: w.map(x => x.alertsMedium) }
+      { key: 'high', label: this.i18n.t('enum.alertSeverity.HIGH'), tone: 'critical', glyph: '▲', values: w.map(x => x.alertsHigh) },
+      { key: 'medium', label: this.i18n.t('enum.alertSeverity.MEDIUM'), tone: 'warning', glyph: '●', values: w.map(x => x.alertsMedium) }
     ];
   }
 
   get completionSeries(): WbSeries[] {
     const w = this.summary?.weeks ?? [];
-    return [{ key: 'rate', label: 'Completion', tone: 'neutral', glyph: '▨', values: w.map(x => (x.checkInsExpected > 0 ? Math.round((x.checkInsReceived / x.checkInsExpected) * 100) : null)) }];
+    return [{ key: 'rate', label: this.i18n.t('reports.completion'), tone: 'neutral', glyph: '▨', values: w.map(x => (x.checkInsExpected > 0 ? Math.round((x.checkInsReceived / x.checkInsExpected) * 100) : null)) }];
   }
 
   get pastVisits(): number {

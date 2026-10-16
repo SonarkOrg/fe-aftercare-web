@@ -1,7 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Observable, Subject, firstValueFrom, throwError } from 'rxjs';
+import { Observable, Subject, firstValueFrom, of, throwError } from 'rxjs';
+import { MeService } from '../Services/Me.service';
+import { I18nService } from '../i18n/i18n.service';
+import { I18nTestingModule } from '../testing/i18n-testing.module';
 import { Me, Permission } from '../models/me.model';
 import { me } from '../testing/fixtures';
 import { meGuard, permissionGuard } from './permission.guard';
@@ -11,12 +14,19 @@ describe('route guards', () => {
   let permissions: jasmine.SpyObj<Permissions> & { canAny: jasmine.Spy };
   let router: Router;
   let load$: Subject<Me>;
+  let meService: jasmine.SpyObj<MeService>;
 
   beforeEach(() => {
     load$ = new Subject<Me>();
     permissions = jasmine.createSpyObj('Permissions', ['load', 'canAny']) as never;
     permissions.load.and.callFake(() => load$);
-    TestBed.configureTestingModule({ imports: [RouterTestingModule], providers: [{ provide: Permissions, useValue: permissions }] });
+    meService = jasmine.createSpyObj('MeService', ['updatePreferences']);
+    meService.updatePreferences.and.returnValue(of(me('NURSE')));
+    localStorage.removeItem('aftercare.staffLang');
+    TestBed.configureTestingModule({
+      imports: [RouterTestingModule, I18nTestingModule.forLang('fr')],
+      providers: [{ provide: Permissions, useValue: permissions }, { provide: MeService, useValue: meService }]
+    });
     router = TestBed.inject(Router);
   });
 
@@ -31,6 +41,41 @@ describe('route guards', () => {
       const result = run(meGuard);
       load$.next(me('NURSE'));
       expect(await result).toBeTrue();
+    });
+
+    describe('UI language', () => {
+      it('uiLanguage EN while the page is French: switches before the shell opens', async () => {
+        const i18n = TestBed.inject(I18nService);
+        const use = spyOn(i18n, 'use').and.callFake(async lang => { (i18n as any).current = lang; });
+        const result = run(meGuard);
+        load$.next(me('NURSE', { uiLanguage: 'EN' }));
+        expect(await result).toBeTrue();
+        expect(use).toHaveBeenCalledWith('en');
+        expect(i18n.hint()).toBe('en');
+      });
+
+      it('no saved language and no hint: French', async () => {
+        const i18n = TestBed.inject(I18nService);
+        const use = spyOn(i18n, 'use').and.callThrough();
+        const result = run(meGuard);
+        load$.next(me('NURSE', { uiLanguage: null }));
+        await result;
+        expect(use).not.toHaveBeenCalled();
+        expect(i18n.hint()).toBe('fr');
+        expect(meService.updatePreferences).not.toHaveBeenCalled();
+      });
+
+      it('no saved language but an explicit choice on the login page: it is adopted and saved', async () => {
+        const i18n = TestBed.inject(I18nService);
+        i18n.setHint('en', true);
+        spyOn(i18n, 'use').and.callFake(async lang => { (i18n as any).current = lang; });
+        const result = run(meGuard);
+        load$.next(me('NURSE', { uiLanguage: null }));
+        await result;
+        expect(meService.updatePreferences).toHaveBeenCalledWith('en');
+        expect(i18n.lang).toBe('en');
+        expect(i18n.readHint()).toEqual({ lang: 'en', explicit: false });
+      });
     });
 
     it('sends an unlinked login (NOT_STAFF) to /not-staff', async () => {

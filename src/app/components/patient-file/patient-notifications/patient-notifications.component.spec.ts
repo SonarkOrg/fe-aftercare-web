@@ -9,6 +9,7 @@ import { AccessRole } from '../../../models/me.model';
 import { CLINIC, contactPrefs, notification, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { PatientNotificationsComponent } from './patient-notifications.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('PatientNotificationsComponent', () => {
   const api = environment.apiUrl;
@@ -18,7 +19,7 @@ describe('PatientNotificationsComponent', () => {
 
   function setup(role: AccessRole = 'NURSE') {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule],
       declarations: [PatientNotificationsComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions(role), { provide: SettingsService, useValue: { clinic$: of(CLINIC) } }]
     });
@@ -170,7 +171,7 @@ describe('PatientNotificationsComponent', () => {
     http.expectOne(`${api}/patients/5/contact-preferences`).flush(
       { status: 400, error: 'VALIDATION_FAILED', message: 'x', fieldErrors: { contactConsent: 'cannot be reset to UNKNOWN' } }, { status: 400, statusText: 'Bad Request' });
     await settle();
-    expect(q('.consent-group .field-error').textContent).toBe('cannot be reset to UNKNOWN');
+    expect(q('.consent-group .field-error').textContent).toBe('Cannot go back to "Not recorded".');
     q<HTMLFormElement>('form').dispatchEvent(new Event('submit'));
     http.expectOne(`${api}/patients/5/contact-preferences`).flush({ status: 403, error: 'FORBIDDEN', message: 'x', fieldErrors: {} }, { status: 403, statusText: 'Forbidden' });
     await settle();
@@ -221,7 +222,7 @@ describe('PatientNotificationsComponent', () => {
       http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs());
       http.expectOne(r => r.url === `${api}/patients/5/notifications`).flush('x', { status: 500, statusText: 'Server Error' });
       await settle();
-      expect(q('.banner--error').textContent).toContain('Could not load the recent messages.');
+      expect(q('.banner--error').textContent).toContain('Server error. Please try again later.');
     });
   });
 

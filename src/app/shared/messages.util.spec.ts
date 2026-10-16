@@ -1,3 +1,4 @@
+import '../testing/i18n-testing.module';
 import { fmtDayLong, fmtDayShort, fmtTime, groupByDay } from './messages.util';
 
 describe('messages.util', () => {

@@ -3,14 +3,16 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AlertCountService } from '../../Services/AlertCount.service';
 import { SettingsService } from '../../Services/Settings.service';
-import { apiErrorOf, errorText } from '../../models/api-error.model';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { TKey } from '../../i18n/i18n.types';
+import { apiErrorOf } from '../../models/api-error.model';
 import { AlertSeverity } from '../../models/alert.model';
 import { ClinicSettings, ClinicSettingsRequest, Language } from '../../models/settings.model';
 
 export type SettingsTab = 'clinic' | 'staff' | 'notifications' | 'rules' | 'retention' | 'access';
-export const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
-  { key: 'clinic', label: 'Clinic' }, { key: 'staff', label: 'Staff' }, { key: 'notifications', label: 'Notifications' }, { key: 'rules', label: 'Alert rules' },
-  { key: 'retention', label: 'Retention' }, { key: 'access', label: 'Access log' }
+export const SETTINGS_TABS: { key: SettingsTab; label: TKey }[] = [
+  { key: 'clinic', label: 'settings.tab.clinic' }, { key: 'staff', label: 'settings.tab.staff' }, { key: 'notifications', label: 'settings.tab.notifications' },
+  { key: 'rules', label: 'settings.tab.rules' }, { key: 'retention', label: 'settings.tab.retention' }, { key: 'access', label: 'settings.tab.access' }
 ];
 
 interface ClinicForm { name: string; addressLine: string; city: string; province: string; postalCode: string; phone: string; defaultLanguage: Language }
@@ -36,7 +38,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   private sub = new Subscription();
   private formTouched = false;
 
-  constructor(private settings: SettingsService, private alertCount: AlertCountService, private route: ActivatedRoute, private router: Router) {}
+  constructor(private settings: SettingsService, private alertCount: AlertCountService, private route: ActivatedRoute, private router: Router, private errorsSvc: ApiErrorsService) {}
 
   ngOnInit(): void {
     const t = this.route.snapshot.queryParamMap?.get('tab') as SettingsTab | null;
@@ -124,9 +126,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.saving = false;
         const api = apiErrorOf(err);
         if (api && Object.keys(api.fieldErrors).length) {
-          this.errors = { ...api.fieldErrors };
+          this.errors = this.errorsSvc.fieldTexts(err);
         } else {
-          this.banner = errorText(err, 'Could not save the settings.');
+          this.banner = this.errorsSvc.text(err, 'settings.clinic.error.save');
         }
       }
     });
@@ -159,7 +161,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.notifyBusy = false;
-        this.notifyError = errorText(err, 'Could not save the notification settings.');
+        this.notifyError = this.errorsSvc.text(err, 'settings.notify.error.save');
         if (box) {
           box.checked = !on; // put the checkbox back: nothing was saved
         }

@@ -1,7 +1,9 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { AuditService } from '../../../Services/Audit.service';
+import { enumKey } from '../../../i18n/enum-key';
+import { fmtDate } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
 import { AuditEvent } from '../../../models/audit.model';
-import { businessNow, humanize } from '../../../shared/link.util';
 
 export const AUDIT_PAGE_SIZE = 50;
 
@@ -18,9 +20,8 @@ export class PatientAuditComponent implements OnInit {
   hasMore = false;
   loading = true;
   error = false;
-  readonly humanize = humanize;
 
-  constructor(private audit: AuditService) {}
+  constructor(private audit: AuditService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.load(0);
@@ -28,11 +29,11 @@ export class PatientAuditComponent implements OnInit {
 
   /** yyyy-MM-dd HH:mm in America/Toronto. */
   when(iso: string): string {
-    return businessNow(new Date(iso)).slice(0, 16).replace('T', ' ');
+    return fmtDate(iso, 'isoDateTime', this.i18n.lang);
   }
 
   item(e: AuditEvent): string {
-    return humanize(e.resourceType) + (e.resourceId !== null ? ` #${e.resourceId}` : '');
+    return this.i18n.t(enumKey('auditResource', e.resourceType)) + (e.resourceId !== null ? ` #${e.resourceId}` : '');
   }
 
   /** Changing the actor starts over at page 0. */

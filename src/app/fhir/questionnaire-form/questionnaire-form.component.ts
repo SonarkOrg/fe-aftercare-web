@@ -7,7 +7,7 @@ import {
   localize, maxOf, minOf, unitOf, validateAnswer
 } from '../fhir.util';
 
-const WORDS: Record<Lang, Record<string, string>> = {
+export const WORDS: Record<Lang, Record<string, string>> = {
   fr: { yes: 'Oui', no: 'Non', optional: '(facultatif)', invalidNumber: 'Valeur invalide', tooLong: 'Texte trop long', notAnswered: '—' },
   en: { yes: 'Yes', no: 'No', optional: '(optional)', invalidNumber: 'Invalid value', tooLong: 'Text too long', notAnswered: '—' }
 };

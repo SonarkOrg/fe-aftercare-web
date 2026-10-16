@@ -13,10 +13,15 @@ import { Permissions } from '../../auth/permissions.service';
 import { ContactPreferences } from '../../models/notification.model';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
 import { answerOf } from '../../fhir/fhir.util';
-import { errorText } from '../../models/api-error.model';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { alertQuestion } from '../../i18n/content';
+import { enumKey } from '../../i18n/enum-key';
+import { fmtClock, fmtDate } from '../../i18n/format';
+import { I18nService } from '../../i18n/i18n.service';
+import { Lang, TKey } from '../../i18n/i18n.types';
 import { Alert } from '../../models/alert.model';
 import { Permission } from '../../models/me.model';
-import { alertAnswer, alertDay, alertLabel, isMissed } from '../../shared/alert.util';
+import { alertAnswer, alertDay, isMissed } from '../../shared/alert.util';
 import { Appointment } from '../../models/appointment.model';
 import { CheckIn, FollowUp, FollowUpWithCode } from '../../models/follow-up.model';
 import { CareTeamMember, PatientMedical } from '../../models/medical.model';
@@ -24,12 +29,11 @@ import { Patient } from '../../models/patient.model';
 import { QuestionnaireDefinitionDetail } from '../../models/questionnaire-definition.model';
 import { SeriesPoint } from '../../shared/care.model';
 import { ageOn } from '../../shared/age.util';
-import { businessNow, businessToday, humanize, relativeDay } from '../../shared/link.util';
+import { businessNow, businessToday, relativeDay } from '../../shared/link.util';
 import {
   PAIN_LINK, TEMPERATURE_LINK, alertThreshold, buildSeries, chartTodayDay, computeStatus, followUpDay
 } from '../../shared/patient-status';
 import { ChipSpec, appointmentChip, patientStatusChip, severityChip, staffActiveChip } from '../../shared/status';
-import { fmtDayYear } from '../../shared/messages.util';
 import { ThresholdState } from '../../shared/trend-chart/trend-chart.component';
 import { PageTitleService } from '../../shell/page-title.service';
 
@@ -42,7 +46,7 @@ const TAB_PERMISSION: Partial<Record<ProfileTab, Permission>> = {
   medical: 'CLINICAL_READ', timeline: 'CLINICAL_READ', documents: 'CLINICAL_READ', messages: 'CLINICAL_READ', checkins: 'CLINICAL_READ', alerts: 'CLINICAL_READ'
 };
 
-export interface ChartSpec { linkId: string; label: string; unit: string; domain: [number, number] | 'auto'; points: SeriesPoint[]; threshold: number | null }
+export interface ChartSpec { linkId: string; label: TKey; unit: string; domain: [number, number] | 'auto'; points: SeriesPoint[]; threshold: number | null }
 
 @Component({
   selector: 'app-patient-detail',
@@ -63,7 +67,6 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   accessCode: string | null = null;
   expanded = new Set<number>();
   defs: Record<number, FhirQuestionnaire> = {};
-  humanize = humanize;
   relativeDay = relativeDay;
   severityChip = severityChip;
   inactiveChip = staffActiveChip(false);
@@ -75,8 +78,8 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   /** CLINICAL_READ: the follow-up, check-ins, alerts, medical file, timeline, documents and messages. */
   clinical = false;
   prefs: ContactPreferences | null = null;
-  alertLabel = alertLabel;
-  alertAnswer = alertAnswer;
+  question = (a: Alert) => alertQuestion(a, this.i18n.lang, k => this.i18n.t(k));
+  answer = (a: Alert) => alertAnswer(a, this.i18n.lang, k => this.i18n.t(k));
   alertDay = alertDay;
   isMissed = isMissed;
   /** Tabs opened at least once: their content is created on first open and kept (hidden) afterwards. */
@@ -105,8 +108,18 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     private router: Router,
     private titles: PageTitleService,
     public permissions: Permissions,
-    private notifications: NotificationService
+    private notifications: NotificationService,
+    public i18n: I18nService,
+    private errors: ApiErrorsService
   ) {}
+
+  get formLang(): Lang {
+    return this.i18n.lang === 'en' ? 'en' : 'fr';
+  }
+
+  genderLabel(g: string): string {
+    return g === 'male' ? this.i18n.t('patients.form.male') : g === 'female' ? this.i18n.t('patients.form.female') : g;
+  }
 
   /** The tabs this member may open (hidden, not disabled). */
   get visibleTabs(): ProfileTab[] {
@@ -180,7 +193,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   }
 
   dobLabel(d: string): string {
-    return fmtDayYear(d + 'T12:00:00Z');
+    return fmtDate(d, 'date', this.i18n.lang);
   }
 
   /** Allergy chip in the hero: severe ones by name, otherwise a count; nothing when none are recorded. */
@@ -192,12 +205,12 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     const severe = all.filter(a => a.severity === 'SEVERE');
     const title = all.map(a => a.substance).join(', ');
     if (severe.length === 1) {
-      return { spec: { tone: 'critical', glyph: '▲', label: `Allergy: ${severe[0].substance}` }, title };
+      return { spec: { tone: 'critical', glyph: '▲', label: { key: 'pd.allergy.one', params: { substance: severe[0].substance } } }, title };
     }
     if (severe.length > 1) {
-      return { spec: { tone: 'critical', glyph: '▲', label: `Allergies: ${severe.length}` }, title };
+      return { spec: { tone: 'critical', glyph: '▲', label: { key: 'pd.allergy.count', params: { count: severe.length } } }, title };
     }
-    return { spec: { tone: 'warning', glyph: '●', label: `Allergies: ${all.length}` }, title };
+    return { spec: { tone: 'warning', glyph: '●', label: { key: 'pd.allergy.count', params: { count: all.length } } }, title };
   }
 
   tabCount(t: ProfileTab): number {
@@ -215,7 +228,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   }
 
   tabLabel(t: ProfileTab): string {
-    return t === 'checkins' ? 'Check-ins' : t === 'audit' ? 'Access log' : t.charAt(0).toUpperCase() + t.slice(1);
+    return this.i18n.t(`pd.tab.${t}` as TKey);
   }
 
   /* ---------- derived data ---------- */
@@ -263,8 +276,11 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     if (!p) {
       return null;
     }
-    const consent = p.contactConsent === 'GRANTED' ? 'granted' : p.contactConsent === 'WITHDRAWN' ? 'opted out' : 'not recorded';
-    return `Reminders: consent ${consent}, ${p.preferredChannel === 'SMS' ? 'SMS' : 'email'}, ${p.effectiveLanguage === 'FR' ? 'French' : 'English'}`;
+    return this.i18n.t('pd.notif.summary', {
+      consent: this.i18n.t(`pd.notif.consent.${p.contactConsent}` as TKey),
+      channel: this.i18n.t(`sendLink.channel.${p.preferredChannel}` as TKey),
+      language: this.i18n.t(`pd.notif.lang.${p.effectiveLanguage}` as TKey)
+    });
   }
 
   /** Upcoming open appointments (the overview card for members without clinical access). */
@@ -295,10 +311,10 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     const mine = this.checkIns.filter(c => c.followUpId === f.id);
     const specs: ChartSpec[] = [];
     if (!this.def || items.has(PAIN_LINK)) {
-      specs.push({ linkId: PAIN_LINK, label: 'Pain (0–10)', unit: '', domain: [0, 10], points: buildSeries(f, mine, PAIN_LINK), threshold: alertThreshold(rules, PAIN_LINK) });
+      specs.push({ linkId: PAIN_LINK, label: 'dashboard.critical.pain', unit: '', domain: [0, 10], points: buildSeries(f, mine, PAIN_LINK), threshold: alertThreshold(rules, PAIN_LINK) });
     }
     if (this.def && items.has(TEMPERATURE_LINK)) {
-      specs.push({ linkId: TEMPERATURE_LINK, label: 'Temperature (°C)', unit: '°C', domain: 'auto', points: buildSeries(f, mine, TEMPERATURE_LINK), threshold: alertThreshold(rules, TEMPERATURE_LINK) });
+      specs.push({ linkId: TEMPERATURE_LINK, label: 'pd.chart.temperature', unit: '°C', domain: 'auto', points: buildSeries(f, mine, TEMPERATURE_LINK), threshold: alertThreshold(rules, TEMPERATURE_LINK) });
     }
     this.charts = specs;
     this.painThreshold = alertThreshold(rules, PAIN_LINK);
@@ -368,7 +384,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
         this.alerts = r.alerts;
         this.appointments = r.appointments;
         this.loading = false;
-        this.titles.set(`${r.patient.firstName} ${r.patient.lastName}`);
+        this.titles.setText(`${r.patient.firstName} ${r.patient.lastName}`);
         this.recomputeCharts();
         this.loadDefinition();
       },
@@ -377,7 +393,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
         if (err?.status === 404) {
           this.notFound = true;
         } else {
-          this.errorMessage = errorText(err, 'Could not load patient.');
+          this.errorMessage = this.errors.text(err, 'pd.error.load');
         }
       }
     });
@@ -410,7 +426,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   }
 
   regenerate(f: FollowUp): void {
-    if (!window.confirm('The previous link will stop working. Continue?')) {
+    if (!window.confirm(this.i18n.t('dashboard.confirmNewLink'))) {
       return;
     }
     this.actionError = null;
@@ -419,12 +435,12 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
         this.accessCode = res.accessCode;
         this.reload();
       },
-      error: err => (this.actionError = errorText(err, 'Could not regenerate the link.'))
+      error: err => (this.actionError = this.errors.text(err, 'pd.error.regenerate'))
     });
   }
 
   close(f: FollowUp): void {
-    if (!window.confirm('Close this follow-up? The patient link will stop working.')) {
+    if (!window.confirm(this.i18n.t('pd.confirmClose'))) {
       return;
     }
     this.actionError = null;
@@ -433,7 +449,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
         this.accessCode = null;
         this.reload();
       },
-      error: err => (this.actionError = errorText(err, 'Could not close the follow-up.'))
+      error: err => (this.actionError = this.errors.text(err, 'pd.error.close'))
     });
   }
 
@@ -447,7 +463,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     if (!this.defs[defId]) {
       this.definitions.get(defId).subscribe({
         next: d => (this.defs[defId] = d.questionnaire),
-        error: () => (this.actionError = 'Could not load the form definition.')
+        error: () => (this.actionError = this.i18n.t('appt.error.definition'))
       });
     }
   }
@@ -457,6 +473,6 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   }
 
   time(a: Appointment): string {
-    return a.scheduledAt.substring(11, 16);
+    return fmtClock(a.scheduledAt.substring(11, 16), this.i18n.lang);
   }
 }

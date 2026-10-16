@@ -2,30 +2,34 @@ import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angu
 import { Subscription, take } from 'rxjs';
 import { NotificationService } from '../../../Services/Notification.service';
 import { SettingsService } from '../../../Services/Settings.service';
-import { apiErrorOf, errorText } from '../../../models/api-error.model';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { fmtDate } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
+import { TKey } from '../../../i18n/i18n.types';
+import { apiErrorOf } from '../../../models/api-error.model';
 import {
   ContactConsent, ContactPreferences, ContactPreferencesRequest, NotificationChannel, NotificationItem, NotificationStatus, NotificationTemplate
 } from '../../../models/notification.model';
 import { Language } from '../../../models/settings.model';
-import { businessNow, humanize } from '../../../shared/link.util';
 import { ChipSpec } from '../../../shared/status';
 
-export const TEMPLATE_LABEL: Record<NotificationTemplate, string> = {
-  FOLLOW_UP_LINK: 'Follow-up link', CHECKIN_REMINDER: 'Check-in reminder', APPOINTMENT_LINK: 'Questionnaire link', APPOINTMENT_REMINDER: 'Questionnaire reminder'
+export const TEMPLATE_LABEL: Record<NotificationTemplate, TKey> = {
+  FOLLOW_UP_LINK: 'enum.notificationTemplate.FOLLOW_UP_LINK', CHECKIN_REMINDER: 'enum.notificationTemplate.CHECKIN_REMINDER',
+  APPOINTMENT_LINK: 'enum.notificationTemplate.APPOINTMENT_LINK', APPOINTMENT_REMINDER: 'enum.notificationTemplate.APPOINTMENT_REMINDER'
 };
 
 export const STATUS_CHIP: Record<NotificationStatus, ChipSpec> = {
-  PENDING: { tone: 'neutral', glyph: '—', label: 'Queued' },
-  SENDING: { tone: 'neutral', glyph: '—', label: 'Sending' },
-  SENT: { tone: 'good', glyph: '✓', label: 'Sent' },
-  FAILED: { tone: 'critical', glyph: '▲', label: 'Failed' },
-  CANCELLED: { tone: 'warning', glyph: '●', label: 'Cancelled' },
-  SKIPPED: { tone: 'neutral', glyph: '—', label: 'Not needed' }
+  PENDING: { tone: 'neutral', glyph: '—', label: { key: 'enum.notificationStatus.PENDING' } },
+  SENDING: { tone: 'neutral', glyph: '—', label: { key: 'enum.notificationStatus.SENDING' } },
+  SENT: { tone: 'good', glyph: '✓', label: { key: 'enum.notificationStatus.SENT' } },
+  FAILED: { tone: 'critical', glyph: '▲', label: { key: 'enum.notificationStatus.FAILED' } },
+  CANCELLED: { tone: 'warning', glyph: '●', label: { key: 'enum.notificationStatus.CANCELLED' } },
+  SKIPPED: { tone: 'neutral', glyph: '—', label: { key: 'enum.notificationStatus.SKIPPED' } }
 };
 
-export const UNAVAILABLE_HINT = 'Not available (check the address or ask an admin to enable this channel)';
+export const UNAVAILABLE_HINT: TKey = 'pf.notif.unavailable';
 
-const LANG_LABEL: Record<Language, string> = { FR: 'Français', EN: 'English' };
+const LANG_LABEL: Record<Language, string> = { FR: 'Français', EN: 'English' }; // language names are never translated
 
 /** Contact preferences, consent and the recent messages of one patient (Contacts tab). */
 @Component({
@@ -55,9 +59,12 @@ export class PatientNotificationsComponent implements OnInit, OnDestroy {
 
   readonly hint = UNAVAILABLE_HINT;
   readonly templateLabel = TEMPLATE_LABEL;
-  readonly humanize = humanize;
 
-  constructor(private notifications: NotificationService, private settings: SettingsService) {}
+  constructor(private notifications: NotificationService, private settings: SettingsService, private i18n: I18nService, private apiErrors: ApiErrorsService) {}
+
+  get hintText(): string {
+    return this.i18n.t(this.hint);
+  }
 
   ngOnInit(): void {
     this.settings.clinic$.pipe(take(1)).subscribe({ next: c => (this.clinicDefault = c.defaultLanguage), error: () => { /* keep FR */ } });
@@ -78,7 +85,7 @@ export class PatientNotificationsComponent implements OnInit, OnDestroy {
     this.loadError = null;
     this.notifications.preferences(this.patientId).subscribe({
       next: p => this.apply(p),
-      error: err => (this.loadError = errorText(err, 'Could not load the notification preferences.'))
+      error: err => (this.loadError = this.apiErrors.text(err, 'pf.notif.error.load'))
     });
   }
 
@@ -89,7 +96,7 @@ export class PatientNotificationsComponent implements OnInit, OnDestroy {
         this.history = p.items;
         this.historyLoaded = true;
       },
-      error: err => (this.historyError = errorText(err, 'Could not load the recent messages.'))
+      error: err => (this.historyError = this.apiErrors.text(err, 'pf.notif.error.history'))
     });
   }
 
@@ -106,7 +113,7 @@ export class PatientNotificationsComponent implements OnInit, OnDestroy {
   }
 
   get defaultLabel(): string {
-    return `Clinic default (${LANG_LABEL[this.clinicDefault]})`;
+    return this.i18n.t('pf.notif.clinicDefault', { language: LANG_LABEL[this.clinicDefault] });
   }
 
   available(c: NotificationChannel): boolean {
@@ -137,9 +144,9 @@ export class PatientNotificationsComponent implements OnInit, OnDestroy {
         this.saving = false;
         const api = apiErrorOf(err);
         if (api && Object.keys(api.fieldErrors).length) {
-          this.errors = { ...api.fieldErrors };
+          this.errors = this.apiErrors.fieldTexts(err);
         } else {
-          this.banner = errorText(err, 'Could not save the preferences.');
+          this.banner = this.apiErrors.text(err, 'pf.notif.error.save');
         }
       }
     });
@@ -152,10 +159,10 @@ export class PatientNotificationsComponent implements OnInit, OnDestroy {
   }
 
   channelLabel(c: NotificationChannel): string {
-    return c === 'EMAIL' ? 'Email' : 'SMS';
+    return this.i18n.t(`enum.notificationChannel.${c}` as TKey);
   }
 
   when(iso: string): string {
-    return businessNow(new Date(iso)).slice(0, 16).replace('T', ' ');
+    return fmtDate(iso, 'isoDateTime', this.i18n.lang);
   }
 }

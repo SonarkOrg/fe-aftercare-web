@@ -8,6 +8,7 @@ import { alertDto, missedAlert, providePermissions } from '../../testing/fixture
 import { Alert } from '../../models/alert.model';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { AlertTableComponent } from './alert-table.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('AlertTableComponent', () => {
   let fixture: ComponentFixture<AlertTableComponent>;
@@ -18,7 +19,7 @@ describe('AlertTableComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [AlertTableComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), { provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } }]
     }).compileComponents();
@@ -120,7 +121,7 @@ describe('AlertTableComponent missed check-ins and roles', () => {
 
   async function mount(role: 'NURSE' | 'ADMIN' = 'NURSE', over: Parameters<typeof providePermissions>[1] = {}) {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [AlertTableComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions(role, over), { provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } }]
     }).compileComponents();
@@ -139,7 +140,7 @@ describe('AlertTableComponent missed check-ins and roles', () => {
     const row = el.querySelector('.alert-row')!;
     expect(row.querySelector('.alert-row__label')!.textContent!.trim()).toBe('Missed check-in');
     expect(row.querySelector('.alert-row__label app-icon svg')).not.toBeNull();
-    expect(row.querySelector('.alert-row__answer')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('Answer — · Oct 13 · No check-in received for 2026-10-13');
+    expect(row.querySelector('.alert-row__answer')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('Answer — · 13 Oct · No check-in received for 2026-10-13');
     expect(row.textContent).not.toContain('null');
     expect(Array.from(row.querySelectorAll('.chip__label')).map(c => c.textContent)).toEqual(['Medium', 'Open']);
   });

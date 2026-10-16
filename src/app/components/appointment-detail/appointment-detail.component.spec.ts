@@ -12,6 +12,7 @@ import { AccessRole } from '../../models/me.model';
 import { addDays, businessToday } from '../../shared/link.util';
 import { SendLinkComponent } from '../../shared/send-link/send-link.component';
 import { AppointmentDetailComponent } from './appointment-detail.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('AppointmentDetailComponent', () => {
   let fixture: ComponentFixture<AppointmentDetailComponent>;
@@ -28,14 +29,14 @@ describe('AppointmentDetailComponent', () => {
         resourceType: 'QuestionnaireResponse', questionnaire: FULL_Q.url + '|1', status: 'completed',
         item: [{ linkId: 'PAIN', answer: [{ valueInteger: 6 }] }, { linkId: 'FEVER', answer: [{ valueBoolean: true }] }]
       },
-      flags: [{ linkId: 'FEVER', label: 'Do you have a fever?', message: 'Recent illness or fever', messageFr: 'Maladie récente' }]
+      flags: [{ linkId: 'FEVER', label: 'Do you have a fever?', labelFr: 'Avez-vous de la fièvre?', message: 'Recent illness or fever', messageFr: 'Maladie récente' }]
     },
     ...over
   });
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule, SendLinkComponent],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule, SendLinkComponent],
       declarations: [AppointmentDetailComponent, QuestionnaireFormComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '4' }) } } }]
     }).compileComponents();
@@ -61,9 +62,9 @@ describe('AppointmentDetailComponent', () => {
     init(withIntake());
     expect(el.textContent).toContain('Jane Doe');
     expect(el.textContent).toContain('Pre op consult');
-    expect(el.textContent).toContain('2026-10-14');
+    expect(el.textContent).toContain('Wednesday, 14 October 2026');
     expect(el.textContent).toContain('08:30');
-    expect(el.textContent).toContain('30 min');
+    expect(el.textContent).toContain('30\u00a0min');
     expect(el.textContent).toContain('Clinic A');
     expect(el.textContent).toContain('Dr. Roy');
     expect(el.textContent).toContain('https://aftercare.example/fhir/Questionnaire/pre-consult|1');
@@ -191,7 +192,7 @@ describe('AppointmentDetailComponent by access role', () => {
 
   async function mount(role: AccessRole, detail: AppointmentDetail, over: Parameters<typeof providePermissions>[1] = {}) {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule, SendLinkComponent],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule, SendLinkComponent],
       declarations: [AppointmentDetailComponent, QuestionnaireFormComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions(role, over), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '4' }) } } }]
     }).compileComponents();
@@ -219,7 +220,7 @@ describe('AppointmentDetailComponent by access role', () => {
       expect(el.querySelector('.intake-redacted')!.textContent).toContain('Questionnaire answers are visible to clinical staff only.');
       expect(el.querySelector('.intake-redacted')!.classList).toContain('banner--info');
       expect(el.querySelector('.intake')!.textContent).toMatch(/Submitted 2026-10-1[23] \d\d:\d\d/);
-      expect(el.querySelector('.flag-count')!.textContent).toBe('2 flag(s) for review');
+      expect(el.querySelector('.flag-count')!.textContent).toBe('2 flags for review');
       for (const sel of ['.flags', 'app-questionnaire-form', 'dl.q-readonly']) {
         expect(has(sel)).withContext(sel).toBeFalse();
       }

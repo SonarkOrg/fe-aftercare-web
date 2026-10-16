@@ -1,35 +1,35 @@
 <div class="page">
   <section class="hero">
     <div>
-      <h1 class="hero__title">Messages</h1>
-      <p class="hero__sub">Secure messages with patients who have an active link. Not monitored outside clinic hours.</p>
+      <h1 class="hero__title">{{ 'page.messages' | t }}</h1>
+      <p class="hero__sub">{{ 'messages.page.intro' | t }}</p>
     </div>
   </section>
 
   <div class="grid-msg" [class.has-selection]="selected !== null">
     <section class="card card--list msg-list" aria-labelledby="conv-title">
       <div class="card__head">
-        <h2 id="conv-title" class="card__title--sm">Conversations <span class="badge">{{ conversations.length }}</span><span class="conv-unread muted" *ngIf="unreadTotal > 0"> · {{ unreadTotal }} unread</span></h2>
+        <h2 id="conv-title" class="card__title--sm">{{ 'messages.page.conversations' | t }} <span class="badge">{{ conversations.length }}</span><span class="conv-unread muted" *ngIf="unreadTotal > 0"> · {{ 'messages.page.unread' | t:{ count: unreadTotal } }}</span></h2>
       </div>
       <div class="search-pill msg-search">
         <app-icon name="search" [size]="16"></app-icon>
-        <input type="search" placeholder="Search patients" aria-label="Search conversations" [(ngModel)]="search">
+        <input type="search" [placeholder]="'common.searchPatients' | t" [attr.aria-label]="'messages.page.searchAria' | t" [(ngModel)]="search">
       </div>
-      <div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the conversations. <button type="button" class="btn btn--ghost btn--sm" (click)="loadInbox()">Retry</button></span></div>
-      <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row"></div><div class="skeleton skeleton--row"></div></div>
-      <p class="muted empty-line" *ngIf="!loading && !error && conversations.length === 0">No conversations yet.</p>
-      <p class="muted empty-line" *ngIf="conversations.length > 0 && visible.length === 0">No conversation matches.</p>
+      <div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ 'messages.page.loadError' | t }} <button type="button" class="btn btn--ghost btn--sm" (click)="loadInbox()">{{ 'common.retry' | t }}</button></span></div>
+      <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row"></div><div class="skeleton skeleton--row"></div></div>
+      <p class="muted empty-line" *ngIf="!loading && !error && conversations.length === 0">{{ 'messages.page.empty' | t }}</p>
+      <p class="muted empty-line" *ngIf="conversations.length > 0 && visible.length === 0">{{ 'messages.page.noMatch' | t }}</p>
       <ul class="rows" *ngIf="visible.length > 0">
         <li *ngFor="let c of visible">
           <a class="row conv-row" [routerLink]="['/messages', c.patientId]" [attr.aria-current]="c.patientId === selected ? 'true' : null">
             <app-avatar [id]="c.patientId" [initials]="initialsOf(c)"></app-avatar>
             <span class="row__main">
               <span class="row__name" [class.is-unread]="c.unreadCount > 0">{{ c.patientFirstName }} {{ c.patientLastName }}</span>
-              <span class="row__sub conv-preview">{{ c.lastSender === 'STAFF' ? 'You: ' : '' }}{{ c.lastMessagePreview }}</span>
+              <span class="row__sub conv-preview">{{ c.lastSender === 'STAFF' ? ('messages.page.you' | t:{ text: c.lastMessagePreview }) : c.lastMessagePreview }}</span>
             </span>
             <span class="row__end">
               <span class="muted conv-time">{{ when(c) }}</span>
-              <span class="badge-count" *ngIf="c.unreadCount > 0">{{ c.unreadCount }}<span class="sr-only"> unread</span></span>
+              <span class="badge-count" *ngIf="c.unreadCount > 0">{{ c.unreadCount }}<span class="sr-only"> {{ 'messages.page.unreadSr' | t }}</span></span>
               <app-status-chip size="sm" *ngIf="!c.messagingOpen" [spec]="closedChip"></app-status-chip>
             </span>
           </a>
@@ -38,9 +38,9 @@
     </section>
 
     <div class="msg-pane">
-      <a class="back-link msg-back" routerLink="/messages"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>Messages</a>
+      <a class="back-link msg-back" routerLink="/messages"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>{{ 'page.messages' | t }}</a>
       <app-message-thread *ngIf="selected !== null && !loading" [patientId]="selected" [patientName]="selectedName" variant="page" (read)="loadInbox()" (sent)="loadInbox()"></app-message-thread>
-      <div class="card empty" *ngIf="selected === null"><span class="empty__glyph" aria-hidden="true"><app-icon name="message" [size]="20"></app-icon></span><p class="empty__title">Select a conversation.</p></div>
+      <div class="card empty" *ngIf="selected === null"><span class="empty__glyph" aria-hidden="true"><app-icon name="message" [size]="20"></app-icon></span><p class="empty__title">{{ 'messages.page.select' | t }}</p></div>
     </div>
   </div>
 </div>

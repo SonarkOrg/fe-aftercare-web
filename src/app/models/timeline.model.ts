@@ -35,5 +35,7 @@ export interface TimelineItem {
   refId: number | null;
   severity: AlertSeverity | null;
   summary: string;
+  /** French summary; null for rows written before the French texts existed. */
+  summaryFr: string | null;
   note: CareNote | null;
 }

@@ -1,27 +1,30 @@
 import { Component, OnInit } from '@angular/core';
 import { RetentionService } from '../../../Services/Retention.service';
-import { apiErrorOf, errorText } from '../../../models/api-error.model';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { fmtDate } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
+import { Msg, TKey } from '../../../i18n/i18n.types';
+import { apiErrorOf } from '../../../models/api-error.model';
 import { RetentionCounts, RetentionRun, RetentionSettings, RetentionSettingsRequest } from '../../../models/retention.model';
-import { businessNow } from '../../../shared/link.util';
 import { ChipSpec } from '../../../shared/status';
 
 type Field = keyof RetentionSettingsRequest;
 
-export const RETENTION_FIELDS: { key: Field; label: string; help?: string; min?: number }[] = [
-  { key: 'closedFollowUpMonths', label: 'Closed or expired follow-ups (with their check-ins and alerts)' },
-  { key: 'deletedDocumentMonths', label: 'Documents marked deleted', help: 'Active documents are never purged automatically.' },
-  { key: 'messageMonths', label: 'Patient messages' },
-  { key: 'notificationMonths', label: 'Notification history' },
-  { key: 'auditMonths', label: 'Access log', help: 'Applies only to access-log entries; other purges never delete them.', min: 12 }
+export const RETENTION_FIELDS: { key: Field; label: TKey; help?: TKey; min?: number }[] = [
+  { key: 'closedFollowUpMonths', label: 'settings.ret.f.followUps' },
+  { key: 'deletedDocumentMonths', label: 'settings.ret.f.documents', help: 'settings.ret.f.documentsHelp' },
+  { key: 'messageMonths', label: 'settings.ret.f.messages' },
+  { key: 'notificationMonths', label: 'settings.ret.f.notifications' },
+  { key: 'auditMonths', label: 'settings.ret.f.audit', help: 'settings.ret.f.auditHelp', min: 12 }
 ];
 
-export const COUNT_ROWS: { key: keyof RetentionCounts; label: string }[] = [
-  { key: 'followUps', label: 'Follow-ups' }, { key: 'checkIns', label: 'Check-ins' }, { key: 'alerts', label: 'Alerts' },
-  { key: 'documents', label: 'Documents' }, { key: 'messages', label: 'Messages' }, { key: 'notifications', label: 'Notifications' },
-  { key: 'auditEvents', label: 'Access-log entries' }
+export const COUNT_ROWS: { key: keyof RetentionCounts; label: TKey }[] = [
+  { key: 'followUps', label: 'settings.ret.c.followUps' }, { key: 'checkIns', label: 'settings.ret.c.checkIns' }, { key: 'alerts', label: 'settings.ret.c.alerts' },
+  { key: 'documents', label: 'settings.ret.c.documents' }, { key: 'messages', label: 'settings.ret.c.messages' }, { key: 'notifications', label: 'settings.ret.c.notifications' },
+  { key: 'auditEvents', label: 'settings.ret.c.audit' }
 ];
 
-export const PRIVACY_NOTICE = "Retention periods must be set by the clinic's privacy officer (responsable de la protection des renseignements personnels) according to your retention schedule. The app does not assume any legal period. Empty = keep indefinitely.";
+export const PRIVACY_NOTICE: TKey = 'settings.ret.notice';
 
 @Component({
   selector: 'app-retention-settings',
@@ -31,6 +34,7 @@ export class RetentionSettingsComponent implements OnInit {
   readonly fields = RETENTION_FIELDS;
   readonly countRows = COUNT_ROWS;
   readonly notice = PRIVACY_NOTICE;
+  readonly label = (k: TKey) => this.i18n.t(k);
 
   current: RetentionSettings | null = null;
   /** The month value of each row; `keep[f]` true means "keep indefinitely" (value ignored, sent as null). */
@@ -50,7 +54,7 @@ export class RetentionSettingsComponent implements OnInit {
   runs: RetentionRun[] = [];
   runsError: string | null = null;
 
-  constructor(private retention: RetentionService) {}
+  constructor(private retention: RetentionService, public i18n: I18nService, private apiErrors: ApiErrorsService) {}
 
   private blank(): Record<Field, number | null> {
     return { closedFollowUpMonths: null, deletedDocumentMonths: null, messageMonths: null, notificationMonths: null, auditMonths: null };
@@ -65,7 +69,7 @@ export class RetentionSettingsComponent implements OnInit {
     this.loadError = null;
     this.retention.settings().subscribe({
       next: s => this.apply(s),
-      error: err => (this.loadError = errorText(err, 'Could not load the retention settings.'))
+      error: err => (this.loadError = this.apiErrors.text(err, 'settings.ret.error.load'))
     });
   }
 
@@ -73,7 +77,7 @@ export class RetentionSettingsComponent implements OnInit {
     this.runsError = null;
     this.retention.runs().subscribe({
       next: r => (this.runs = r),
-      error: err => (this.runsError = errorText(err, 'Could not load the recent runs.'))
+      error: err => (this.runsError = this.apiErrors.text(err, 'settings.ret.error.runs'))
     });
   }
 
@@ -109,11 +113,11 @@ export class RetentionSettingsComponent implements OnInit {
       }
       const v = this.values[f.key];
       if (v === null || v === undefined || (v as unknown) === '') {
-        errors[f.key] = 'Enter a number of months, or keep indefinitely.';
+        errors[f.key] = this.i18n.t('settings.ret.err.required');
       } else if (f.min && Number.isInteger(v) && v >= 1 && v < f.min) {
-        errors[f.key] = `must be at least ${f.min} months`;
+        errors[f.key] = this.i18n.t('error.field.monthsMin', { min: f.min });
       } else if (!Number.isInteger(v) || v < 1 || v > 1200) {
-        errors[f.key] = 'must be between 1 and 1200 months';
+        errors[f.key] = this.i18n.t('error.field.monthsRange', { min: 1, max: 1200 });
       } else {
         out[f.key] = v;
       }
@@ -170,9 +174,9 @@ export class RetentionSettingsComponent implements OnInit {
         this.saving = false;
         const api = apiErrorOf(err);
         if (api && Object.keys(api.fieldErrors).length) {
-          this.errors = { ...api.fieldErrors } as Partial<Record<Field, string>>;
+          this.errors = this.apiErrors.fieldTexts(err) as Partial<Record<Field, string>>;
         } else {
-          this.banner = errorText(err, 'Could not save the retention settings.');
+          this.banner = this.apiErrors.text(err, 'settings.ret.error.save');
         }
       }
     });
@@ -190,7 +194,7 @@ export class RetentionSettingsComponent implements OnInit {
       },
       error: err => {
         this.dryRunning = false;
-        this.dryError = errorText(err, 'Could not run the preview.');
+        this.dryError = this.apiErrors.text(err, 'settings.ret.error.dry');
       }
     });
   }
@@ -204,13 +208,13 @@ export class RetentionSettingsComponent implements OnInit {
       return null;
     }
     if (!s.purgeEnabled) {
-      return { text: 'Automatic purge: off (server setting)', chip: { tone: 'neutral', glyph: '—', label: 'Automatic purge: off (server setting)' } };
+      return { text: this.i18n.t('settings.ret.purgeOff'), chip: { tone: 'neutral', glyph: '—', label: { key: 'settings.ret.purgeOff' } } };
     }
     if (s.dryRun) {
-      return { text: 'Automatic purge: dry run only (nothing is deleted)', chip: { tone: 'warning', glyph: '●', label: 'Automatic purge: dry run only (nothing is deleted)' } };
+      return { text: this.i18n.t('settings.ret.purgeDry'), chip: { tone: 'warning', glyph: '●', label: { key: 'settings.ret.purgeDry' } } };
     }
-    const t = 'Automatic purge: ON: data older than these periods is deleted nightly at 03:15';
-    return { text: t, chip: { tone: 'critical', glyph: '▲', label: t } };
+    const m: Msg = { key: 'settings.ret.purgeOn' };
+    return { text: this.i18n.t(m), chip: { tone: 'critical', glyph: '▲', label: m } };
   }
 
   total(c: RetentionCounts): number {
@@ -218,14 +222,14 @@ export class RetentionSettingsComponent implements OnInit {
   }
 
   when(iso: string): string {
-    return businessNow(new Date(iso)).slice(0, 16).replace('T', ' ');
+    return fmtDate(iso, 'isoDateTime', this.i18n.lang);
   }
 
   detail(c: RetentionCounts): string {
-    return COUNT_ROWS.map(r => `${r.label}: ${c[r.key]}`).join(', ');
+    return COUNT_ROWS.map(r => `${this.i18n.t(r.label)}${this.i18n.lang === 'fr' ? '\u00a0' : ''}: ${c[r.key]}`).join(', ');
   }
 
   statusChip(r: RetentionRun): ChipSpec {
-    return r.status === 'SUCCEEDED' ? { tone: 'good', glyph: '✓', label: 'Succeeded' } : { tone: 'critical', glyph: '▲', label: 'Failed' };
+    return r.status === 'SUCCEEDED' ? { tone: 'good', glyph: '✓', label: { key: 'enum.retentionRunStatus.SUCCEEDED' } } : { tone: 'critical', glyph: '▲', label: { key: 'enum.retentionRunStatus.FAILED' } };
   }
 }

@@ -1,28 +1,28 @@
 <div class="page">
   <section class="hero">
     <div>
-      <h1 class="hero__title">Reports</h1>
-      <p class="hero__sub">Follow-up, alert and appointment activity for a date range.</p>
+      <h1 class="hero__title">{{ 'page.reports' | t }}</h1>
+      <p class="hero__sub">{{ 'reports.intro' | t }}</p>
     </div>
     <div class="hero__actions">
-      <button type="button" class="btn btn--secondary export-csv" [disabled]="loading || !summary" (click)="exportCsv()"><app-icon name="download" [size]="16"></app-icon>Export CSV</button>
+      <button type="button" class="btn btn--secondary export-csv" [disabled]="loading || !summary" (click)="exportCsv()"><app-icon name="download" [size]="16"></app-icon>{{ 'reports.export' | t }}</button>
     </div>
   </section>
 
   <div class="toolbar">
-    <div class="pill-group" role="group" aria-label="Range">
-      <button *ngFor="let p of presets" type="button" class="pill-group__item" [attr.aria-pressed]="activePreset === p.days" (click)="setPreset(p.days)">{{ p.label }}</button>
+    <div class="pill-group" role="group" [attr.aria-label]="'reports.range' | t">
+      <button *ngFor="let p of presets" type="button" class="pill-group__item" [attr.aria-pressed]="activePreset === p.days" (click)="setPreset(p.days)">{{ p.label | t }}</button>
     </div>
-    <label class="range-field" for="rep-from"><span>From</span><input id="rep-from" type="date" [max]="today" [(ngModel)]="from" name="from"></label>
-    <label class="range-field" for="rep-to"><span>To</span><input id="rep-to" type="date" [max]="today" [(ngModel)]="to" name="to"></label>
-    <button type="button" class="btn btn--secondary apply-range" (click)="apply()">Apply</button>
+    <label class="range-field" for="rep-from"><span>{{ 'reports.from' | t }}</span><input id="rep-from" type="date" [max]="today" [(ngModel)]="from" name="from"></label>
+    <label class="range-field" for="rep-to"><span>{{ 'reports.to' | t }}</span><input id="rep-to" type="date" [max]="today" [(ngModel)]="to" name="to"></label>
+    <button type="button" class="btn btn--secondary apply-range" (click)="apply()">{{ 'reports.apply' | t }}</button>
   </div>
   <p class="field-error" role="alert" *ngIf="rangeError">{{ rangeError }}</p>
 
-  <div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ error }} <button type="button" class="btn btn--secondary btn--sm" (click)="load()">Retry</button></span></div>
+  <div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ error }} <button type="button" class="btn btn--secondary btn--sm" (click)="load()">{{ 'common.retry' | t }}</button></span></div>
 
   <div class="stack-20" *ngIf="loading" aria-busy="true">
-    <span class="sr-only">Loading…</span>
+    <span class="sr-only">{{ 'common.loading' | t }}</span>
     <div class="tiles"><div class="skeleton skeleton--tile" *ngFor="let i of [1, 2, 3, 4]"></div></div>
     <div class="kpis"><div class="skeleton skeleton--kpi" *ngFor="let i of [1, 2, 3, 4]"></div></div>
     <div class="skeleton skeleton--chart"></div>
@@ -30,61 +30,61 @@
 
   <div class="stack-20" *ngIf="!loading && summary as s">
     <section class="card" aria-labelledby="rep-checkins">
-      <div class="card__header"><h2 id="rep-checkins" class="card__title--sm">Check-ins &amp; follow-ups</h2></div>
+      <div class="card__header"><h2 id="rep-checkins" class="card__title--sm">{{ 'reports.sec.checkIns' | t }}</h2></div>
       <div class="tiles">
-        <app-ring-tile icon="check-circle" label="Check-in completion" [value]="pct(s.checkIns.completionRate)" [ratioOverride]="s.checkIns.completionRate ?? 0"
-                       [sub]="s.checkIns.received + ' of ' + s.checkIns.expected + ' · through ' + s.checkIns.throughDate"></app-ring-tile>
-        <app-ring-tile icon="heart-pulse" label="Active follow-ups" [arc]="false" [value]="s.followUps.activeNow"></app-ring-tile>
-        <app-ring-tile icon="users" label="Follow-ups started" [arc]="false" [value]="s.followUps.started"></app-ring-tile>
-        <app-ring-tile icon="clipboard" label="Follow-ups closed" [arc]="false" [value]="s.followUps.closed"></app-ring-tile>
+        <app-ring-tile icon="check-circle" [label]="'reports.tile.completion' | t" [value]="s.checkIns.completionRate | pct" [ratioOverride]="s.checkIns.completionRate ?? 0"
+                       [sub]="'reports.tile.completionSub' | t:{ received: s.checkIns.received, expected: s.checkIns.expected, through: (s.checkIns.throughDate | tzDate:'date') }"></app-ring-tile>
+        <app-ring-tile icon="heart-pulse" [label]="'reports.tile.active' | t" [arc]="false" [value]="s.followUps.activeNow"></app-ring-tile>
+        <app-ring-tile icon="users" [label]="'reports.tile.started' | t" [arc]="false" [value]="s.followUps.started"></app-ring-tile>
+        <app-ring-tile icon="clipboard" [label]="'reports.tile.closed' | t" [arc]="false" [value]="s.followUps.closed"></app-ring-tile>
       </div>
     </section>
 
-    <div class="kpis" role="group" aria-label="Alerts">
+    <div class="kpis" role="group" [attr.aria-label]="'shell.nav.alerts' | t">
       <div class="kpi">
         <span class="kpi__icon"><app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon></span>
         <span class="kpi__body">
-          <span class="kpi__label">Alerts</span>
-          <span class="kpi__value">{{ s.alerts.total }}<small>{{ s.alerts.high }} high · {{ s.alerts.medium }} medium</small></span>
-          <span class="chip chip--critical chip--sm kpi__chip" *ngIf="s.alerts.high > 0"><span class="chip__glyph" aria-hidden="true">▲</span><span class="chip__label">{{ s.alerts.high }} high</span></span>
+          <span class="kpi__label">{{ 'shell.nav.alerts' | t }}</span>
+          <span class="kpi__value">{{ s.alerts.total }}<small>{{ 'reports.alerts.splitHigh' | t:{ count: s.alerts.high } }} · {{ 'reports.alerts.splitMedium' | t:{ count: s.alerts.medium } }}</small></span>
+          <span class="chip chip--critical chip--sm kpi__chip" *ngIf="s.alerts.high > 0"><span class="chip__glyph" aria-hidden="true">▲</span><span class="chip__label">{{ 'pd.kpi.highCount' | t:{ count: s.alerts.high } }}</span></span>
         </span>
       </div>
       <div class="kpi">
         <span class="kpi__icon"><app-icon name="clock" [size]="22" [stroke]="1.6"></app-icon></span>
-        <span class="kpi__body"><span class="kpi__label">Time to acknowledge</span><span class="kpi__value">{{ minutes(s.alerts.meanMinutesToAcknowledge) }}<small>mean · {{ s.alerts.responded }} alerts</small></span></span>
+        <span class="kpi__body"><span class="kpi__label">{{ 'reports.ack' | t }}</span><span class="kpi__value">{{ s.alerts.meanMinutesToAcknowledge | duration }}<small>{{ 'reports.meanAlerts' | t:{ count: s.alerts.responded } }}</small></span></span>
       </div>
       <div class="kpi">
         <span class="kpi__icon"><app-icon name="check-circle" [size]="22" [stroke]="1.6"></app-icon></span>
-        <span class="kpi__body"><span class="kpi__label">Time to resolve</span><span class="kpi__value">{{ minutes(s.alerts.meanMinutesToResolve) }}<small>mean · {{ s.alerts.resolved }} resolved</small></span></span>
+        <span class="kpi__body"><span class="kpi__label">{{ 'reports.resolve' | t }}</span><span class="kpi__value">{{ s.alerts.meanMinutesToResolve | duration }}<small>{{ 'reports.meanResolved' | t:{ count: s.alerts.resolved } }}</small></span></span>
       </div>
       <div class="kpi">
         <span class="kpi__icon"><app-icon name="alert-triangle" [size]="22" [stroke]="1.6"></app-icon></span>
-        <span class="kpi__body"><span class="kpi__label">Unresolved</span><span class="kpi__value">{{ s.alerts.unresolved }}<small>from this period</small></span></span>
+        <span class="kpi__body"><span class="kpi__label">{{ 'reports.unresolved' | t }}</span><span class="kpi__value">{{ s.alerts.unresolved }}<small>{{ 'reports.fromPeriod' | t }}</small></span></span>
       </div>
     </div>
 
     <div class="grid-2">
       <section class="card" aria-labelledby="rep-alerts-week">
-        <div class="card__header"><h2 id="rep-alerts-week" class="card__title--sm">Alerts per week</h2></div>
-        <app-week-bars title="Alerts per week" [categories]="categories" [series]="alertSeries"></app-week-bars>
+        <div class="card__header"><h2 id="rep-alerts-week" class="card__title--sm">{{ 'reports.alertsPerWeek' | t }}</h2></div>
+        <app-week-bars [title]="'reports.alertsPerWeek' | t" [categories]="categories" [series]="alertSeries"></app-week-bars>
       </section>
       <section class="card" aria-labelledby="rep-completion-week">
-        <div class="card__header"><h2 id="rep-completion-week" class="card__title--sm">Check-in completion per week</h2></div>
-        <app-week-bars title="Check-in completion per week" [categories]="categories" [series]="completionSeries" unit="%" [max]="100"></app-week-bars>
+        <div class="card__header"><h2 id="rep-completion-week" class="card__title--sm">{{ 'reports.completionPerWeek' | t }}</h2></div>
+        <app-week-bars [title]="'reports.completionPerWeek' | t" [categories]="categories" [series]="completionSeries" unit="%" [max]="100"></app-week-bars>
       </section>
     </div>
 
     <section class="card" aria-labelledby="rep-appts">
-      <div class="card__header"><h2 id="rep-appts" class="card__title--sm">Appointments</h2></div>
+      <div class="card__header"><h2 id="rep-appts" class="card__title--sm">{{ 'shell.nav.appointments' | t }}</h2></div>
       <div class="tiles">
-        <app-ring-tile icon="clipboard" label="Pre-appointment questionnaires" [value]="pct(s.appointments.questionnaireCompletionRate)" [ratioOverride]="s.appointments.questionnaireCompletionRate ?? 0"
-                       [sub]="s.appointments.questionnairesCompleted + ' of ' + s.appointments.questionnairesExpected"></app-ring-tile>
-        <app-ring-tile icon="alert-triangle" label="Needs review rate" [value]="pct(s.appointments.needsReviewRate)" [ratioOverride]="s.appointments.needsReviewRate ?? 0"
-                       [sub]="s.appointments.intakesWithFlags + ' of ' + s.appointments.questionnairesCompleted + ' flagged'"></app-ring-tile>
-        <app-ring-tile icon="x-circle" label="Cancellations" [value]="s.appointments.cancelled + ' / ' + s.appointments.total" [ratioOverride]="s.appointments.cancellationRate ?? 0"
-                       [sub]="pct(s.appointments.cancellationRate)"></app-ring-tile>
-        <app-ring-tile icon="slash-circle" label="No-shows" [value]="s.appointments.noShow" [ratioOverride]="s.appointments.noShowRate ?? 0"
-                       [sub]="'of ' + pastVisits + ' past visits'"></app-ring-tile>
+        <app-ring-tile icon="clipboard" [label]="'reports.tile.preAppt' | t" [value]="s.appointments.questionnaireCompletionRate | pct" [ratioOverride]="s.appointments.questionnaireCompletionRate ?? 0"
+                       [sub]="'reports.tile.ofSub' | t:{ done: s.appointments.questionnairesCompleted, total: s.appointments.questionnairesExpected }"></app-ring-tile>
+        <app-ring-tile icon="alert-triangle" [label]="'reports.tile.reviewRate' | t" [value]="s.appointments.needsReviewRate | pct" [ratioOverride]="s.appointments.needsReviewRate ?? 0"
+                       [sub]="'reports.tile.flaggedSub' | t:{ flagged: s.appointments.intakesWithFlags, total: s.appointments.questionnairesCompleted }"></app-ring-tile>
+        <app-ring-tile icon="x-circle" [label]="'reports.tile.cancellations' | t" [value]="s.appointments.cancelled + ' / ' + s.appointments.total" [ratioOverride]="s.appointments.cancellationRate ?? 0"
+                       [sub]="s.appointments.cancellationRate | pct"></app-ring-tile>
+        <app-ring-tile icon="slash-circle" [label]="'reports.tile.noShows' | t" [value]="s.appointments.noShow" [ratioOverride]="s.appointments.noShowRate ?? 0"
+                       [sub]="'reports.tile.pastVisits' | t:{ count: pastVisits }"></app-ring-tile>
       </div>
     </section>
   </div>

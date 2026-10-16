@@ -1,29 +1,29 @@
 <section class="card composer-card" *appCan="'CLINICAL_WRITE'">
-  <div class="card__header"><h2 class="card__title--sm">Add note</h2></div>
+  <div class="card__header"><h2 class="card__title--sm">{{ 'pf.timeline.addNote' | t }}</h2></div>
   <div class="banner banner--error" role="alert" *ngIf="composeError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ composeError }}</span></div>
   <div class="form-group">
-    <label for="note-body">Note</label>
+    <label for="note-body">{{ 'pf.timeline.note' | t }}</label>
     <textarea id="note-body" name="body" rows="4" maxlength="5000" [(ngModel)]="body"></textarea>
     <span class="muted composer__count">{{ body.length }} / {{ max }}</span>
   </div>
   <div class="form-group note-when">
-    <label for="note-at">Noted at <span class="q-optional">(optional)</span></label>
+    <label for="note-at">{{ 'pf.timeline.notedAt' | t }} <span class="q-optional">({{ 'common.optional' | t }})</span></label>
     <input id="note-at" name="notedAt" type="datetime-local" [(ngModel)]="notedAt" aria-describedby="note-at-h">
-    <span id="note-at-h" class="helper-line">Leave empty for now. Up to 7 days back.</span>
+    <span id="note-at-h" class="helper-line">{{ 'pf.timeline.notedAtHelp' | t }}</span>
   </div>
-  <button type="button" class="btn btn--accent save-note" [disabled]="!canSave" (click)="saveNote()">{{ saving ? 'Saving…' : 'Save note' }}</button>
+  <button type="button" class="btn btn--accent save-note" [disabled]="!canSave" (click)="saveNote()">{{ (saving ? 'common.saving' : 'pf.timeline.saveNote') | t }}</button>
 </section>
 
-<div class="pill-group timeline-filter" role="group" aria-label="Filter the timeline">
-  <button *ngFor="let f of filters" type="button" class="pill-group__item" [attr.aria-pressed]="filter === f.category" (click)="setFilter(f.category)">{{ f.label }}</button>
+<div class="pill-group timeline-filter" role="group" [attr.aria-label]="'pf.timeline.filterAria' | t">
+  <button *ngFor="let f of filters" type="button" class="pill-group__item" [attr.aria-pressed]="filter === f.category" (click)="setFilter(f.category)">{{ f.label | t }}</button>
 </div>
 
-<div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the timeline. <button type="button" class="btn btn--ghost btn--sm retry-timeline" (click)="load(0)">Retry</button></span></div>
+<div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ 'pf.timeline.loadError' | t }} <button type="button" class="btn btn--ghost btn--sm retry-timeline" (click)="load(0)">{{ 'common.retry' | t }}</button></span></div>
 <div class="banner banner--error" role="alert" *ngIf="editError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ editError }}</span></div>
-<div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row"></div><div class="skeleton skeleton--row"></div></div>
+<div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row"></div><div class="skeleton skeleton--row"></div></div>
 
 <section class="card card--list timeline-card" *ngIf="!loading && !loadError">
-  <div class="empty" *ngIf="items.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">Nothing here yet.</p></div>
+  <div class="empty" *ngIf="items.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">{{ 'pf.timeline.empty' | t }}</p></div>
   <ng-container *ngFor="let g of groups">
     <h3 class="label-day">{{ g.label }}</h3>
     <ul class="rows">
@@ -31,46 +31,46 @@
         <span class="tone-circle" [ngClass]="'tone-' + tone(i).tone" aria-hidden="true"><app-icon *ngIf="tone(i).icon as ic; else glyph" [name]="ic" [size]="16"></app-icon><ng-template #glyph>{{ tone(i).glyph }}</ng-template></span>
         <span class="row__main">
           <ng-container *ngIf="i.note as n; else plain">
-            <span class="row__name note-removed muted" *ngIf="n.deleted"><span aria-hidden="true">⊘</span> Note removed by {{ n.deletedByName || 'staff' }} on {{ day(n.deletedAt || i.occurredAt) }}: {{ n.deleteReason }}</span>
+            <span class="row__name note-removed muted" *ngIf="n.deleted"><span aria-hidden="true">⊘</span> {{ 'pf.timeline.removed' | t:{ name: n.deletedByName || ('pf.timeline.staffFallback' | t), date: day(n.deletedAt || i.occurredAt), reason: n.deleteReason || '' } }}</span>
             <ng-container *ngIf="!n.deleted">
               <ng-container *ngIf="editing && editing.id === n.id; else view">
-                <label class="sr-only" [attr.for]="'edit-note-' + n.id">Edit note</label>
+                <label class="sr-only" [attr.for]="'edit-note-' + n.id">{{ 'pf.timeline.editNote' | t }}</label>
                 <textarea class="edit-body" [id]="'edit-note-' + n.id" rows="4" maxlength="5000" [(ngModel)]="editing.body" [name]="'edit' + n.id"></textarea>
-                <span class="btn-row"><button type="button" class="btn btn--accent btn--sm save-edit" [disabled]="!editing.body.trim()" (click)="saveEdit()">Save</button><button type="button" class="btn btn--secondary btn--sm" (click)="editing = null">Cancel</button></span>
+                <span class="btn-row"><button type="button" class="btn btn--accent btn--sm save-edit" [disabled]="!editing.body.trim()" (click)="saveEdit()">{{ 'common.save' | t }}</button><button type="button" class="btn btn--secondary btn--sm" (click)="editing = null">{{ 'common.cancel' | t }}</button></span>
               </ng-container>
               <ng-template #view>
                 <span class="row__name note-body" [class.is-clamped]="long(n) && !expanded.has(n.id)">{{ n.body }}</span>
-                <button type="button" class="plain-link show-more" *ngIf="long(n)" [attr.aria-expanded]="expanded.has(n.id)" (click)="toggleMore(n.id)">{{ expanded.has(n.id) ? 'Show less' : 'Show more' }}</button>
+                <button type="button" class="plain-link show-more" *ngIf="long(n)" [attr.aria-expanded]="expanded.has(n.id)" (click)="toggleMore(n.id)">{{ (expanded.has(n.id) ? 'pf.timeline.showLess' : 'pf.timeline.showMore') | t }}</button>
               </ng-template>
             </ng-container>
           </ng-container>
           <ng-template #plain>
-            <span class="row__name">
+            <span class="row__name" [attr.lang]="summary(i).english ? 'en' : null">
               <ng-container [ngSwitch]="i.category">
-                <button type="button" class="plain-link" *ngSwitchCase="'ALERT'" (click)="openTab.emit('alerts')">{{ i.summary }}</button>
-                <button type="button" class="plain-link" *ngSwitchCase="'DOCUMENT'" (click)="openTab.emit('documents')">{{ i.summary }}</button>
+                <button type="button" class="plain-link" *ngSwitchCase="'ALERT'" (click)="openTab.emit('alerts')">{{ summary(i).text }}</button>
+                <button type="button" class="plain-link" *ngSwitchCase="'DOCUMENT'" (click)="openTab.emit('documents')">{{ summary(i).text }}</button>
                 <ng-container *ngSwitchCase="'APPOINTMENT'">
-                  <a class="plain-link" *ngIf="i.kind !== 'APPOINTMENT_DELETED' && i.refId !== null; else txt" [routerLink]="['/appointments', i.refId]">{{ i.summary }}</a>
-                  <ng-template #txt>{{ i.summary }}</ng-template>
+                  <a class="plain-link" *ngIf="i.kind !== 'APPOINTMENT_DELETED' && i.refId !== null; else txt" [routerLink]="['/appointments', i.refId]">{{ summary(i).text }}</a>
+                  <ng-template #txt>{{ summary(i).text }}</ng-template>
                 </ng-container>
-                <ng-container *ngSwitchDefault>{{ i.summary }}</ng-container>
+                <ng-container *ngSwitchDefault>{{ summary(i).text }}</ng-container>
               </ng-container>
             </span>
           </ng-template>
-          <span class="row__sub">{{ time(i.occurredAt) }} · {{ actor(i) }}<ng-container *ngIf="i.note && i.note.editedAt && !i.note.deleted"> · edited</ng-container></span>
-          <app-confirm-inline *ngIf="i.note && deleting === i.note.id" [requireReason]="true" [minLength]="3" [maxLength]="500" reasonLabel="Reason" [busy]="deleteBusy"
-                              question="Mark this note as entered in error?" confirmLabel="Mark as entered in error"
+          <span class="row__sub">{{ time(i.occurredAt) }} · {{ actor(i) }}<ng-container *ngIf="i.note && i.note.editedAt && !i.note.deleted"> · {{ 'pf.timeline.edited' | t }}</ng-container></span>
+          <app-confirm-inline *ngIf="i.note && deleting === i.note.id" [requireReason]="true" [minLength]="3" [maxLength]="500" [reasonLabel]="'confirm.reason' | t" [busy]="deleteBusy"
+                              [question]="'pf.timeline.confirmDelete' | t" [confirmLabel]="'pf.timeline.markError' | t"
                               (confirmed)="confirmDelete(i.note, $event)" (cancelled)="deleting = null"></app-confirm-inline>
         </span>
         <span class="row__end" *ngIf="i.note && !i.note.deleted && !(editing && editing.id === i.note.id)">
-          <button type="button" class="btn btn--ghost btn--sm edit-note" *ngIf="canEdit(i.note)" [attr.title]="'Editable until ' + time(i.note.editableUntil)" (click)="startEdit(i.note)">Edit</button>
-          <button type="button" class="btn btn--ghost-danger btn--sm delete-note" *ngIf="i.note.deletableByMe" (click)="startDelete(i.note)">Mark as entered in error</button>
+          <button type="button" class="btn btn--ghost btn--sm edit-note" *ngIf="canEdit(i.note)" [attr.title]="'pf.timeline.editableUntil' | t:{ time: editableUntil(i.note) }" (click)="startEdit(i.note)">{{ 'common.edit' | t }}</button>
+          <button type="button" class="btn btn--ghost-danger btn--sm delete-note" *ngIf="i.note.deletableByMe" (click)="startDelete(i.note)">{{ 'pf.timeline.markError' | t }}</button>
         </span>
       </li>
     </ul>
   </ng-container>
   <div class="card__foot" *ngIf="hasMore">
-    <div class="field-error" role="alert" *ngIf="moreError">Could not load more.</div>
-    <button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">Load more</button>
+    <div class="field-error" role="alert" *ngIf="moreError">{{ 'pf.timeline.moreError' | t }}</div>
+    <button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">{{ 'common.loadMore' | t }}</button>
   </div>
 </section>

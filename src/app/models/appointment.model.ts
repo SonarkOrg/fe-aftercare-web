@@ -39,9 +39,12 @@ export interface AppointmentWithCode {
 export interface ReadinessFlagView {
   linkId: string;
   label: string;
+  labelFr: string | null;
   message: string;
   messageFr: string;
 }
+
+export type IntakeFlag = ReadinessFlagView;
 
 export interface Intake {
   submittedAt: string;

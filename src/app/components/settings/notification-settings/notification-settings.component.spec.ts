@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 import { notificationSettings } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { NotificationSettingsComponent } from './notification-settings.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('NotificationSettingsComponent', () => {
   const url = `${environment.apiUrl}/settings/notifications`;
@@ -14,7 +15,7 @@ describe('NotificationSettingsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule],
       declarations: [NotificationSettingsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -67,7 +68,7 @@ describe('NotificationSettingsComponent', () => {
     expect(el.textContent).toContain('Patients receive messages only if their consent is recorded as granted.');
     expect(el.textContent).toContain('Reminders are sent only when the check-in or questionnaire is still missing, and never between 21:00 and 08:00.');
     expect(el.textContent).toContain('A second missed day in a row raises a high alert.');
-    expect(q('label[for=ns-ci-on]').textContent).toBe('Daily check-in reminder');
+    expect(q('label[for=ns-ci-on]').textContent).toBe('Check-in reminder');
     expect(q('label[for=ns-ap-on]').textContent).toBe('Pre-appointment questionnaire reminder');
     expect(q('label[for=ns-mc-on]').textContent).toBe('Create an alert when a daily check-in is missing');
   });
@@ -114,7 +115,7 @@ describe('NotificationSettingsComponent', () => {
     await type('#ns-ci-time', '20:00');
     await save();
     http.expectNone(url);
-    expect(q('#ns-ci-time + .field-error').textContent).toBe('must be before the missed check-in cutoff');
+    expect(q('#ns-ci-time + .field-error').textContent).toBe('Must be before the missed check-in cutoff.');
     await type('#ns-ci-time', '21:30');
     await save();
     http.expectNone(url);
@@ -150,8 +151,8 @@ describe('NotificationSettingsComponent', () => {
       { status: 400, error: 'VALIDATION_FAILED', message: 'x', fieldErrors: { checkInReminderTime: 'must be before the missed check-in cutoff', appointmentReminderHours: 'must be between 24 and 72' } },
       { status: 400, statusText: 'Bad Request' });
     await settle();
-    expect(q('#ns-ci-time + .field-error').textContent).toBe('must be before the missed check-in cutoff');
-    expect(q('#ns-ap-hours + .field-error').textContent).toBe('must be between 24 and 72');
+    expect(q('#ns-ci-time + .field-error').textContent).toBe('Must be before the missed check-in cutoff.');
+    expect(q('#ns-ap-hours + .field-error').textContent).toBe('Between 24 and 72.');
     expect(q<HTMLButtonElement>('.save-notifications').disabled).toBeFalse();
   });
 
@@ -167,7 +168,7 @@ describe('NotificationSettingsComponent', () => {
     await settle();
     http.expectOne(url).flush('x', { status: 500, statusText: 'Server Error' });
     await settle();
-    expect(q('.banner--error').textContent).toContain('Could not load the notification settings.');
+    expect(q('.banner--error').textContent).toContain('Server error. Please try again later.');
     q<HTMLButtonElement>('.banner--error button').click();
     http.expectOne(url).flush(notificationSettings());
     await settle();

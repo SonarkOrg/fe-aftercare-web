@@ -1,18 +1,19 @@
 <div class="public-center login-container">
   <main class="card not-staff">
     <div class="brand-mark"><app-icon name="activity" [size]="28"></app-icon><span>Aftercare</span></div>
-    <h1>Your login isn't linked to a staff account</h1>
-    <p>Ask a clinic administrator to add you in Settings → Staff and link this login:</p>
+    <h1>{{ 'auth.notStaff.title' | t }}</h1>
+    <p>{{ 'auth.notStaff.intro' | t }}</p>
     <div class="not-staff__sub" *ngIf="subject$ | async as sub; else noSub">
       <code class="mono not-staff__code">{{ sub }}</code>
-      <button type="button" class="btn btn--secondary btn--sm copy-sub" (click)="copy(sub)"><app-icon name="copy" [size]="16"></app-icon>Copy</button>
+      <button type="button" class="btn btn--secondary btn--sm copy-sub" (click)="copy(sub)"><app-icon name="copy" [size]="16"></app-icon>{{ 'common.copy' | t }}</button>
     </div>
-    <ng-template #noSub><p class="muted">Your login identifier isn't available yet.</p></ng-template>
+    <ng-template #noSub><p class="muted">{{ 'auth.notStaff.noSub' | t }}</p></ng-template>
     <p class="helper-line" role="status" *ngIf="message">{{ message }}</p>
     <div class="btn-row">
-      <button type="button" class="btn btn--primary try-again" [disabled]="busy" (click)="tryAgain()">Try again</button>
-      <button type="button" class="btn btn--ghost logout" (click)="logout()">Log out</button>
+      <button type="button" class="btn btn--primary try-again" [disabled]="busy" (click)="tryAgain()">{{ 'common.tryAgain' | t }}</button>
+      <button type="button" class="btn btn--ghost logout" (click)="logout()">{{ 'common.logOut' | t }}</button>
     </div>
+    <app-language-switch mode="local"></app-language-switch>
     <ng-container *ngIf="devAuth && devUi"><ng-container *ngComponentOutlet="$any(devUi)"></ng-container></ng-container>
   </main>
 </div>

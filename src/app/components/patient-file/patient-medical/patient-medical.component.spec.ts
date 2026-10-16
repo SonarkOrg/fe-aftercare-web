@@ -8,6 +8,7 @@ import { addDays, businessToday } from '../../../shared/link.util';
 import { JANE, medical, staffMember, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { PatientMedicalComponent, REVEAL_MS } from './patient-medical.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('PatientMedicalComponent', () => {
   let fixture: ComponentFixture<PatientMedicalComponent>;
@@ -20,7 +21,7 @@ describe('PatientMedicalComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       providers: [providePermissions('NURSE')],
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientMedicalComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -186,7 +187,7 @@ describe('PatientMedicalComponent', () => {
       await click('.confirm-reveal');
       http.expectOne(`${base}/health-number/reveal`).flush({ status: 404, error: 'NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
       fixture.detectChanges();
-      expect(q('.reveal-form .field-error').textContent).toContain('No health number on file');
+      expect(q('.reveal-form .field-error').textContent).toContain('Not found. It may have been deleted.');
       expect(component.revealed).toBeNull();
     });
 
@@ -226,7 +227,7 @@ describe('PatientMedicalComponent', () => {
         { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { healthNumber: 'must be a valid RAMQ number (4 letters, 8 digits)' } },
         { status: 400, statusText: 'Bad Request' });
       fixture.detectChanges();
-      expect(q('.hn-form .field-error[role=alert]').textContent).toContain('must be a valid RAMQ number');
+      expect(q('.hn-form .field-error[role=alert]').textContent).toContain('Must be a valid health number (4 letters, 8 digits).');
     });
 
     it('removes the number after a confirmation', async () => {
@@ -313,7 +314,7 @@ describe('PatientMedicalComponent', () => {
         { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { substance: 'size must be between 1 and 200' } }, { status: 400, statusText: 'Bad Request' });
       fixture.detectChanges();
       const group = q('#mf-allergies-substance').parentElement!;
-      expect(group.querySelector('.field-error')!.textContent).toBe('size must be between 1 and 200');
+      expect(group.querySelector('.field-error')!.textContent).toBe('200 characters at most.');
       expect(el.querySelector('[data-list=allergies] .med-form')).not.toBeNull(); // the form stays open
     });
 
@@ -387,7 +388,7 @@ describe('PatientMedicalComponent', () => {
       await click('[data-list=procedures] .save-item');
       http.expectOne(`${base}/procedures`).flush({ status: 409, error: 'STAFF_INACTIVE', message: 'Staff member is inactive', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
       fixture.detectChanges();
-      expect(q('[data-list=procedures] .med-form .banner--error').textContent).toContain('Staff member is inactive');
+      expect(q('[data-list=procedures] .med-form .banner--error').textContent).toContain('This staff member is inactive.');
     });
   });
 });

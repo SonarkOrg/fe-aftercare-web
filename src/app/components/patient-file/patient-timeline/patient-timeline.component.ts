@@ -1,5 +1,9 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { TimelineService } from '../../../Services/Timeline.service';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { timelineSummary } from '../../../i18n/content';
+import { I18nService } from '../../../i18n/i18n.service';
+import { TKey } from '../../../i18n/i18n.types';
 import { apiErrorOf } from '../../../models/api-error.model';
 import { CareNote, TimelineCategory, TimelineItem } from '../../../models/timeline.model';
 import { DayGroup, fmtDayShort, fmtTime, groupByDay } from '../../../shared/messages.util';
@@ -8,10 +12,10 @@ import { TimelineTone, timelineTone } from '../../../shared/status';
 export const NOTE_MAX = 5000;
 export const PAGE_SIZE = 30;
 
-export const TIMELINE_FILTERS: { label: string; category: TimelineCategory | null }[] = [
-  { label: 'All', category: null }, { label: 'Notes', category: 'NOTE' }, { label: 'Check-ins', category: 'CHECK_IN' },
-  { label: 'Alerts', category: 'ALERT' }, { label: 'Appointments', category: 'APPOINTMENT' }, { label: 'Follow-up', category: 'FOLLOW_UP' },
-  { label: 'Documents', category: 'DOCUMENT' }, { label: 'Messages', category: 'MESSAGE' }
+export const TIMELINE_FILTERS: { label: TKey; category: TimelineCategory | null }[] = [
+  { label: 'pf.timeline.filter.all', category: null }, { label: 'enum.timelineCategory.NOTE', category: 'NOTE' }, { label: 'enum.timelineCategory.CHECK_IN', category: 'CHECK_IN' },
+  { label: 'enum.timelineCategory.ALERT', category: 'ALERT' }, { label: 'enum.timelineCategory.APPOINTMENT', category: 'APPOINTMENT' }, { label: 'enum.timelineCategory.FOLLOW_UP', category: 'FOLLOW_UP' },
+  { label: 'enum.timelineCategory.DOCUMENT', category: 'DOCUMENT' }, { label: 'enum.timelineCategory.MESSAGE', category: 'MESSAGE' }
 ];
 
 @Component({
@@ -47,7 +51,15 @@ export class PatientTimelineComponent implements OnInit {
   deleting: number | null = null;
   deleteBusy = false;
 
-  constructor(private timeline: TimelineService) {}
+  constructor(private timeline: TimelineService, public i18n: I18nService, private errors: ApiErrorsService) {}
+
+  summary(i: TimelineItem) {
+    return timelineSummary(i, this.i18n.lang);
+  }
+
+  editableUntil(n: CareNote): string {
+    return this.time(n.editableUntil);
+  }
 
   ngOnInit(): void {
     this.load(0);
@@ -58,15 +70,15 @@ export class PatientTimelineComponent implements OnInit {
   }
 
   time(iso: string): string {
-    return fmtTime(iso, 'en');
+    return fmtTime(iso, this.i18n.lang);
   }
 
   day(iso: string): string {
-    return fmtDayShort(iso);
+    return fmtDayShort(iso, this.i18n.lang);
   }
 
   actor(i: TimelineItem): string {
-    return i.actorName ?? i.note?.authorName ?? (i.actorType === 'PATIENT' ? 'Patient' : 'System');
+    return i.actorName ?? i.note?.authorName ?? this.i18n.t(i.actorType === 'PATIENT' ? 'common.patient' : 'alert.bySystem');
   }
 
   setFilter(c: TimelineCategory | null): void {
@@ -105,7 +117,7 @@ export class PatientTimelineComponent implements OnInit {
   }
 
   private regroup(): void {
-    this.groups = groupByDay(this.items, 'en', i => i.occurredAt);
+    this.groups = groupByDay(this.items, this.i18n.lang, i => i.occurredAt);
   }
 
   /* ---------- composer ---------- */
@@ -132,7 +144,7 @@ export class PatientTimelineComponent implements OnInit {
       error: err => {
         this.saving = false;
         const f = apiErrorOf(err)?.fieldErrors ?? {};
-        this.composeError = f['notedAt'] ?? f['body'] ?? 'Could not save the note.';
+        this.composeError = f['notedAt'] ? this.errors.fieldText('notedAt', f['notedAt']) : f['body'] ? this.errors.fieldText('body', f['body']) : this.errors.text(err, 'pf.timeline.error.save');
       }
     });
   }
@@ -174,7 +186,7 @@ export class PatientTimelineComponent implements OnInit {
       },
       error: err => {
         const api = apiErrorOf(err);
-        this.editError = api?.error === 'EDIT_WINDOW_CLOSED' || api?.error === 'NOT_AUTHOR' ? api.message : 'Could not save the change.';
+        this.editError = this.errors.text(err, 'pf.timeline.error.edit');
         if (api?.error === 'EDIT_WINDOW_CLOSED') {
           this.load(0);
         }
@@ -195,9 +207,9 @@ export class PatientTimelineComponent implements OnInit {
         this.deleting = null;
         this.replaceNote(d);
       },
-      error: () => {
+      error: err => {
         this.deleteBusy = false;
-        this.editError = 'Could not mark the note as entered in error.';
+        this.editError = this.errors.text(err, 'pf.timeline.error.delete');
       }
     });
   }

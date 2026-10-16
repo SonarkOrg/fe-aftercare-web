@@ -1,3 +1,5 @@
+import { fmtDate } from '../../i18n/format';
+import { AnyLang, TKey } from '../../i18n/i18n.types';
 import { Appointment } from '../../models/appointment.model';
 import { addDays, businessToday } from '../../shared/link.util';
 
@@ -11,7 +13,7 @@ export type BoardKey = 'review' | 'missing' | 'awaiting' | 'ready' | 'closed';
 
 export interface BoardGroup {
   key: BoardKey;
-  title: string;
+  title: TKey;
   items: Appointment[];
   collapsed: boolean;
 }
@@ -20,12 +22,12 @@ const byTime = (a: Appointment, b: Appointment) => a.scheduledAt.localeCompare(b
 
 /** Fixed order; empty groups are omitted. Within a group: scheduledAt, then id. */
 export function groupForBoard(appts: Appointment[]): BoardGroup[] {
-  const defs: { key: BoardKey; title: string; collapsed: boolean; test: (a: Appointment) => boolean }[] = [
-    { key: 'review', title: 'Needs review', collapsed: false, test: a => a.status === 'NEEDS_REVIEW' },
-    { key: 'missing', title: 'Questionnaire missing', collapsed: false, test: a => a.status === 'SCHEDULED' && a.questionnaireMissing },
-    { key: 'awaiting', title: 'Scheduled · awaiting questionnaire', collapsed: false, test: a => a.status === 'SCHEDULED' && !a.questionnaireMissing },
-    { key: 'ready', title: 'Ready', collapsed: false, test: a => a.status === 'READY' },
-    { key: 'closed', title: 'Completed, cancelled & no-show', collapsed: true, test: a => ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status) }
+  const defs: { key: BoardKey; title: TKey; collapsed: boolean; test: (a: Appointment) => boolean }[] = [
+    { key: 'review', title: 'enum.appointmentStatus.NEEDS_REVIEW', collapsed: false, test: a => a.status === 'NEEDS_REVIEW' },
+    { key: 'missing', title: 'chip.appt.questionnaireMissing', collapsed: false, test: a => a.status === 'SCHEDULED' && a.questionnaireMissing },
+    { key: 'awaiting', title: 'appts.group.awaiting', collapsed: false, test: a => a.status === 'SCHEDULED' && !a.questionnaireMissing },
+    { key: 'ready', title: 'enum.appointmentStatus.READY', collapsed: false, test: a => a.status === 'READY' },
+    { key: 'closed', title: 'appts.group.closed', collapsed: true, test: a => ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status) }
   ];
   return defs
     .map(d => ({ key: d.key, title: d.title, collapsed: d.collapsed, items: appts.filter(d.test).sort(byTime) }))
@@ -58,9 +60,7 @@ export interface WeekDay { date: string; label: string; isToday: boolean; blocks
 
 export interface Week { days: WeekDay[]; startHour: number; endHour: number; hourPx: number }
 
-const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-export function layoutWeek(appts: Appointment[], monday: string, opts: { today?: string; hourPx?: number } = {}): Week {
+export function layoutWeek(appts: Appointment[], monday: string, opts: { today?: string; hourPx?: number; lang?: AnyLang } = {}): Week {
   const hourPx = opts.hourPx ?? HOUR_PX;
   // A block is never drawn shorter than MIN_BLOCK_PX, so lanes are computed on that visual extent in minutes.
   const minBlockMinutes = (MIN_BLOCK_PX / hourPx) * 60;
@@ -110,7 +110,7 @@ export function layoutWeek(appts: Appointment[], monday: string, opts: { today?:
     }
     closeCluster();
     days.push({
-      date, label: `${DOW[i]} ${Number(date.substring(8, 10))}`, isToday: date === today,
+      date, label: fmtDate(date, 'weekdayDay', opts.lang ?? 'en'), isToday: date === today,
       blocks: placed.map(b => ({
         appt: b.appt, top: b.top, height: b.height, lane: b.lane, lanes: b.lanes,
         leftPct: (b.lane / b.lanes) * 100, widthPct: 100 / b.lanes

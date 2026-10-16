@@ -1,12 +1,15 @@
 import { Component, ElementRef, HostListener, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { DocumentService } from '../../../Services/Document.service';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { fmtDate, fmtFileSize } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
+import { TKey } from '../../../i18n/i18n.types';
 import { apiErrorOf } from '../../../models/api-error.model';
 import { DOCUMENT_CATEGORIES, DocumentCategory, PatientDocument } from '../../../models/document.model';
-import { ACCEPT, MAX_BYTES, extensionOf, humanSize, typeLabel } from '../../../shared/files.util';
-import { humanize } from '../../../shared/link.util';
+import { ACCEPT, MAX_BYTES, extensionOf, typeLabel } from '../../../shared/files.util';
 
-export const TOO_BIG = 'File exceeds 10 MB';
-export const BAD_TYPE = 'Only PDF, JPEG and PNG files are accepted';
+export const TOO_BIG: TKey = 'pf.docs.tooBig';
+export const BAD_TYPE: TKey = 'pf.docs.badType';
 
 @Component({
   selector: 'app-patient-documents',
@@ -17,8 +20,6 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
 
   readonly accept = ACCEPT;
   readonly categories = DOCUMENT_CATEGORIES;
-  readonly humanize = humanize;
-  readonly humanSize = humanSize;
   readonly typeLabel = typeLabel;
 
   docs: PatientDocument[] = [];
@@ -43,7 +44,12 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
   @ViewChild('drawerEl') drawerEl?: ElementRef<HTMLElement>;
   private trigger: HTMLElement | null = null;
 
-  constructor(private documents: DocumentService) {}
+  constructor(private documents: DocumentService, public i18n: I18nService, private apiErrors: ApiErrorsService) {}
+
+
+  menuItems(): { key: string; label: string }[] {
+    return [{ key: 'delete', label: this.i18n.t('common.delete') }];
+  }
 
   ngOnInit(): void {
     this.load();
@@ -129,7 +135,7 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
   onFile(e: Event): void {
     const f = (e.target as HTMLInputElement).files?.[0] ?? null;
     this.file = f;
-    this.errors = { ...this.errors, file: f && f.size > MAX_BYTES ? TOO_BIG : undefined };
+    this.errors = { ...this.errors, file: f && f.size > MAX_BYTES ? this.i18n.t(TOO_BIG) : undefined };
   }
 
   upload(): void {
@@ -137,15 +143,15 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
       return;
     }
     if (!this.file) {
-      this.errors = { file: 'Choose a file' };
+      this.errors = { file: this.i18n.t('pf.docs.chooseFile') };
       return;
     }
     if (this.file.size > MAX_BYTES) {
-      this.errors = { file: TOO_BIG };
+      this.errors = { file: this.i18n.t(TOO_BIG) };
       return;
     }
     if (this.file.size === 0) {
-      this.errors = { file: 'The file is empty' };
+      this.errors = { file: this.i18n.t('pf.docs.empty') };
       return;
     }
     this.uploading = true;
@@ -160,13 +166,14 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
         this.uploading = false;
         const api = apiErrorOf(err);
         if (err?.status === 413 || api?.error === 'PAYLOAD_TOO_LARGE') {
-          this.errors = { file: TOO_BIG };
+          this.errors = { file: this.i18n.t(TOO_BIG) };
         } else if (err?.status === 415 || api?.error === 'UNSUPPORTED_MEDIA_TYPE') {
-          this.errors = { file: BAD_TYPE };
+          this.errors = { file: this.i18n.t(BAD_TYPE) };
         } else if (api && Object.keys(api.fieldErrors).length) {
-          this.errors = { file: api.fieldErrors['file'], category: api.fieldErrors['category'], title: api.fieldErrors['title'] };
+          const f = this.apiErrors.fieldTexts(err);
+          this.errors = { file: f['file'], category: f['category'], title: f['title'] };
         } else {
-          this.errors = { banner: 'Could not upload the document.' };
+          this.errors = { banner: this.apiErrors.text(err, 'pf.docs.error.upload') };
         }
       }
     });
@@ -192,9 +199,9 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
           this.open('view', trigger);
         }
       },
-      error: () => {
+      error: err => {
         this.viewBusy = false;
-        this.actionError = 'Could not open the document.';
+        this.actionError = this.apiErrors.text(err, 'pf.docs.error.open');
       }
     });
   }
@@ -221,7 +228,7 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       },
-      error: () => (this.actionError = 'Could not download the document.')
+      error: err => (this.actionError = this.apiErrors.text(err, 'pf.docs.error.download'))
     });
   }
 
@@ -239,9 +246,9 @@ export class PatientDocumentsComponent implements OnInit, OnDestroy {
         this.deleting = null;
         this.docs = this.docs.filter(x => x.id !== d.id);
       },
-      error: () => {
+      error: err => {
         this.deleteBusy = false;
-        this.actionError = 'Could not delete the document.';
+        this.actionError = this.apiErrors.text(err, 'pf.docs.error.delete');
       }
     });
   }

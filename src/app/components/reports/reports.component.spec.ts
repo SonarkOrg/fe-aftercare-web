@@ -9,6 +9,7 @@ import { WeekBarsComponent } from '../../shared/week-bars/week-bars.component';
 import { report } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ReportsComponent } from './reports.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('ReportsComponent', () => {
   let fixture: ComponentFixture<ReportsComponent>;
@@ -22,7 +23,7 @@ describe('ReportsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [ReportsComponent, WeekBarsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -110,7 +111,7 @@ describe('ReportsComponent', () => {
     q<HTMLButtonElement>('.apply-range').click();
     await settle();
     http.expectNone(r => r.url === url);
-    expect(q('.field-error').textContent).toBe('The end date must not be before the start date.');
+    expect(q('.field-error').textContent).toBe('Must be on or after the start date.');
   });
 
   it('a range over 366 days shows an error and sends no request; exactly 366 is allowed', async () => {
@@ -143,7 +144,7 @@ describe('ReportsComponent', () => {
     expect(tiles.map(t => t.querySelector('.tile__label')!.textContent!.replace(/\s+/g, ' ').trim())).toEqual(
       ['Check-in completion', 'Active follow-ups', 'Follow-ups started', 'Follow-ups closed']);
     expect(tiles[0].querySelector('.tile__value')!.textContent!.trim()).toBe('—');
-    expect(tiles[0].querySelector('.tile__sub')!.textContent).toBe('0 of 0 · through 2026-10-14');
+    expect(tiles[0].querySelector('.tile__sub')!.textContent).toBe('0 of 0 · through 14 Oct 2026');
     expect(tiles[1].querySelector('.tile__value')!.textContent!.trim()).toBe('4');
     expect(tiles[2].querySelector('.tile__value')!.textContent!.trim()).toBe('6');
     expect(tiles[3].querySelector('.tile__value')!.textContent!.trim()).toBe('2');
@@ -161,8 +162,8 @@ describe('ReportsComponent', () => {
   it('shows the completion percentage', async () => {
     await init();
     const first = el.querySelector('app-ring-tile .tile')!;
-    expect(first.querySelector('.tile__value')!.textContent!.trim()).toBe('75 %');
-    expect(first.querySelector('.tile__sub')!.textContent).toBe('15 of 20 · through 2026-10-14');
+    expect(first.querySelector('.tile__value')!.textContent!.trim()).toBe('75%');
+    expect(first.querySelector('.tile__sub')!.textContent).toBe('15 of 20 · through 14 Oct 2026');
   });
 
   it('shows the alert KPIs: counts, means with "—" for none, and a critical chip with glyph and word', async () => {
@@ -196,9 +197,9 @@ describe('ReportsComponent', () => {
     const tiles = Array.from(cards[cards.length - 1].querySelectorAll('app-ring-tile .tile'));
     const val = (i: number) => tiles[i].querySelector('.tile__value')!.textContent!.trim();
     const sub = (i: number) => tiles[i].querySelector('.tile__sub')!.textContent;
-    expect(val(0)).toBe('75 %');
+    expect(val(0)).toBe('75%');
     expect(sub(0)).toBe('6 of 8');
-    expect(val(1)).toBe('33 %');
+    expect(val(1)).toBe('33%');
     expect(sub(1)).toBe('2 of 6 flagged');
     expect(val(2)).toBe('2 / 10');
     expect(val(3)).toBe('1');
@@ -212,12 +213,12 @@ describe('ReportsComponent', () => {
     const alerts = charts[0];
     expect(alerts.querySelector('svg.bc')!.getAttribute('role')).toBe('img');
     expect(alerts.querySelector('svg title')!.textContent).toBe('Alerts per week');
-    expect(alerts.querySelector('svg desc')!.textContent).toBe('Alerts per week, 18 Sep to 27 Sep: 1 high, 2 medium');
+    expect(alerts.querySelector('svg desc')!.textContent).toBe('Alerts per week, 18 Sept to 27 Sept: 1 high, 2 medium');
     expect(alerts.querySelector('.trend__legend')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('▲ High · ● Medium');
     const cells = (c: Element) => Array.from(c.querySelectorAll('table.sr-only tbody tr')).map(tr => Array.from(tr.children).map(x => x.textContent!.trim()));
-    expect(cells(alerts)).toEqual([['18 Sep to 20 Sep', '1', '2'], ['21 Sep to 27 Sep', '0', '0']]);
+    expect(cells(alerts)).toEqual([['18 Sept to 20 Sept', '1', '2'], ['21 Sept to 27 Sept', '0', '0']]);
     const completion = charts[1];
-    expect(cells(completion)).toEqual([['18 Sep to 20 Sep', '75%'], ['21 Sep to 27 Sep', '–']]); // 0 expected: a dash, not 0 %
+    expect(cells(completion)).toEqual([['18 Sept to 20 Sept', '75%'], ['21 Sept to 27 Sept', '–']]); // 0 expected: a dash, not 0 %
     expect(completion.querySelector('.bc-bar--miss')).not.toBeNull();
   });
 
@@ -228,7 +229,7 @@ describe('ReportsComponent', () => {
     q<HTMLButtonElement>('.export-csv').click();
     expect(save).toHaveBeenCalledTimes(1);
     const [name, text] = save.calls.mostRecent().args;
-    expect(name).toBe('aftercare-report-2026-09-18-to-2026-10-15.csv');
+    expect(name).toBe('aftercare-report-2026-09-18-2026-10-15.csv');
     expect(text.charCodeAt(0)).toBe(0xfeff);
     expect(text).toContain('"checkIns.expected","20"');
   });
@@ -237,7 +238,7 @@ describe('ReportsComponent', () => {
     await settle();
     summary(addDays(today, -27), today).flush('x', { status: 500, statusText: 'Server Error' });
     await settle();
-    expect(q('.banner--error').textContent).toContain('Could not load the report.');
+    expect(q('.banner--error').textContent).toContain('Server error. Please try again later.');
     expect(q<HTMLButtonElement>('.export-csv').disabled).toBeTrue();
     q<HTMLButtonElement>('.banner--error button').click();
     summary(addDays(today, -27), today).flush(report());

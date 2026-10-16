@@ -9,6 +9,7 @@ import { JANE, message, thread, providePermissions } from '../../testing/fixture
 import { AccessRole } from '../../models/me.model';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { MessageThreadComponent } from './message-thread.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('MessageThreadComponent', () => {
   let fixture: ComponentFixture<MessageThreadComponent>;
@@ -22,7 +23,7 @@ describe('MessageThreadComponent', () => {
   beforeEach(async () => {
     refresh = jasmine.createSpy('refresh');
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [MessageThreadComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), { provide: MessageCountService, useValue: { refresh } }]
     }).compileComponents();
@@ -358,7 +359,7 @@ describe('MessageThreadComponent by permission', () => {
 
   async function mount(role: AccessRole) {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [MessageThreadComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions(role), { provide: MessageCountService, useValue: { refresh: () => undefined } }]
     }).compileComponents();

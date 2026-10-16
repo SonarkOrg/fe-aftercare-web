@@ -5,8 +5,10 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../../environments/environment';
 import { PatientDocument } from '../../../models/document.model';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
-import { BAD_TYPE, PatientDocumentsComponent, TOO_BIG } from './patient-documents.component';
+import { testT } from '../../../testing/i18n-testing.module';
+import { BAD_TYPE, PatientDocumentsComponent } from './patient-documents.component';
 import { providePermissions } from '../../../testing/fixtures';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('PatientDocumentsComponent', () => {
   let fixture: ComponentFixture<PatientDocumentsComponent>;
@@ -23,7 +25,7 @@ describe('PatientDocumentsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       providers: [providePermissions('NURSE')],
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientDocumentsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -66,7 +68,7 @@ describe('PatientDocumentsComponent', () => {
     await init();
     const row = q('.doc-row');
     expect(row.querySelector('.row__name')!.textContent).toBe('Discharge summary');
-    expect(row.querySelector('.row__sub')!.textContent).toBe('Discharge summary · PDF · 2 KB · 14 Oct 2026 · Dev Nurse');
+    expect(row.querySelector('.row__sub')!.textContent).toBe('Discharge summary · PDF · 2\u00a0KB · 14 Oct 2026 · Dev Nurse');
     expect(q('.documents-card .badge').textContent).toBe('1');
   });
 
@@ -97,7 +99,7 @@ describe('PatientDocumentsComponent', () => {
     await init();
     await openUpload();
     await pick(new File([new Uint8Array(11 * 1024 * 1024)], 'big.pdf'));
-    expect(q('.drawer .field-error').textContent).toBe(TOO_BIG);
+    expect(q('.drawer .field-error').textContent).toBe('File exceeds 10 MB');
     await submit();
     http.expectNone(`${api}/patients/5/documents`);
     expect(q('.drawer .field-error').textContent).toBe('File exceeds 10 MB');
@@ -146,7 +148,7 @@ describe('PatientDocumentsComponent', () => {
     http.expectOne(`${api}/patients/5/documents`).flush({ status: 415, error: 'UNSUPPORTED_MEDIA_TYPE', message: 'x', fieldErrors: {} }, { status: 415, statusText: 'Unsupported Media Type' });
     await settle();
     expect(q('.drawer .field-error').textContent).toBe('Only PDF, JPEG and PNG files are accepted');
-    expect(BAD_TYPE).toBe('Only PDF, JPEG and PNG files are accepted');
+    expect(testT('en')(BAD_TYPE)).toBe('Only PDF, JPEG and PNG files are accepted');
     await submit();
     http.expectOne(`${api}/patients/5/documents`).flush({ status: 413, error: 'PAYLOAD_TOO_LARGE', message: 'x', fieldErrors: {} }, { status: 413, statusText: 'Payload Too Large' });
     await settle();
@@ -162,7 +164,7 @@ describe('PatientDocumentsComponent', () => {
     http.expectOne(`${api}/patients/5/documents`).flush(
       { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { title: 'size must be between 1 and 120' } }, { status: 400, statusText: 'Bad Request' });
     await settle();
-    expect(q('#doc-title').parentElement!.querySelector('.field-error')!.textContent).toBe('size must be between 1 and 120');
+    expect(q('#doc-title').parentElement!.querySelector('.field-error')!.textContent).toBe('120 characters at most.');
   });
 
   it('the upload drawer starts with focus on the file input', async () => {

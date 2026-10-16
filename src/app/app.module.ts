@@ -1,8 +1,9 @@
-import { NgModule } from '@angular/core';
+import { APP_INITIALIZER, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { SharedModule } from './shared/shared.module';
+import { I18nService } from './i18n/i18n.service';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -15,11 +16,6 @@ import { PatientsComponent } from './components/patients/patients.component';
 import { ShellComponent } from './shell/shell.component';
 import { FooterComponent } from './shared/footer/footer.component';
 import { HomeComponent } from './components/home/home.component';
-import { AlertsComponent } from './components/alerts/alerts.component';
-import { AppointmentsComponent } from './components/appointments/appointments.component';
-import { AppointmentFormComponent } from './components/appointment-form/appointment-form.component';
-import { QuestionnairesComponent } from './components/questionnaires/questionnaires.component';
-import { QuestionnaireDetailComponent } from './components/questionnaire-detail/questionnaire-detail.component';
 
 @NgModule({
   declarations: [
@@ -29,12 +25,7 @@ import { QuestionnaireDetailComponent } from './components/questionnaire-detail/
     DashboardComponent,
     PatientsComponent,
     FooterComponent,
-    HomeComponent,
-    AlertsComponent,
-    AppointmentsComponent,
-    AppointmentFormComponent,
-    QuestionnairesComponent,
-    QuestionnaireDetailComponent
+    HomeComponent
   ],
   imports: [
     BrowserModule,
@@ -44,6 +35,7 @@ import { QuestionnaireDetailComponent } from './components/questionnaire-detail/
     SharedModule
   ],
   providers: [
+    { provide: APP_INITIALIZER, multi: true, useFactory: (i: I18nService) => () => i.boot(), deps: [I18nService] },
     ...staffAuthProviders,
     { provide: HTTP_INTERCEPTORS, useClass: StaffAuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: ForbiddenInterceptor, multi: true }

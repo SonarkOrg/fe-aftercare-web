@@ -8,11 +8,18 @@ import { CareDataService } from '../../Services/CareData.service';
 import { SettingsService } from '../../Services/Settings.service';
 import { Permissions } from '../../auth/permissions.service';
 import { StaffAuth } from '../../auth/staff-auth';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { fmtClock, fmtDate, fmtList, fmtNum } from '../../i18n/format';
+import { I18nService } from '../../i18n/i18n.service';
+import { Msg } from '../../i18n/i18n.types';
+import { enumKey } from '../../i18n/enum-key';
 import { Alert } from '../../models/alert.model';
 import { Appointment, AppointmentMetrics } from '../../models/appointment.model';
 import { CareSnapshot, PatientRow } from '../../shared/care.model';
-import { addDays, businessHour, businessNow, businessToday, humanize } from '../../shared/link.util';
+import { addDays, businessHour, businessNow, businessToday } from '../../shared/link.util';
 import { STATUS_RANK, chartTodayDay } from '../../shared/patient-status';
+import { alertQuestion } from '../../i18n/content';
+import { alertAnswer } from '../../shared/alert.util';
 import { ChipSpec, appointmentChip, severityChip } from '../../shared/status';
 import {
   ActiveStats, ProgressSegments, ToPrepare, ackHigh, activeStats, appointmentsToPrepare, checkInsToday, greeting, isTodayOrTomorrow,
@@ -67,15 +74,14 @@ export class DashboardComponent implements OnInit {
   menuKey: string | null = null;
   showAll = false;
   chartPatientId: number | null = null;
-  humanize = humanize;
   severityChip = severityChip;
   appointmentChip = appointmentChip;
-  reviewChip: ChipSpec = { tone: 'serious', glyph: '◆', label: 'Needs review', short: 'Review' };
-  missingChip: ChipSpec = { tone: 'warning', glyph: '●', label: 'Questionnaire missing', short: 'No form' };
-  missedChip: ChipSpec = { tone: 'warning', glyph: '●', label: 'Missed check-in', short: 'Missed' };
-  atOrAboveChip: ChipSpec = { tone: 'critical', glyph: '▲', label: 'At or above alert' };
-  criticalChip: ChipSpec = { tone: 'critical', glyph: '▲', label: 'Critical' };
-  noneChip: ChipSpec = { tone: 'good', glyph: '✓', label: 'None open' };
+  reviewChip: ChipSpec = { tone: 'serious', glyph: '◆', label: { key: 'enum.appointmentStatus.NEEDS_REVIEW' }, short: { key: 'chip.appt.reviewShort' } };
+  missingChip: ChipSpec = { tone: 'warning', glyph: '●', label: { key: 'chip.appt.questionnaireMissing' }, short: { key: 'chip.appt.questionnaireMissingShort' } };
+  missedChip: ChipSpec = { tone: 'warning', glyph: '●', label: { key: 'alert.missedCheckIn' }, short: { key: 'dashboard.chip.missedShort' } };
+  atOrAboveChip: ChipSpec = { tone: 'critical', glyph: '▲', label: { key: 'dashboard.chip.atOrAbove' } };
+  criticalChip: ChipSpec = { tone: 'critical', glyph: '▲', label: { key: 'dashboard.chip.critical' } };
+  noneChip: ChipSpec = { tone: 'good', glyph: '✓', label: { key: 'dashboard.chip.noneOpen' } };
 
   // derived (see rebuild())
   kpi = { openHigh: 0, newToday: 0, ackHigh: 0, received: 0, expected: 0, missed: 0, prepare: { needsReview: 0, missing: 0, total: 0 } as ToPrepare };
@@ -101,7 +107,9 @@ export class DashboardComponent implements OnInit {
     private alertCount: AlertCountService,
     settings: SettingsService,
     auth: StaffAuth,
-    private permissions: Permissions
+    private permissions: Permissions,
+    private i18n: I18nService,
+    private errors: ApiErrorsService
   ) {
     this.clinicName$ = settings.clinic$.pipe(map(c => c.name), catchError(() => of(environment.clinicName)));
     this.firstName$ = combineLatest([permissions.me$, auth.userName$]).pipe(map(([me, n]) => ((me?.displayName ?? n ?? '').trim().split(/\s+/)[0]) ?? ''));
@@ -117,7 +125,7 @@ export class DashboardComponent implements OnInit {
   }
 
   get greetingText(): string {
-    return greeting(businessHour(this.now()));
+    return this.i18n.t(greeting(businessHour(this.now())));
   }
 
   get yesterday(): string {
@@ -144,7 +152,7 @@ export class DashboardComponent implements OnInit {
       error: () => {
         this.loading = false;
         this.snapshot = null; // never show "nothing needs attention" / "no appointments" on top of a failed load
-        this.errorMessage = 'Could not load the dashboard.';
+        this.errorMessage = this.i18n.t('dashboard.error.load');
       }
     });
   }
@@ -168,7 +176,7 @@ export class DashboardComponent implements OnInit {
       error: () => {
         this.loading = false;
         this.receptionReady = false;
-        this.errorMessage = 'Could not load the dashboard.';
+        this.errorMessage = this.i18n.t('dashboard.error.load');
       }
     });
   }
@@ -214,7 +222,7 @@ export class DashboardComponent implements OnInit {
     const rowOf = (id: number) => s.rows.find(r => r.patient.id === id);
     const dayOf = (id: number) => {
       const d = rowOf(id)?.day;
-      return d ? ` · Day ${d.day} of ${d.total}` : '';
+      return d ? ` · ${this.i18n.t('common.dayOf', { day: d.day, total: d.total })}` : '';
     };
     const out: AttentionItem[] = [];
     for (const a of this.critical) {
@@ -227,20 +235,20 @@ export class DashboardComponent implements OnInit {
     for (const a of this.reviews) {
       out.push({
         key: 'r' + a.id, kind: 'review', name: this.nameOf(a), initials: this.initialsOf(a), patientId: a.patientId,
-        link: ['/appointments', a.id], sub: `${humanize(a.type)} · ${this.time(a)}${a.flagCount ? ' · ' + a.flagCount + ' flag(s)' : ''}`,
+        link: ['/appointments', a.id], sub: `${this.typeLabel(a)} · ${this.time(a)}${a.flagCount ? ' · ' + this.i18n.t('dashboard.flags', { count: a.flagCount }) : ''}`,
         chip: this.reviewChip, appt: a
       });
     }
     for (const a of this.missing) {
       out.push({
         key: 'm' + a.id, kind: 'missing', name: this.nameOf(a), initials: this.initialsOf(a), patientId: a.patientId,
-        link: ['/appointments', a.id], sub: `${humanize(a.type)} · ${this.when(a)}`, chip: this.missingChip, appt: a
+        link: ['/appointments', a.id], sub: `${this.typeLabel(a)} · ${this.when(a)}`, chip: this.missingChip, appt: a
       });
     }
     for (const r of this.missedRows) {
       out.push({
         key: 'x' + r.patient.id, kind: 'missed', name: r.name, initials: r.initials, patientId: r.patient.id!,
-        link: ['/patients', r.patient.id], sub: `No check-in ${this.shortDate(this.yesterday)}`, chip: this.missedChip, phone: r.patient.phone
+        link: ['/patients', r.patient.id], sub: this.i18n.t('dashboard.noCheckIn', { date: this.shortDate(this.yesterday) }), chip: this.missedChip, phone: r.patient.phone
       });
     }
     return out;
@@ -249,13 +257,13 @@ export class DashboardComponent implements OnInit {
   /** "Pain 8" / "Temp 38.4 °C"; any other measure keeps its question label. */
   alertShort(a: Alert): string {
     if (a.type === 'MISSED_CHECKIN') {
-      return a.missedDate ? `Missed check-in ${this.shortDate(a.missedDate)}` : 'Missed check-in';
+      return a.missedDate ? this.i18n.t('dashboard.missedOn', { date: this.shortDate(a.missedDate) }) : this.i18n.t('alert.missedCheckIn');
     }
     const v = this.display(a);
     switch (a.linkId) {
-      case 'PAIN': return `Pain ${v}`;
-      case 'TEMPERATURE': return `Temp ${v} °C`;
-      default: return `${a.questionLabel}: ${v}`;
+      case 'PAIN': return this.i18n.t('dashboard.measure.pain', { value: v });
+      case 'TEMPERATURE': return this.i18n.t('dashboard.measure.temp', { value: v });
+      default: return this.i18n.t('dashboard.measure.other', { label: alertQuestion(a, this.i18n.lang, k => this.i18n.t(k)).text, value: v });
     }
   }
 
@@ -264,8 +272,7 @@ export class DashboardComponent implements OnInit {
   }
 
   private shortDate(iso: string): string {
-    const [, m, d] = iso.split('-').map(Number);
-    return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${d}`;
+    return fmtDate(iso, 'dateShort', this.i18n.lang);
   }
 
   get chartRow(): PatientRow | null {
@@ -313,15 +320,38 @@ export class DashboardComponent implements OnInit {
   }
 
   display(a: Alert): string {
-    return a.answerValue === 'true' ? 'Yes' : a.answerValue === 'false' ? 'No' : a.answerValue ?? '—';
+    return alertAnswer(a, this.i18n.lang, k => this.i18n.t(k));
   }
 
   when(a: Appointment): string {
-    return `${a.scheduledAt.substring(0, 10)} ${a.scheduledAt.substring(11, 16)}`;
+    return `${fmtDate(a.scheduledAt.substring(0, 10), 'dayShort', this.i18n.lang)} ${fmtClock(a.scheduledAt.substring(11, 16), this.i18n.lang)}`;
   }
 
   time(a: Appointment): string {
-    return a.scheduledAt.substring(11, 16);
+    return fmtClock(a.scheduledAt.substring(11, 16), this.i18n.lang);
+  }
+
+  typeLabel(a: Appointment): string {
+    return this.i18n.t(enumKey('appointmentType', a.type));
+  }
+
+  get criticalTitle(): string {
+    return [this.i18n.t('dashboard.kpi.criticalNew', { count: this.kpi.newToday }), this.i18n.t('dashboard.kpi.criticalAck', { count: this.kpi.ackHigh })].join(' · ');
+  }
+
+  get prepareTitle(): string {
+    return [this.i18n.t('dashboard.kpi.prepareReview', { count: this.kpi.prepare.needsReview }), this.i18n.t('dashboard.kpi.prepareMissing', { count: this.kpi.prepare.missing })].join(' · ');
+  }
+
+  get segAria(): string {
+    const p = this.progress;
+    const lang = this.i18n.lang;
+    const base = this.i18n.t(this.overviewDay === 'today' ? 'dashboard.seg.ariaToday' : 'dashboard.seg.ariaYesterday', { received: p.received, expected: p.expected });
+    const parts = [
+      ...(p.pending ? [this.i18n.t('dashboard.seg.pending', { count: p.pending })] : []),
+      ...(p.missed ? [this.i18n.t('dashboard.seg.missed', { count: p.missed })] : [])
+    ];
+    return parts.length ? `${base}, ${fmtList(parts, lang)}` : base;
   }
 
   isClosed(a: Appointment): boolean {
@@ -345,7 +375,7 @@ export class DashboardComponent implements OnInit {
         this.critical = this.critical.filter(x => x.id !== a.id);
         this.items = this.items.filter(i => i.key !== 'a' + a.id);
         this.menuKey = null;
-        this.live = 'Alert acknowledged.';
+        this.live = this.i18n.t('dashboard.live.acknowledged');
         this.alertCount.refresh();
         this.reload();
       },
@@ -358,7 +388,7 @@ export class DashboardComponent implements OnInit {
     this.appointments.markReviewed(a.id).subscribe({
       next: () => {
         this.menuKey = null;
-        this.live = 'Appointment marked reviewed.';
+        this.live = this.i18n.t('dashboard.live.reviewed');
         this.reload();
       },
       error: err => this.failed(err, 'appointment')
@@ -366,7 +396,7 @@ export class DashboardComponent implements OnInit {
   }
 
   newLink(a: Appointment): void {
-    if (!window.confirm('The previous link will stop working. Continue?')) {
+    if (!window.confirm(this.i18n.t('dashboard.confirmNewLink'))) {
       return;
     }
     this.actionError = null;
@@ -382,10 +412,10 @@ export class DashboardComponent implements OnInit {
   private failed(err: { status?: number }, what: 'alert' | 'appointment'): void {
     this.menuKey = null;
     if (err?.status === 409) {
-      this.actionError = `This ${what} was updated by someone else. Reloading.`;
+      this.actionError = this.i18n.t(what === 'alert' ? 'dashboard.error.alertConflict' : 'dashboard.error.apptConflict');
       this.reload();
     } else {
-      this.actionError = 'Could not update. Please try again.';
+      this.actionError = this.errors.text(err, 'dashboard.error.update');
     }
   }
 }

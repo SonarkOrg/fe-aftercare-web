@@ -23,7 +23,7 @@
 .profile-hero__chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
 
 /* ---------- grids ---------- */
-.grid-a { display: grid; gap: 20px; grid-template-columns: minmax(0, 710fr) minmax(0, 316fr) minmax(0, 326fr); align-items: stretch; }
+.grid-a { display: grid; gap: 20px; grid-template-columns: minmax(0, 600fr) minmax(0, 400fr) minmax(0, 360fr); align-items: stretch; }
 .grid-b { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 20px; align-items: start; }
 .grid-2 { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
 .grid-12 { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
@@ -82,9 +82,10 @@
 .brand:hover { color: #fff; }
 .user-pill { display: inline-flex; align-items: center; gap: 12px; height: 48px; padding: 0 18px 0 20px; border-radius: 16px; background: var(--ink); color: #fff;
   font: 400 15.5px/1 var(--font-display); white-space: nowrap; min-width: 0; }
-.user-pill__name { flex: 0 0 auto; white-space: nowrap; } /* the name keeps its full width; the dev chip gives up room first */
-.user-pill .chip { flex: 0 1 auto; min-width: 0; overflow: hidden; }
-.user-pill .chip__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.user-pill__name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* the name ellipsizes first; the role badge keeps its full label */
+.user-pill .chip, .user-pill app-role-badge { flex: 0 0 auto; }
+.user-pill .chip--warning { flex: 0 1 auto; min-width: 0; overflow: hidden; } /* then the dev chip */
+.user-pill .chip--warning .chip__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .user-pill__initials { display: none; }
 .top-nav { display: flex; gap: 6px; padding: 4px; height: 48px; border-radius: 16px; background: #fff; }
 .top-nav__item { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--r-active); color: var(--ink-2);
@@ -112,7 +113,7 @@
 .menu-dev { padding: 4px 12px; }
 /* the seven top-bar items need the room: the user pill collapses to its initials below 1280 px, and the dev chip
    shows in the pill only from 1600 px (below that it is in the menu), so the staff name is never truncated */
-@media (max-width: 1599px) { .user-pill .chip:not(.role-badge) { display: none; } }
+@media (max-width: 1599px) { .user-pill .chip:not(.role-badge) { display: none; } .user-pill app-icon { display: none; } .user-pill { gap: 8px; padding: 0 14px; } .top-nav__item { padding: 0 12px; } }
 @media (max-width: 1279px) {
   .user-pill { width: 48px; padding: 0; justify-content: center; }
   .user-pill__name, .user-pill .chip { display: none; }

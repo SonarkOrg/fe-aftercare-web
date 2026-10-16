@@ -1,11 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { StatusChipComponent } from './status-chip.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('StatusChipComponent', () => {
   function render(size?: 'sm') {
-    TestBed.configureTestingModule({ declarations: [StatusChipComponent] });
+    TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang()], declarations: [StatusChipComponent] });
     const f = TestBed.createComponent(StatusChipComponent);
-    f.componentRef.setInput('spec', { tone: 'critical', glyph: '▲', label: 'Critical' });
+    f.componentRef.setInput('spec', { tone: 'critical', glyph: '▲', label: { key: 'enum.patientStatus.CRITICAL' } });
     if (size) {
       f.componentRef.setInput('size', size);
     }

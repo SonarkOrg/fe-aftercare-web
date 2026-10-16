@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { QuestionnaireDefinition } from '../../models/questionnaire-definition.model';
-import { humanize } from '../../shared/link.util';
+import { questionnaireTitle } from '../../i18n/content';
+import { enumKey } from '../../i18n/enum-key';
+import { I18nService } from '../../i18n/i18n.service';
 
 @Component({
   selector: 'app-questionnaires',
@@ -11,9 +13,12 @@ export class QuestionnairesComponent implements OnInit {
   definitions: QuestionnaireDefinition[] = [];
   loading = true;
   errorMessage: string | null = null;
-  humanize = humanize;
 
-  constructor(private service: QuestionnaireDefinitionService) {}
+  constructor(private service: QuestionnaireDefinitionService, private i18n: I18nService) {}
+
+  titleOf(d: QuestionnaireDefinition): string {
+    return questionnaireTitle(d, this.i18n.lang);
+  }
 
   ngOnInit(): void {
     this.service.list().subscribe({
@@ -23,7 +28,7 @@ export class QuestionnairesComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.errorMessage = 'Could not load forms.';
+        this.errorMessage = this.i18n.t('forms.error.load');
       }
     });
   }
@@ -31,10 +36,10 @@ export class QuestionnairesComponent implements OnInit {
   scope(d: QuestionnaireDefinition): string {
     const parts: string[] = [];
     if (d.specialty) {
-      parts.push(humanize(d.specialty));
+      parts.push(this.i18n.t(enumKey('specialty', d.specialty)));
     }
     if (d.appointmentTypes.length) {
-      parts.push(d.appointmentTypes.map(humanize).join(', '));
+      parts.push(d.appointmentTypes.map(t => this.i18n.t(enumKey('appointmentType', t))).join(', '));
     }
     return parts.join(' / ') || '—';
   }

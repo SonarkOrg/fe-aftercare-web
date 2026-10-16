@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { RowMenuComponent } from './row-menu.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('RowMenuComponent', () => {
   let fixture: ComponentFixture<RowMenuComponent>;
@@ -8,7 +9,7 @@ describe('RowMenuComponent', () => {
   let picked: string[];
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ declarations: SHARED_DECLARATIONS }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang()], declarations: SHARED_DECLARATIONS }).compileComponents();
     fixture = TestBed.createComponent(RowMenuComponent);
     fixture.componentInstance.label = 'Actions for Jane';
     fixture.componentInstance.items = [{ key: 'edit', label: 'Edit' }, { key: 'remove', label: 'Remove' }];

@@ -1,8 +1,12 @@
+import { testT } from '../testing/i18n-testing.module';
 import { RuleJson } from '../models/questionnaire-definition.model';
 import { JANE, SEED_RULES, alertDto, appointment, checkInDto, followUp } from '../testing/fixtures';
 import {
   alertThreshold, buildRows, buildSeries, chartTodayDay, computeStatus, followUpDay, missedYesterday
 } from './patient-status';
+
+const t = testT('en');
+const texts = (r: { key: any; params?: any }[]) => r.map(m => t(m.key, m.params));
 
 describe('patient-status', () => {
   const today = '2026-10-13'; // follow-up 2026-10-10 .. 2026-10-17, day 3
@@ -24,10 +28,10 @@ describe('patient-status', () => {
     it('missed yesterday with no alerts -> ATTENTION', () => {
       const r = st([], []);
       expect(r.status).toBe('ATTENTION');
-      expect(r.reasons).toEqual(['Missed check-in 2026-10-12']);
+      expect(texts(r.reasons)).toEqual(['Missed check-in 2026-10-12']);
     });
     it('active, no alerts, checked in -> STABLE', () => {
-      expect(st()).toEqual({ status: 'STABLE', reasons: ['On track'] });
+      expect(st()).toEqual({ status: 'STABLE', reasons: [{ key: 'status.reason.onTrack' }] });
     });
     it('yesterday = discharge day (day 0), no check-in -> not missed -> STABLE', () => {
       expect(computeStatus({ followUp: f, alerts: [], checkIns: [], today: '2026-10-11' }).status).toBe('STABLE');
@@ -36,7 +40,7 @@ describe('patient-status', () => {
       expect(st([], [], followUp({ status: 'EXPIRED' })).status).toBe('INACTIVE');
     });
     it('no follow-up -> INACTIVE', () => {
-      expect(st([], [], null)).toEqual({ status: 'INACTIVE', reasons: ['No active follow-up'] });
+      expect(st([], [], null)).toEqual({ status: 'INACTIVE', reasons: [{ key: 'status.reason.noFollowUp' }] });
     });
     it('resolved alerts are ignored', () => {
       expect(st([alertDto({ status: 'RESOLVED' })]).status).toBe('STABLE');
@@ -44,10 +48,10 @@ describe('patient-status', () => {
     it('lists every applicable reason', () => {
       const r = st([alertDto({ id: 1 }), alertDto({ id: 2 }), alertDto({ id: 3, severity: 'MEDIUM', status: 'ACKNOWLEDGED' })], []);
       expect(r.status).toBe('CRITICAL');
-      expect(r.reasons).toEqual(['2 high alerts open', '1 alert unresolved', 'Missed check-in 2026-10-12']);
+      expect(texts(r.reasons)).toEqual(['2 high alerts open', '1 alert unresolved', 'Missed check-in 2026-10-12']);
     });
     it('ATTENTION reason counts all unresolved alerts', () => {
-      expect(st([alertDto({ severity: 'MEDIUM' }), alertDto({ id: 2, status: 'ACKNOWLEDGED' })]).reasons).toEqual(['2 alerts unresolved']);
+      expect(texts(st([alertDto({ severity: 'MEDIUM' }), alertDto({ id: 2, status: 'ACKNOWLEDGED' })]).reasons)).toEqual(['2 alerts unresolved']);
     });
   });
 

@@ -1,4 +1,6 @@
 import { AfterViewInit, Component, ElementRef, Input, NgZone, OnChanges, OnDestroy } from '@angular/core';
+import { I18nService } from '../../i18n/i18n.service';
+import { chartTextFor } from '../chart-text';
 import { WbCategory, WbModel, WbSeries, computeWeekBars } from './week-bars.geometry';
 
 let nextId = 0;
@@ -27,7 +29,7 @@ export class WeekBarsComponent implements OnChanges, AfterViewInit, OnDestroy {
   model!: WbModel;
   private ro?: ResizeObserver;
 
-  constructor(private host: ElementRef<HTMLElement>, private zone: NgZone) {
+  constructor(private host: ElementRef<HTMLElement>, private zone: NgZone, private i18n: I18nService) {
     this.recompute();
   }
 
@@ -58,6 +60,6 @@ export class WeekBarsComponent implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   private recompute(): void {
-    this.model = computeWeekBars({ categories: this.categories, series: this.series, unit: this.unit, max: this.max, title: this.title }, this.width);
+    this.model = computeWeekBars({ categories: this.categories, series: this.series, unit: this.unit, max: this.max, title: this.title }, this.width, chartTextFor(this.i18n));
   }
 }

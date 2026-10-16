@@ -7,6 +7,7 @@ import { environment } from '../../../../environments/environment';
 import { CLINIC, careTeamMember, contact, staffMember, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { PatientContactsComponent } from './patient-contacts.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 @Component({ selector: 'app-patient-notifications', template: '' })
 class StubNotificationsComponent {
@@ -28,7 +29,7 @@ describe('PatientContactsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       providers: [providePermissions('NURSE')],
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientContactsComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -69,8 +70,8 @@ describe('PatientContactsComponent', () => {
     expect(rows[0].querySelector('.row__name')!.textContent).toBe('John Doe');
     expect(rows[0].querySelector('.row__sub a')!.getAttribute('href')).toBe('tel:514-555-0111');
     expect(rows[0].querySelector('.row__sub')!.textContent).toContain('Spouse');
-    expect(rows[0].querySelector('.chip--neutral .chip__label')!.textContent).toBe('EN');
-    expect(rows[1].querySelector('.chip__label')!.textContent).toBe('FR');
+    expect(rows[0].querySelector('.chip--neutral .chip__label')!.textContent).toBe('English');
+    expect(rows[1].querySelector('.chip__label')!.textContent).toBe('French');
     const team = el.querySelectorAll('.care-team-card .rows .row');
     expect(team.length).toBe(2);
     expect(team[1].querySelector('.row__sub')!.textContent).toBe('Physician');
@@ -113,7 +114,7 @@ describe('PatientContactsComponent', () => {
     http.expectOne(`${base}/emergency-contacts`).flush(
       { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { phone: 'must be a valid phone number' } }, { status: 400, statusText: 'Bad Request' });
     await settle();
-    expect(q('#ec-phone').parentElement!.querySelector('.field-error')!.textContent).toBe('must be a valid phone number');
+    expect(q('#ec-phone').parentElement!.querySelector('.field-error')!.textContent).toBe('Invalid phone number.');
   });
 
   it('edits through the menu with PUT, and removes after a confirmation with DELETE', async () => {
@@ -165,7 +166,7 @@ describe('PatientContactsComponent', () => {
     q<HTMLButtonElement>('.assign-btn').click();
     http.expectOne(`${base}/care-team`).flush({ status: 409, error: 'ALREADY_ASSIGNED', message: 'Staff member is already on the care team', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
     await settle();
-    expect(q('.assign .banner--error').textContent).toContain('Staff member is already on the care team');
+    expect(q('.assign .banner--error').textContent).toContain('This staff member is already on the care team.');
   });
 
   it('removes a team member after a confirmation', async () => {

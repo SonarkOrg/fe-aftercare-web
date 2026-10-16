@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from '@auth0/auth0-angular';
 import { BehaviorSubject, firstValueFrom, of } from 'rxjs';
+import { I18nService } from '../i18n/i18n.service';
+import { I18nTestingModule } from '../testing/i18n-testing.module';
 import { Auth0StaffAuth } from './auth0-staff-auth';
 
 describe('Auth0StaffAuth', () => {
@@ -17,7 +19,7 @@ describe('Auth0StaffAuth', () => {
       logout: jasmine.createSpy('logout'),
       getAccessTokenSilently: jasmine.createSpy('getAccessTokenSilently').and.returnValue(of('a', 'b'))
     };
-    TestBed.configureTestingModule({ providers: [Auth0StaffAuth, { provide: AuthService, useValue: stub }] });
+    TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang('fr')], providers: [Auth0StaffAuth, { provide: AuthService, useValue: stub }] });
     auth = TestBed.inject(Auth0StaffAuth);
   });
 
@@ -35,9 +37,15 @@ describe('Auth0StaffAuth', () => {
 
   it('login passes the target in appState (default /dashboard)', () => {
     auth.login('/alerts');
-    expect(stub.loginWithRedirect).toHaveBeenCalledWith({ appState: { target: '/alerts' } });
+    expect(stub.loginWithRedirect).toHaveBeenCalledWith({ appState: { target: '/alerts' }, authorizationParams: { ui_locales: 'fr-CA fr' } });
     auth.login();
-    expect(stub.loginWithRedirect).toHaveBeenCalledWith({ appState: { target: '/dashboard' } });
+    expect(stub.loginWithRedirect).toHaveBeenCalledWith({ appState: { target: '/dashboard' }, authorizationParams: { ui_locales: 'fr-CA fr' } });
+  });
+
+  it('asks Auth0 for English only in the English UI', () => {
+    (TestBed.inject(I18nService) as unknown as { current: string }).current = 'en';
+    auth.login('/alerts');
+    expect(stub.loginWithRedirect).toHaveBeenCalledWith({ appState: { target: '/alerts' }, authorizationParams: { ui_locales: 'en-CA en' } });
   });
 
   it('logout returns to the origin', () => {

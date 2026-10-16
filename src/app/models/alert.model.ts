@@ -14,6 +14,8 @@ export interface Alert {
   checkInDate: string | null;
   linkId: string | null;
   questionLabel: string | null;
+  /** French question label (null for a missed check-in or an older server). */
+  questionLabelFr: string | null;
   answerValue: string | null;
   /** The day that was missed (MISSED_CHECKIN), else null. */
   missedDate: string | null;

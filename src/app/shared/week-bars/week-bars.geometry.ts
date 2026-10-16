@@ -1,3 +1,5 @@
+import { ChartText } from '../chart-text';
+
 export type WbTone = 'neutral' | 'critical' | 'warning';
 
 export interface WbCategory { label: string; from: string; to: string }
@@ -40,13 +42,6 @@ export const WB_MAX_BAR = 56;
 export const WB_PILL_H = 22;
 export const WB_MANY = 16;
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/** "2026-10-05" -> "5 Oct" (pure, no time zone involved). */
-export function dMMM(iso: string): string {
-  const [, m, d] = iso.split('-').map(Number);
-  return `${d} ${MONTHS[m - 1]}`;
-}
 
 /** Rounds `v` up to a "nice" axis maximum (1, 2, 5 x 10^k steps, at most ~5 ticks). */
 export function niceMax(v: number): { max: number; step: number } {
@@ -60,7 +55,9 @@ export function niceMax(v: number): { max: number; step: number } {
   return { max: Math.ceil(v / step - 1e-9) * step, step };
 }
 
-export function computeWeekBars(inp: WbInputs, width: number): WbModel {
+export function computeWeekBars(inp: WbInputs, width: number, tx: ChartText): WbModel {
+  /** "2026-10-05" -> "5 Oct" / "5 oct." (calendar date, no time zone involved). */
+  const dMMM = (iso: string) => tx.date(iso, 'dateShort');
   const pad = WB_PAD;
   const w = Math.max(width, 240);
   const h = WB_HEIGHT;
@@ -83,7 +80,7 @@ export function computeWeekBars(inp: WbInputs, width: number): WbModel {
 
   const yTicks: { y: number; label: string }[] = [];
   for (let t = 0; t <= domainMax + 1e-9; t += step) {
-    yTicks.push({ y: yOf(t), label: String(Math.round(t * 100) / 100) });
+    yTicks.push({ y: yOf(t), label: tx.num(Math.round(t * 100) / 100, '1.0-2') });
   }
 
   const hidePills = n > WB_MANY;
@@ -104,7 +101,7 @@ export function computeWeekBars(inp: WbInputs, width: number): WbModel {
       const y = baseline - barH;
       let pill: WbPill | null = null;
       if (!hidePills && !zero) {
-        const text = miss ? '–' : `${s.tone === 'neutral' ? '' : s.glyph + ' '}${value}${inp.unit}`;
+        const text = miss ? '–' : `${s.tone === 'neutral' ? '' : s.glyph + ' '}${tx.value(value as number, inp.unit)}`;
         const pw = Math.max(26, text.length * 8 + 12);
         // Narrow grouped bars would make neighbouring pills overlap: the value stays in the table instead.
         if (pw <= barW + WB_GAP || ns === 1) {
@@ -124,16 +121,18 @@ export function computeWeekBars(inp: WbInputs, width: number): WbModel {
   });
 
   const rows = inp.categories.map((cat, i) => ({
-    label: `${dMMM(cat.from)} to ${dMMM(cat.to)}`,
-    values: inp.series.map(s => (s.values[i] === null || s.values[i] === undefined ? '–' : `${s.values[i]}${inp.unit}`))
+    label: tx.t('weekBars.range', { from: dMMM(cat.from), to: dMMM(cat.to) }),
+    values: inp.series.map(s => (s.values[i] === null || s.values[i] === undefined ? '–' : tx.value(s.values[i] as number, inp.unit)))
   }));
   const first = inp.categories[0];
   const last = inp.categories[n - 1];
   const totals = inp.series.map(s => {
     const vals = s.values.filter((v): v is number => v !== null);
-    return inp.unit === '%' ? s.label : `${vals.reduce((a, b) => a + b, 0)} ${s.label.toLowerCase()}`;
+    return inp.unit === '%' ? s.label : `${tx.num(vals.reduce((a, b) => a + b, 0), '1.0-2')} ${s.label.toLowerCase()}`;
   });
-  const desc = n ? `${inp.title}, ${dMMM(first.from)} to ${dMMM(last.to)}${inp.unit === '%' ? '' : ': ' + totals.join(', ')}` : inp.title;
+  const desc = n
+    ? tx.t(inp.unit === '%' ? 'weekBars.desc' : 'weekBars.descTotals', { title: inp.title, from: dMMM(first.from), to: dMMM(last.to), totals: totals.join(', ') })
+    : inp.title;
 
   return { w, h, pad, baseline, domainMax, step, yTicks, labels, bars, hidePills, title: inp.title, desc, rows };
 }

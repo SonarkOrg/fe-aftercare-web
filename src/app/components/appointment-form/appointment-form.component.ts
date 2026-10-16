@@ -2,11 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { PatientService } from '../../Services/Patient.service';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { I18nService } from '../../i18n/i18n.service';
+import { TKey } from '../../i18n/i18n.types';
 import { apiErrorOf } from '../../models/api-error.model';
 import { Appointment, AppointmentType, AppointmentWithCode } from '../../models/appointment.model';
 import { Specialty } from '../../models/follow-up.model';
 import { Patient } from '../../models/patient.model';
-import { humanize, businessToday } from '../../shared/link.util';
+import { businessToday } from '../../shared/link.util';
 
 @Component({
   selector: 'app-appointment-form',
@@ -27,7 +30,6 @@ export class AppointmentFormComponent implements OnInit {
 
   types: AppointmentType[] = ['PRE_OP_CONSULT', 'SURGERY', 'POST_OP_FOLLOWUP', 'GENERAL_CONSULT'];
   specialties: Specialty[] = ['VISCERAL_SURGERY', 'ORTHOPEDIC_SURGERY'];
-  humanize = humanize;
 
   saving = false;
   error: string | null = null;
@@ -38,7 +40,9 @@ export class AppointmentFormComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private appointments: AppointmentService,
-    private patientService: PatientService
+    private patientService: PatientService,
+    private i18n: I18nService,
+    private errors: ApiErrorsService
   ) {}
 
   ngOnInit(): void {
@@ -48,7 +52,7 @@ export class AppointmentFormComponent implements OnInit {
       this.loaded = false;
       this.appointments.get(this.editId).subscribe({
         next: a => this.fill(a),
-        error: () => (this.error = 'Could not load the appointment.')
+        error: err => (this.error = this.errors.text(err, 'apptForm.error.loadAppt'))
       });
     }
     const pid = this.route.snapshot.queryParamMap.get('patientId');
@@ -57,12 +61,19 @@ export class AppointmentFormComponent implements OnInit {
     }
     this.patientService.getPatientList().subscribe({
       next: list => (this.patients = list),
-      error: () => (this.error = 'Could not load patients.')
+      error: err => (this.error = this.errors.text(err, 'apptForm.error.loadPatients'))
     });
   }
 
   get fieldErrorList(): string[] {
-    return Object.entries(this.fieldErrors).map(([k, v]) => `${k}: ${v}`);
+    const labels: Record<string, TKey> = {
+      scheduledAt: 'apptForm.field.scheduledAt', durationMinutes: 'apptForm.field.durationMinutes', location: 'appt.location',
+      clinician: 'appt.clinician', type: 'appt.type', specialty: 'appt.specialty'
+    };
+    return Object.entries(this.fieldErrors).map(([k, v]) => {
+      const text = this.errors.fieldText(k, v);
+      return labels[k] ? this.i18n.t('common.withColon', { label: this.i18n.t(labels[k]) }) + ' ' + text : text;
+    });
   }
 
   private fill(a: Appointment): void {
@@ -81,7 +92,7 @@ export class AppointmentFormComponent implements OnInit {
     this.error = null;
     this.fieldErrors = {};
     if (this.patientId === null) {
-      this.error = 'Select a patient.';
+      this.error = this.i18n.t('apptForm.error.selectPatient');
       return;
     }
     this.saving = true;
@@ -118,13 +129,9 @@ export class AppointmentFormComponent implements OnInit {
     const api = apiErrorOf(err);
     if (api?.error === 'VALIDATION_FAILED') {
       this.fieldErrors = api.fieldErrors;
-      this.error = Object.keys(api.fieldErrors).length ? null : 'Please check the form.';
-    } else if (api?.error === 'NO_ACTIVE_QUESTIONNAIRE') {
-      this.error = 'No active form is configured for this appointment type.';
-    } else if ((err as { status?: number })?.status === 409) {
-      this.error = 'This appointment can no longer be edited.';
+      this.error = Object.keys(api.fieldErrors).length ? null : this.i18n.t('error.code.VALIDATION_FAILED');
     } else {
-      this.error = 'Could not save the appointment.';
+      this.error = this.errors.text(err, 'apptForm.error.save', { NO_ACTIVE_QUESTIONNAIRE: 'error.msg.noQType', INVALID_STATE: 'apptForm.error.locked' });
     }
   }
 }

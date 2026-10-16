@@ -1,26 +1,26 @@
 <section class="card card--list documents-card">
   <div class="card__head">
-    <h2 class="card__title--sm">Documents <span class="badge">{{ docs.length }}</span></h2>
-    <button #uploadBtn type="button" class="btn btn--accent btn--sm upload-btn" *appCan="'CLINICAL_WRITE'" (click)="openUpload(uploadBtn)"><app-icon name="upload" [size]="16"></app-icon><span>Upload</span></button>
+    <h2 class="card__title--sm">{{ 'pd.tab.documents' | t }} <span class="badge">{{ docs.length }}</span></h2>
+    <button #uploadBtn type="button" class="btn btn--accent btn--sm upload-btn" *appCan="'CLINICAL_WRITE'" (click)="openUpload(uploadBtn)"><app-icon name="upload" [size]="16"></app-icon><span>{{ 'pf.docs.upload' | t }}</span></button>
   </div>
 
-  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the documents. <button type="button" class="btn btn--ghost btn--sm" (click)="load()">Retry</button></span></div>
+  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ 'pf.docs.loadError' | t }} <button type="button" class="btn btn--ghost btn--sm" (click)="load()">{{ 'common.retry' | t }}</button></span></div>
   <div class="banner banner--error" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ actionError }}</span></div>
 
-  <p class="muted empty-line" *ngIf="!loading && !loadError && docs.length === 0">No documents.</p>
+  <p class="muted empty-line" *ngIf="!loading && !loadError && docs.length === 0">{{ 'pf.docs.none' | t }}</p>
   <ul class="rows" *ngIf="docs.length > 0">
     <li class="row doc-row" *ngFor="let d of docs">
       <span class="tone-circle tone-neutral" aria-hidden="true"><app-icon name="file" [size]="16"></app-icon></span>
       <span class="row__main">
         <span class="row__name">{{ d.title }}</span>
-        <span class="row__sub">{{ humanize(d.category) }} · {{ typeLabel(d.contentType) }} · {{ humanSize(d.sizeBytes) }} · {{ d.uploadedAt | date:'d MMM y' }}<ng-container *ngIf="d.uploadedByName"> · {{ d.uploadedByName }}</ng-container></span>
+        <span class="row__sub">{{ d.category | enumLabel:'documentCategory' }} · {{ typeLabel(d.contentType) }} · {{ d.sizeBytes | fileSize }} · {{ d.uploadedAt | tzDate:'date' }}<ng-container *ngIf="d.uploadedByName"> · {{ d.uploadedByName }}</ng-container></span>
       </span>
       <span class="row__end">
-        <button #viewBtn type="button" class="btn btn--ghost btn--sm btn--icon view-doc" [attr.aria-label]="'View ' + d.title" [disabled]="viewBusy" (click)="view(d, viewBtn)"><app-icon name="eye" [size]="16"></app-icon></button>
-        <button type="button" class="btn btn--ghost btn--sm btn--icon download-doc" [attr.aria-label]="'Download ' + d.title" (click)="download(d)"><app-icon name="download" [size]="16"></app-icon></button>
-        <app-row-menu *appCan="'CLINICAL_WRITE'" [label]="'Actions for ' + d.title" [items]="[{ key: 'delete', label: 'Delete' }]" (selected)="onMenu(d, $event)"></app-row-menu>
+        <button #viewBtn type="button" class="btn btn--ghost btn--sm btn--icon view-doc" [attr.aria-label]="'pf.docs.view' | t:{ title: d.title }" [disabled]="viewBusy" (click)="view(d, viewBtn)"><app-icon name="eye" [size]="16"></app-icon></button>
+        <button type="button" class="btn btn--ghost btn--sm btn--icon download-doc" [attr.aria-label]="'pf.docs.download' | t:{ title: d.title }" (click)="download(d)"><app-icon name="download" [size]="16"></app-icon></button>
+        <app-row-menu *appCan="'CLINICAL_WRITE'" [label]="'dashboard.row.actions' | t:{ name: d.title }" [items]="menuItems()" (selected)="onMenu(d, $event)"></app-row-menu>
       </span>
-      <app-confirm-inline *ngIf="deleting === d.id" class="row-confirm" [requireReason]="true" [busy]="deleteBusy" [question]="'Delete ' + d.title + '?'" confirmLabel="Delete"
+      <app-confirm-inline *ngIf="deleting === d.id" class="row-confirm" [requireReason]="true" [busy]="deleteBusy" [question]="'pf.docs.confirmDelete' | t:{ title: d.title }" [confirmLabel]="'common.delete' | t"
                           (confirmed)="confirmDelete(d, $event)" (cancelled)="deleting = null"></app-confirm-inline>
     </li>
   </ul>
@@ -31,37 +31,37 @@
   <div class="drawer" #drawerEl role="dialog" aria-modal="true" [attr.aria-labelledby]="'doc-drawer-title'">
     <form *ngIf="drawer === 'upload'" (ngSubmit)="upload()">
       <div class="drawer__header">
-        <h2 id="doc-drawer-title">Upload document</h2>
-        <button type="button" class="btn btn--ghost btn--icon" aria-label="Close" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
+        <h2 id="doc-drawer-title">{{ 'pf.docs.uploadTitle' | t }}</h2>
+        <button type="button" class="btn btn--ghost btn--icon" [attr.aria-label]="'common.close' | t" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
       </div>
       <div class="drawer__body">
         <div class="banner banner--error" role="alert" *ngIf="errors.banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ errors.banner }}</span></div>
         <div class="form-group">
-          <label for="doc-file">File</label>
+          <label for="doc-file">{{ 'pf.docs.file' | t }}</label>
           <input id="doc-file" name="file" type="file" [accept]="accept" (change)="onFile($event)" aria-describedby="doc-help">
           <span class="field-error" role="alert" *ngIf="errors.file">{{ errors.file }}</span>
         </div>
         <div class="form-group">
-          <label for="doc-category">Category</label>
-          <select id="doc-category" name="category" [(ngModel)]="category"><option *ngFor="let c of categories" [value]="c">{{ humanize(c) }}</option></select>
+          <label for="doc-category">{{ 'pf.docs.category' | t }}</label>
+          <select id="doc-category" name="category" [(ngModel)]="category"><option *ngFor="let c of categories" [value]="c">{{ c | enumLabel:'documentCategory' }}</option></select>
           <span class="field-error" *ngIf="errors.category">{{ errors.category }}</span>
         </div>
         <div class="form-group">
-          <label for="doc-title">Title <span class="q-optional">(optional)</span></label>
+          <label for="doc-title">{{ 'forms.col.title' | t }} <span class="q-optional">({{ 'common.optional' | t }})</span></label>
           <input id="doc-title" name="title" type="text" maxlength="120" autocomplete="off" [placeholder]="placeholder" [(ngModel)]="title">
           <span class="field-error" *ngIf="errors.title">{{ errors.title }}</span>
         </div>
-        <p id="doc-help" class="helper-line">PDF, JPEG or PNG, up to 10 MB. Do not upload files from untrusted sources.</p>
+        <p id="doc-help" class="helper-line">{{ 'pf.docs.help' | t }}</p>
       </div>
       <div class="drawer__footer">
-        <button type="button" class="btn btn--secondary" (click)="closeDrawer()">Cancel</button>
-        <button type="submit" class="btn btn--primary upload-submit" [disabled]="uploading">{{ uploading ? 'Uploading…' : 'Upload' }}</button>
+        <button type="button" class="btn btn--secondary" (click)="closeDrawer()">{{ 'common.cancel' | t }}</button>
+        <button type="submit" class="btn btn--primary upload-submit" [disabled]="uploading">{{ (uploading ? 'pf.docs.uploading' : 'pf.docs.upload') | t }}</button>
       </div>
     </form>
     <div class="view-drawer" *ngIf="drawer === 'view' && viewDoc">
       <div class="drawer__header">
         <h2 id="doc-drawer-title">{{ viewDoc.title }}</h2>
-        <button type="button" class="btn btn--ghost btn--icon" aria-label="Close" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
+        <button type="button" class="btn btn--ghost btn--icon" [attr.aria-label]="'common.close' | t" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
       </div>
       <div class="drawer__body"><img *ngIf="viewUrl" class="doc-image" [src]="viewUrl" [alt]="viewDoc.title"></div>
     </div>

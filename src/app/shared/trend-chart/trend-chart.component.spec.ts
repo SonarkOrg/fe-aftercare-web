@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
 import { SeriesPoint } from '../care.model';
 import { TrendChartComponent } from './trend-chart.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('TrendChartComponent', () => {
   let fixture: ComponentFixture<TrendChartComponent>;
@@ -12,7 +13,7 @@ describe('TrendChartComponent', () => {
   ];
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [CommonModule], declarations: [TrendChartComponent] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang(), CommonModule], declarations: [TrendChartComponent] }).compileComponents();
     fixture = TestBed.createComponent(TrendChartComponent);
     el = fixture.nativeElement;
   });

@@ -5,6 +5,7 @@ import { environment } from '../../../../environments/environment';
 import { retentionRun, retentionSettings } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { RetentionSettingsComponent } from './retention-settings.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('RetentionSettingsComponent', () => {
   const api = environment.apiUrl;
@@ -15,7 +16,7 @@ describe('RetentionSettingsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule],
       declarations: [RetentionSettingsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -60,7 +61,7 @@ describe('RetentionSettingsComponent', () => {
     http.expectOne(`${api}/retention/runs`).flush([]);
     await settle();
     expect(q('.retention-notice')).not.toBeNull();
-    expect(q('.banner--error').textContent).toContain('Could not load the retention settings.');
+    expect(q('.banner--error').textContent).toContain('Server error. Please try again later.');
   });
 
   it('has the five rows with their labels and help; empty periods are "Keep indefinitely" and disabled', async () => {
@@ -165,10 +166,10 @@ describe('RetentionSettingsComponent', () => {
     await init(retentionSettings({ messageMonths: 84 }));
     await type('messageMonths', '0');
     await submit();
-    expect(q('[data-field=messageMonths] .field-error').textContent).toBe('must be between 1 and 1200 months');
+    expect(q('[data-field=messageMonths] .field-error').textContent).toBe('Between 1 and 1,200 months.');
     await type('messageMonths', '1201');
     await submit();
-    expect(q('[data-field=messageMonths] .field-error').textContent).toBe('must be between 1 and 1200 months');
+    expect(q('[data-field=messageMonths] .field-error').textContent).toBe('Between 1 and 1,200 months.');
     await type('messageMonths', '');
     await submit();
     expect(q('[data-field=messageMonths] .field-error').textContent).toContain('keep indefinitely');
@@ -182,7 +183,7 @@ describe('RetentionSettingsComponent', () => {
       { status: 400, error: 'VALIDATION_FAILED', message: 'x', fieldErrors: { messageMonths: 'must be between 1 and 1200 months' } },
       { status: 400, statusText: 'Bad Request' });
     await settle();
-    expect(q('[data-field=messageMonths] .field-error').textContent).toBe('must be between 1 and 1200 months');
+    expect(q('[data-field=messageMonths] .field-error').textContent).toBe('Between 1 and 1,200 months.');
   });
 
   it('the access-log input has min=12 and shows the server error "must be at least 12 months" under it', async () => {
@@ -192,7 +193,7 @@ describe('RetentionSettingsComponent', () => {
     await type('auditMonths', '6');
     await submit();
     // refused locally with the same wording; nothing is sent
-    expect(q('[data-field=auditMonths] .field-error').textContent).toBe('must be at least 12 months');
+    expect(q('[data-field=auditMonths] .field-error').textContent).toBe('At least 12 months.');
     http.expectNone(`${api}/settings/retention`);
     await type('auditMonths', '24');
     await submit();
@@ -200,7 +201,7 @@ describe('RetentionSettingsComponent', () => {
       { status: 400, error: 'VALIDATION_FAILED', message: 'x', fieldErrors: { auditMonths: 'must be at least 12 months' } },
       { status: 400, statusText: 'Bad Request' });
     await settle();
-    expect(q('[data-field=auditMonths] .field-error').textContent).toBe('must be at least 12 months');
+    expect(q('[data-field=auditMonths] .field-error').textContent).toBe('At least 12 months.');
   });
 
   it('keeping the access log indefinitely (null) is still allowed', async () => {
@@ -269,7 +270,7 @@ describe('RetentionSettingsComponent', () => {
       expect(cells(1)[2]).toBe('Scheduled');
       expect(cells(1)[3]).toBe('▲Failed');
       expect(cells(1)[4]).toContain('3');
-      expect(cells(1)[5]).toBe('Automatic');
+      expect(cells(1)[5]).toBe('automatic');
       expect(rows[0].querySelector('summary')!.getAttribute('title')).toContain('Messages: 12');
     });
 
@@ -278,7 +279,7 @@ describe('RetentionSettingsComponent', () => {
       http.expectOne(`${api}/settings/retention`).flush(retentionSettings());
       http.expectOne(`${api}/retention/runs`).flush('x', { status: 500, statusText: 'Server Error' });
       await settle();
-      expect(q('.retention-runs .banner--error').textContent).toContain('Could not load the recent runs.');
+      expect(q('.retention-runs .banner--error').textContent).toContain('Server error. Please try again later.');
       q<HTMLButtonElement>('.retention-runs .banner--error button').click();
       http.expectOne(`${api}/retention/runs`).flush([]);
       await settle();

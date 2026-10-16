@@ -5,6 +5,7 @@ import { Permission } from '../models/me.model';
 import { me } from '../testing/fixtures';
 import { CanDirective } from './can.directive';
 import { Permissions } from './permissions.service';
+import { I18nTestingModule } from '../testing/i18n-testing.module';
 
 @Component({
   template: `<p id="one" *appCan="'CLINICAL_READ'">clinical</p><p id="any" *appCan="['CLINICAL_WRITE', 'APPOINTMENT_WRITE']">any</p><p id="dyn" *appCan="needed">dyn</p>`
@@ -19,7 +20,7 @@ describe('*appCan', () => {
   const has = (id: string) => !!fixture.nativeElement.querySelector('#' + id);
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [HttpClientTestingModule], declarations: [HostComponent, CanDirective] });
+    TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang(), HttpClientTestingModule], declarations: [HostComponent, CanDirective] });
     permissions = TestBed.inject(Permissions);
     fixture = TestBed.createComponent(HostComponent);
   });

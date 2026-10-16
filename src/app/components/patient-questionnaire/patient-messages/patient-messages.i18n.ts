@@ -11,7 +11,7 @@ export const PATIENT_MESSAGES_TEXT: Record<PatientLang, PatientMessagesText> = {
     tabQuestionnaire: 'Questionnaire',
     tabMessages: 'Messages',
     intro: 'Écrivez à votre équipe de soins. Les messages sont lus pendant les heures d\'ouverture de la clinique. Ce service ne convient pas aux urgences.',
-    clinicPhone: 'Pour joindre la clinique :',
+    clinicPhone: 'Pour joindre la clinique\u00a0:',
     careTeam: 'Équipe de soins',
     you: 'Vous',
     seen: 'Lu',

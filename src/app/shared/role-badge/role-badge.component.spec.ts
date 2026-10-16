@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AccessRole } from '../../models/me.model';
 import { RoleBadgeComponent } from './role-badge.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('RoleBadgeComponent', () => {
   let fixture: ComponentFixture<RoleBadgeComponent>;
@@ -11,7 +12,7 @@ describe('RoleBadgeComponent', () => {
   };
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ declarations: [RoleBadgeComponent] });
+    TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang()], declarations: [RoleBadgeComponent] });
     fixture = TestBed.createComponent(RoleBadgeComponent);
   });
 
@@ -35,5 +36,19 @@ describe('RoleBadgeComponent', () => {
 
   it('shows nothing without a role', () => {
     expect(render(null).querySelector('.chip')).toBeNull();
+  });
+
+  it('in French: the epicene labels and an aria-label with a no-break space', () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ declarations: [RoleBadgeComponent], imports: [I18nTestingModule.forLang('fr')] });
+    const f = TestBed.createComponent(RoleBadgeComponent);
+    f.componentRef.setInput('role', 'RECEPTION');
+    f.detectChanges();
+    const chip = f.nativeElement.querySelector('.role-badge') as HTMLElement;
+    expect(chip.getAttribute('aria-label')).toBe('Rôle d\'accès\u00a0: Accueil');
+    expect(chip.textContent).toContain('Accueil');
+    f.componentRef.setInput('role', 'NURSE');
+    f.detectChanges();
+    expect(f.nativeElement.textContent).toContain('Soins infirmiers');
   });
 });

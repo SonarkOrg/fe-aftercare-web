@@ -7,6 +7,7 @@ import { environment } from '../../../environments/environment';
 import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questionnaire-form.component';
 import { FULL_Q } from '../../testing/fixtures';
 import { QuestionnaireDetailComponent } from './questionnaire-detail.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('QuestionnaireDetailComponent', () => {
   let fixture: ComponentFixture<QuestionnaireDetailComponent>;
@@ -16,7 +17,7 @@ describe('QuestionnaireDetailComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule],
       declarations: [QuestionnaireDetailComponent, QuestionnaireFormComponent, ...SHARED_DECLARATIONS],
       providers: [{ provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '2' }) } } }]
     }).compileComponents();

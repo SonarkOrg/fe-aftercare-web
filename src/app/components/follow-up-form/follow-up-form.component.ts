@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FollowUpService } from '../../Services/FollowUp.service';
 import { FollowUpWithCode, Specialty } from '../../models/follow-up.model';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { I18nService } from '../../i18n/i18n.service';
 import { apiErrorOf } from '../../models/api-error.model';
 import { businessToday } from '../../shared/link.util';
 
@@ -20,7 +22,7 @@ export class FollowUpFormComponent {
   error: string | null = null;
   fieldErrors: Record<string, string> = {};
 
-  constructor(private followUps: FollowUpService) {}
+  constructor(private followUps: FollowUpService, private errors: ApiErrorsService, private i18n: I18nService) {}
 
   submit(): void {
     this.saving = true;
@@ -38,15 +40,11 @@ export class FollowUpFormComponent {
       error: err => {
         this.saving = false;
         const api = apiErrorOf(err);
-        if (api?.error === 'FOLLOW_UP_ALREADY_ACTIVE') {
-          this.error = 'This patient already has an active follow-up.';
-        } else if (api?.error === 'NO_ACTIVE_QUESTIONNAIRE') {
-          this.error = 'No active form is configured for this specialty.';
-        } else if (api?.error === 'VALIDATION_FAILED') {
-          this.fieldErrors = api.fieldErrors;
-          this.error = Object.keys(api.fieldErrors).length ? null : 'Please check the form.';
+        if (api?.error === 'VALIDATION_FAILED') {
+          this.fieldErrors = this.errors.fieldTexts(err);
+          this.error = Object.keys(api.fieldErrors).length ? null : this.i18n.t('error.code.VALIDATION_FAILED');
         } else {
-          this.error = 'Could not enroll the patient.';
+          this.error = this.errors.text(err, 'followUp.error.enroll', { NO_ACTIVE_QUESTIONNAIRE: 'error.msg.noQSpecialty' });
         }
       }
     });

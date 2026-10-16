@@ -1,23 +1,23 @@
-<p class="helper-line audit-help"><span aria-hidden="true">ℹ</span> Every view of this file, reveal of the health number, and change is recorded.</p>
+<p class="helper-line audit-help"><span aria-hidden="true">ℹ</span> {{ 'pf.audit.help' | t }}</p>
 <div class="toolbar audit-filter"><div class="form-group"><app-actor-select selectId="audit-actor" [value]="actorSub" (changed)="setActor($event)"></app-actor-select></div></div>
-<div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the access log. <button type="button" class="btn btn--ghost btn--sm" (click)="load(events.length ? page + 1 : 0)">Retry</button></span></div>
-<div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row"></div></div>
+<div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ 'pf.audit.loadError' | t }} <button type="button" class="btn btn--ghost btn--sm" (click)="load(events.length ? page + 1 : 0)">{{ 'common.retry' | t }}</button></span></div>
+<div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row"></div></div>
 <section class="table-card audit-table" *ngIf="!loading && events.length > 0">
   <div class="table-scroll">
     <table class="table">
-      <caption class="sr-only">Access log</caption>
-      <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Item</th><th scope="col">Detail</th></tr></thead>
+      <caption class="sr-only">{{ 'pd.tab.audit' | t }}</caption>
+      <thead><tr><th scope="col">{{ 'pf.audit.when' | t }}</th><th scope="col">{{ 'pf.audit.who' | t }}</th><th scope="col">{{ 'pf.audit.action' | t }}</th><th scope="col">{{ 'pf.audit.item' | t }}</th><th scope="col">{{ 'pf.audit.detail' | t }}</th></tr></thead>
       <tbody>
         <tr *ngFor="let e of events">
           <td class="num">{{ when(e.occurredAt) }}</td>
           <td>{{ e.actorName || e.actorSub }}</td>
-          <td>{{ humanize(e.action) }}</td>
+          <td>{{ e.action | enumLabel:'auditAction' }}</td>
           <td>{{ item(e) }}</td>
-          <td>{{ e.detail || '—' }}</td>
+          <td><span *ngIf="e.detail; else noDetail" class="mono" lang="en">{{ e.detail }}</span><ng-template #noDetail>—</ng-template></td>
         </tr>
       </tbody>
     </table>
   </div>
-  <div class="card__foot" *ngIf="hasMore"><button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">Load more</button></div>
+  <div class="card__foot" *ngIf="hasMore"><button type="button" class="btn btn--secondary load-more" (click)="load(page + 1)">{{ 'common.loadMore' | t }}</button></div>
 </section>
-<p class="muted empty-line" *ngIf="!loading && !error && events.length === 0">{{ actorSub ? 'No access recorded for this person.' : 'No access recorded yet.' }}</p>
+<p class="muted empty-line" *ngIf="!loading && !error && events.length === 0">{{ (actorSub ? 'pf.audit.emptyActor' : 'pf.audit.empty') | t }}</p>

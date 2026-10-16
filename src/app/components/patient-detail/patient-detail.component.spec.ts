@@ -25,6 +25,7 @@ import { FollowUpFormComponent } from '../follow-up-form/follow-up-form.componen
 import { ActorSelectComponent } from '../../shared/actor-select/actor-select.component';
 import { SendLinkComponent } from '../../shared/send-link/send-link.component';
 import { PatientDetailComponent } from './patient-detail.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 @Component({ selector: 'app-patient-notifications', template: '' })
 class StubNotificationsComponent {
@@ -52,7 +53,7 @@ describe('PatientDetailComponent', () => {
   beforeEach(async () => {
     query = {};
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
         QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
         PatientAuditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
@@ -141,7 +142,7 @@ describe('PatientDetailComponent', () => {
     http.expectOne(`${api}/patients/5/follow-ups`).flush(
       { status: 409, error: 'NO_ACTIVE_QUESTIONNAIRE', message: '', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
     fixture.detectChanges();
-    expect(el.textContent).toContain('No active form is configured for this specialty.');
+    expect(el.textContent).toContain('No active questionnaire for this specialty.');
     submit();
     http.expectOne(`${api}/patients/5/follow-ups`).flush(
       { status: 409, error: 'FOLLOW_UP_ALREADY_ACTIVE', message: '', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
@@ -156,7 +157,7 @@ describe('PatientDetailComponent', () => {
       { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { dischargeDate: 'must not be in the future' } },
       { status: 400, statusText: 'Bad Request' });
     fixture.detectChanges();
-    expect(el.querySelector('.field-error')!.textContent).toContain('must not be in the future');
+    expect(el.querySelector('.field-error')!.textContent).toContain('Cannot be in the future.');
   });
 
   it('regenerate is confirm-guarded, and shows the new link', () => {
@@ -412,7 +413,7 @@ describe('PatientDetailComponent by access role', () => {
     query = q;
     queryParams$ = new BehaviorSubject(convertToParamMap(q));
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent, ActorSelectComponent],
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
         QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
         PatientAuditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],

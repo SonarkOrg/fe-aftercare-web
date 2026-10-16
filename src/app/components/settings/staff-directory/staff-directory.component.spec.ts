@@ -9,6 +9,7 @@ import { Permissions } from '../../../auth/permissions.service';
 import { me, providePermissions, staffMember } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { StaffDirectoryComponent } from './staff-directory.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('StaffDirectoryComponent (access roles)', () => {
   const api = environment.apiUrl;
@@ -24,7 +25,7 @@ describe('StaffDirectoryComponent (access roles)', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [StaffDirectoryComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('ADMIN')]
     }).compileComponents();
@@ -187,7 +188,7 @@ describe('StaffDirectoryComponent (access roles)', () => {
       q<HTMLFormElement>('.drawer form').dispatchEvent(new Event('submit'));
       http.expectOne(`${api}/staff/2`).flush({ status: 400, error: 'VALIDATION_FAILED', message: 'x', fieldErrors: { accessRole: 'must not be null' } }, { status: 400, statusText: 'Bad Request' });
       await settle();
-      expect(q('#st-access-h + .field-error').textContent).toBe('must not be null');
+      expect(q('#st-access-h + .field-error').textContent).toBe('This field is required.');
     });
   });
 

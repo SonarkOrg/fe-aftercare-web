@@ -13,6 +13,7 @@ import { addDays, businessToday } from '../../shared/link.util';
 import { CLINIC, SEED_RULES, alertDto, missedAlert, appointment, checkInDto, followUp, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { DashboardComponent } from './dashboard.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('DashboardComponent', () => {
   let fixture: ComponentFixture<DashboardComponent>;
@@ -47,7 +48,7 @@ describe('DashboardComponent', () => {
   beforeEach(async () => {
     alertCount = { refresh: jasmine.createSpy('refresh') };
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule, FormsModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule, FormsModule],
       declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), 
         { provide: StaffAuth, useValue: { userName$: of('Dev Nurse') } },
@@ -91,7 +92,7 @@ describe('DashboardComponent', () => {
   it('renders the pastel KPI values from the fixtures', () => {
     init();
     expect(kpiValues()).toEqual(['2', '1 / 2', '1', '2']); // Jean has no check-in yesterday
-    expect(el.querySelector('#kpi-prepare')!.getAttribute('title')).toContain('1 need review · 1 questionnaire missing');
+    expect(el.querySelector('#kpi-prepare')!.getAttribute('title')).toContain('1 needs review · 1 questionnaire missing');
     expect(el.querySelector('#kpi-critical')!.getAttribute('title')).toContain('0 acknowledged');
     expect(el.querySelector('#kpi-critical .chip__label')!.textContent).toBe('Critical');
     // every KPI icon is an outlined app-icon, not a filled glyph
@@ -142,12 +143,12 @@ describe('DashboardComponent', () => {
     expect(attn()[0].textContent).toContain('Marie Tremblay'); // oldest alert first
     expect(attn()[0].textContent).toContain('Pain 8 · Day 3 of 7');
     expect(attn()[1].textContent).toContain('Calf pain?: Yes');
-    expect(attn()[2].textContent).toContain('2 flag(s)');
+    expect(attn()[2].textContent).toContain('2 flags');
     expect(attn()[4].textContent).toContain('Jean Roy');
     expect(attn()[4].textContent).toContain('Missed');
     expect(attn()[2].querySelector('.chip__label')!.textContent).toBe('Review');
     expect(attn()[2].querySelector('.sr-only')!.textContent).toBe('Needs review');
-    expect(el.querySelector('.medium-line')!.textContent).toContain('1 medium alerts open');
+    expect(el.querySelector('.medium-line')!.textContent).toContain('1 medium alert open');
     expect(attn()[0].querySelector('a.row__name')!.getAttribute('href')).toBe('/patients/1');
     expect(attn()[2].querySelector('a.row__name')!.getAttribute('href')).toBe('/appointments/10');
   });
@@ -249,7 +250,7 @@ describe('DashboardComponent', () => {
     init();
     expect(el.querySelector('.appts')!.textContent).toContain('08:30');
     expect(el.querySelector('.appt--closed .chip__label')!.textContent).toBe('Completed');
-    expect(el.querySelector('.appt a.chev-hit')!.getAttribute('aria-label')).toBe('Open Sophie Lavoie 08:30');
+    expect(el.querySelector('.appt a.chev-hit')!.getAttribute('aria-label')).toBe('Open the appointment of Sophie Lavoie at 08:30');
     const trends = el.querySelectorAll('.mini');
     expect(trends.length).toBe(2);
     // both CRITICAL: ordered by last name (Roy, Tremblay)
@@ -270,7 +271,7 @@ describe('DashboardComponent', () => {
   it('renders a HIGH missed check-in alert in Needs attention with its missed day, not a question or answer', () => {
     init([...alerts, missedAlert({ id: 9, patientId: 2, patientFirstName: 'Jean', patientLastName: 'Roy', severity: 'HIGH', missedDate: '2026-10-12', createdAt: '2026-10-13T09:00:00Z' })]);
     const row = attn().find(r => r.dataset['kind'] === 'critical' && r.textContent!.includes('Missed check-in'))!;
-    expect(row.querySelector('.row__sub')!.textContent).toContain('Missed check-in Oct 12');
+    expect(row.querySelector('.row__sub')!.textContent).toContain('Missed check-in 12 Oct');
     expect(row.textContent).not.toContain('null');
     expect(row.querySelector('.chip__label')!.textContent).toBe('High');
   });
@@ -305,7 +306,7 @@ describe('DashboardComponent without CLINICAL_READ (reception)', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule, FormsModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule, FormsModule],
       declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [
         providePermissions('RECEPTION'),
@@ -390,7 +391,7 @@ describe('DashboardComponent without CLINICAL_READ (reception)', () => {
 describe('DashboardComponent buttons by permission', () => {
   it('hides New appointment and Add patient from a member without those permissions', async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule, FormsModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule, FormsModule],
       declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [
         providePermissions('NURSE', { permissions: ['CLINICAL_READ', 'PATIENT_READ'] }),

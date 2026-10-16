@@ -2,8 +2,10 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { AlertCountService } from '../../Services/AlertCount.service';
 import { AlertService } from '../../Services/Alert.service';
 import { Alert } from '../../models/alert.model';
-import { errorText } from '../../models/api-error.model';
-import { alertAnswer, alertDay, alertLabel, isMissed } from '../../shared/alert.util';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { alertMessage, alertQuestion } from '../../i18n/content';
+import { I18nService } from '../../i18n/i18n.service';
+import { alertAnswer, alertDay, isMissed } from '../../shared/alert.util';
 import { initials } from '../../shared/link.util';
 import { alertStatusChip, severityChip } from '../../shared/status';
 
@@ -24,12 +26,22 @@ export class AlertTableComponent {
   severityChip = severityChip;
   statusChip = alertStatusChip;
   initialsOf = initials;
-  alertLabel = alertLabel;
-  alertAnswer = alertAnswer;
   alertDay = alertDay;
   isMissed = isMissed;
 
-  constructor(private alertService: AlertService, private alertCount: AlertCountService) {}
+  constructor(private alertService: AlertService, private alertCount: AlertCountService, public i18n: I18nService, private errors: ApiErrorsService) {}
+
+  question(a: Alert) {
+    return alertQuestion(a, this.i18n.lang, k => this.i18n.t(k));
+  }
+
+  answer(a: Alert): string {
+    return alertAnswer(a, this.i18n.lang, k => this.i18n.t(k));
+  }
+
+  message$(a: Alert): string {
+    return alertMessage(a, this.i18n.lang);
+  }
 
   startResolve(a: Alert): void {
     this.resolvingId = a.id;
@@ -64,11 +76,11 @@ export class AlertTableComponent {
       error: err => {
         this.busy = false;
         if (err?.status === 409) {
-          this.message = 'This alert was updated by someone else. Reloading.';
+          this.message = this.i18n.t('dashboard.error.alertConflict');
           this.resolvingId = null;
           this.changed.emit();
         } else {
-          this.message = errorText(err, 'Could not update the alert.');
+          this.message = this.errors.text(err, 'alerts.error.update', { INVALID_STATE: 'alerts.error.alreadyResolved' });
         }
       }
     });

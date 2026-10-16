@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import { StaffAuth } from './auth/staff-auth';
+import { I18nTestingModule } from './testing/i18n-testing.module';
 
 describe('AppComponent', () => {
   const authFactory = jasmine.createSpy('authFactory').and.returnValue({});
@@ -9,7 +10,7 @@ describe('AppComponent', () => {
   beforeEach(async () => {
     authFactory.calls.reset();
     await TestBed.configureTestingModule({
-      imports: [
+      imports: [I18nTestingModule.forLang(), 
         RouterTestingModule
       ],
       declarations: [

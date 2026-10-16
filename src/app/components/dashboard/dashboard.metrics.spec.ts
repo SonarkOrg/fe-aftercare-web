@@ -1,3 +1,4 @@
+import { testT } from '../../testing/i18n-testing.module';
 import { PatientRow } from '../../shared/care.model';
 import { businessDateOf } from '../../shared/link.util';
 import { alertDto, appointment, followUp } from '../../testing/fixtures';
@@ -45,7 +46,8 @@ describe('dashboard.metrics', () => {
   });
 
   it('greeting follows the hour', () => {
-    expect([greeting(8), greeting(12), greeting(17), greeting(18)]).toEqual(['Good morning', 'Good afternoon', 'Good afternoon', 'Good evening']);
+    const en = testT('en');
+    expect([greeting(8), greeting(12), greeting(17), greeting(18)].map(k => en(k))).toEqual(['Good morning', 'Good afternoon', 'Good afternoon', 'Good evening']);
   });
 
   describe('overview progress', () => {

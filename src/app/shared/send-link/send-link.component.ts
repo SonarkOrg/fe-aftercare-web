@@ -1,19 +1,23 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { NotificationService } from '../../Services/Notification.service';
-import { apiErrorOf, errorText } from '../../models/api-error.model';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { I18nModule } from '../../i18n/i18n.module';
+import { I18nService } from '../../i18n/i18n.service';
+import { TKey } from '../../i18n/i18n.types';
+import { apiErrorOf } from '../../models/api-error.model';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ContactPreferences, NotificationChannel, NotificationItem } from '../../models/notification.model';
 
 export interface ChannelOption { channel: NotificationChannel | null; label: string }
 
-const CHANNEL_WORD: Record<NotificationChannel, string> = { EMAIL: 'email', SMS: 'SMS' };
+const CHANNEL_WORD: Record<NotificationChannel, TKey> = { EMAIL: 'sendLink.channel.EMAIL', SMS: 'sendLink.channel.SMS' };
 
 /** "Send link": queues the patient link by email or SMS (consent, channel and address are checked by the server). */
 @Component({
   selector: 'app-send-link',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, I18nModule],
   templateUrl: './send-link.component.html'
 })
 export class SendLinkComponent {
@@ -31,7 +35,7 @@ export class SendLinkComponent {
   /** True when the error is NO_CONSENT: the banner then links to the Contacts tab. */
   noConsent = false;
 
-  constructor(private notifications: NotificationService, private host: ElementRef<HTMLElement>) {}
+  constructor(private notifications: NotificationService, private host: ElementRef<HTMLElement>, private i18n: I18nService, private errors: ApiErrorsService) {}
 
   /** Computed once per preferences load (no getter: stable references for the menu). */
   options: ChannelOption[] = [];
@@ -41,9 +45,9 @@ export class SendLinkComponent {
   private buildOptions(p: ContactPreferences): ChannelOption[] {
     const other: NotificationChannel = p.preferredChannel === 'EMAIL' ? 'SMS' : 'EMAIL';
     const otherAvailable = other === 'EMAIL' ? p.emailAvailable : p.smsAvailable;
-    const out: ChannelOption[] = [{ channel: null, label: `By ${CHANNEL_WORD[p.preferredChannel]} (preferred)` }];
+    const out: ChannelOption[] = [{ channel: null, label: this.i18n.t('sendLink.byPreferred', { channel: this.i18n.t(CHANNEL_WORD[p.preferredChannel]) }) }];
     if (otherAvailable) {
-      out.push({ channel: other, label: `By ${CHANNEL_WORD[other]}` });
+      out.push({ channel: other, label: this.i18n.t('sendLink.by', { channel: this.i18n.t(CHANNEL_WORD[other]) }) });
     }
     return out;
   }
@@ -71,7 +75,7 @@ export class SendLinkComponent {
       error: err => {
         this.loadingPrefs = false;
         this.open = false;
-        this.error = errorText(err, 'Could not load the contact preferences.');
+        this.error = this.errors.text(err, 'sendLink.error.prefs');
       }
     });
   }
@@ -110,7 +114,7 @@ export class SendLinkComponent {
     call.subscribe({
       next: n => {
         this.busy = false;
-        this.success = `Link queued for ${CHANNEL_WORD[n.channel]} to ${n.recipientMasked ?? 'the patient'}.`;
+        this.success = this.i18n.t('sendLink.queued', { channel: this.i18n.t(CHANNEL_WORD[n.channel]), recipient: n.recipientMasked ?? this.i18n.t('sendLink.thePatient') });
         this.sent.emit(n);
       },
       error: err => {
@@ -121,15 +125,8 @@ export class SendLinkComponent {
   }
 
   private messageFor(err: unknown): string {
-    switch (apiErrorOf(err)?.error) {
-      case 'NO_CONSENT':
-        this.noConsent = true;
-        return "The patient's consent to notifications isn't recorded. Update it in Contacts.";
-      case 'CHANNEL_DISABLED': return 'This channel is disabled in Settings.';
-      case 'NO_RECIPIENT': return 'The patient has no valid address for this channel.';
-      case 'LINK_UNAVAILABLE': return 'Generate a new link first, then send it.';
-      default: return errorText(err, 'Could not send the link.');
-    }
+    this.noConsent = apiErrorOf(err)?.error === 'NO_CONSENT';
+    return this.errors.text(err, 'sendLink.error.send');
   }
 
   @HostListener('document:keydown.escape')

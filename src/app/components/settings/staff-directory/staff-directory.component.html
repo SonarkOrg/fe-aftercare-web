@@ -1,37 +1,37 @@
 <section class="card card--list staff-card">
   <div class="card__head">
-    <h2 class="card__title--sm">Staff directory <span class="badge">{{ all.length }}</span></h2>
-    <button #addBtn type="button" class="btn btn--accent btn--sm add-staff" (click)="openDrawer(null, addBtn)"><app-icon name="plus" [size]="16"></app-icon><span>Add staff</span></button>
+    <h2 class="card__title--sm">{{ 'settings.staff.title' | t }} <span class="badge">{{ all.length }}</span></h2>
+    <button #addBtn type="button" class="btn btn--accent btn--sm add-staff" (click)="openDrawer(null, addBtn)"><app-icon name="plus" [size]="16"></app-icon><span>{{ 'settings.staff.add' | t }}</span></button>
   </div>
 
-  <div class="pill-group staff-filter" role="group" aria-label="Show">
-    <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'active'" (click)="filter = 'active'">Active <span class="pill-group__count" aria-hidden="true">{{ count('active') }}</span></button>
-    <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'inactive'" (click)="filter = 'inactive'">Inactive <span class="pill-group__count" aria-hidden="true">{{ count('inactive') }}</span></button>
-    <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'all'" (click)="filter = 'all'">All <span class="pill-group__count" aria-hidden="true">{{ count('all') }}</span></button>
+  <div class="pill-group staff-filter" role="group" [attr.aria-label]="'settings.staff.show' | t">
+    <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'active'" (click)="filter = 'active'">{{ 'common.active' | t }} <span class="pill-group__count" aria-hidden="true">{{ count('active') }}</span></button>
+    <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'inactive'" (click)="filter = 'inactive'">{{ 'common.inactive' | t }} <span class="pill-group__count" aria-hidden="true">{{ count('inactive') }}</span></button>
+    <button type="button" class="pill-group__item" [attr.aria-pressed]="filter === 'all'" (click)="filter = 'all'">{{ 'common.all' | t }} <span class="pill-group__count" aria-hidden="true">{{ count('all') }}</span></button>
   </div>
   <div class="role-filter">
-    <label for="staff-role-filter" class="sr-only">Filter by access role</label>
+    <label for="staff-role-filter" class="sr-only">{{ 'settings.staff.filterRole' | t }}</label>
     <select id="staff-role-filter" class="select" [(ngModel)]="roleFilter">
-      <option value="all">All roles</option>
-      <option *ngFor="let r of accessRoles" [value]="r">{{ r === 'ADMIN' ? 'Admin' : humanize(r) }}</option>
+      <option value="all">{{ 'settings.staff.allRoles' | t }}</option>
+      <option *ngFor="let r of accessRoles" [value]="r">{{ r | enumLabel:'accessRole' }}</option>
     </select>
   </div>
 
-  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load the staff. <button type="button" class="btn btn--ghost btn--sm" (click)="load()">Retry</button></span></div>
+  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ 'settings.staff.loadError' | t }} <button type="button" class="btn btn--ghost btn--sm" (click)="load()">{{ 'common.retry' | t }}</button></span></div>
   <div class="banner banner--error" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ actionError }}</span></div>
-  <p class="muted empty-line" *ngIf="!loading && !loadError && visible.length === 0">No staff members here.</p>
+  <p class="muted empty-line" *ngIf="!loading && !loadError && visible.length === 0">{{ 'settings.staff.empty' | t }}</p>
 
   <ul class="rows" *ngIf="visible.length > 0">
     <li class="row staff-row" *ngFor="let s of visible; trackBy: byId">
       <app-avatar [id]="s.id" [initials]="initials(s.displayName)"></app-avatar>
-      <span class="row__main"><span class="row__name">{{ s.displayName }}</span><span class="row__sub">{{ humanize(s.role) }} · {{ s.email || 'no email' }}</span></span>
+      <span class="row__main"><span class="row__name">{{ s.displayName }}</span><span class="row__sub">{{ s.role | enumLabel:'staffRole' }} · {{ s.email || ('settings.staff.noEmail' | t) }}</span></span>
       <span class="row__end">
         <app-status-chip size="sm" [spec]="s.auth0Subject ? linked : notLinked"></app-status-chip>
         <app-status-chip size="sm" *ngIf="!s.active" [spec]="inactiveChip"></app-status-chip>
         <app-role-badge [role]="s.accessRole"></app-role-badge>
-        <app-row-menu [label]="'Actions for ' + s.displayName" [items]="menuItems(s)" (selected)="onMenu(s, $event)"></app-row-menu>
+        <app-row-menu [label]="'dashboard.row.actions' | t:{ name: s.displayName }" [items]="menuItems(s)" (selected)="onMenu(s, $event)"></app-row-menu>
       </span>
-      <app-confirm-inline *ngIf="selfConfirm === s.id" class="row-confirm" question="You will lose access immediately." confirmLabel="Deactivate me"
+      <app-confirm-inline *ngIf="selfConfirm === s.id" class="row-confirm" [question]="'settings.staff.selfQuestion' | t" [confirmLabel]="'settings.staff.selfConfirm' | t"
                           (confirmed)="confirmSelf(s)" (cancelled)="selfConfirm = null"></app-confirm-inline>
     </li>
   </ul>
@@ -42,30 +42,30 @@
   <div class="drawer" #drawerEl role="dialog" aria-modal="true" aria-labelledby="staff-drawer-title">
     <form (ngSubmit)="save()">
       <div class="drawer__header">
-        <h2 id="staff-drawer-title">{{ editId === null ? 'Add staff' : 'Edit staff' }}</h2>
-        <button type="button" class="btn btn--ghost btn--icon" aria-label="Close" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
+        <h2 id="staff-drawer-title">{{ (editId === null ? 'settings.staff.add' : 'settings.staff.edit') | t }}</h2>
+        <button type="button" class="btn btn--ghost btn--icon" [attr.aria-label]="'common.close' | t" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
       </div>
       <div class="drawer__body">
         <div class="banner banner--error" role="alert" *ngIf="banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ banner }}</span></div>
-        <div class="form-group"><label for="st-name">Display name</label><input id="st-name" name="displayName" type="text" maxlength="120" autocomplete="off" [(ngModel)]="form.displayName"><span class="field-error" *ngIf="errors['displayName']">{{ errors['displayName'] }}</span></div>
-        <div class="form-group"><label for="st-email">Email <span class="q-optional">(optional)</span></label><input id="st-email" name="email" type="email" maxlength="255" autocomplete="off" [(ngModel)]="form.email"><span class="field-error" *ngIf="errors['email']">{{ errors['email'] }}</span></div>
-        <div class="form-group"><label for="st-role">Profession</label><select id="st-role" name="role" [(ngModel)]="form.role"><option *ngFor="let r of roles" [value]="r">{{ humanize(r) }}</option></select></div>
+        <div class="form-group"><label for="st-name">{{ 'settings.staff.displayName' | t }}</label><input id="st-name" name="displayName" type="text" maxlength="120" autocomplete="off" [(ngModel)]="form.displayName"><span class="field-error" *ngIf="errors['displayName']">{{ errors['displayName'] }}</span></div>
+        <div class="form-group"><label for="st-email">{{ 'pd.email' | t }} <span class="q-optional">({{ 'common.optional' | t }})</span></label><input id="st-email" name="email" type="email" maxlength="255" autocomplete="off" [(ngModel)]="form.email"><span class="field-error" *ngIf="errors['email']">{{ errors['email'] }}</span></div>
+        <div class="form-group"><label for="st-role">{{ 'settings.staff.profession' | t }}</label><select id="st-role" name="role" [(ngModel)]="form.role"><option *ngFor="let r of roles" [value]="r">{{ r | enumLabel:'staffRole' }}</option></select></div>
         <div class="form-group">
-          <label for="st-access">Access</label>
-          <select id="st-access" name="accessRole" required aria-describedby="st-access-h" [(ngModel)]="form.accessRole"><option *ngFor="let r of accessRoles" [value]="r">{{ r === 'ADMIN' ? 'Admin' : humanize(r) }}</option></select>
-          <span id="st-access-h" class="helper-line">Admin: settings, staff and audit, plus everything else. Physician/Nurse: full patient file. Reception: demographics, contacts and appointments only.</span>
+          <label for="st-access">{{ 'settings.staff.access' | t }}</label>
+          <select id="st-access" name="accessRole" required aria-describedby="st-access-h" [(ngModel)]="form.accessRole"><option *ngFor="let r of accessRoles" [value]="r">{{ r | enumLabel:'accessRole' }}</option></select>
+          <span id="st-access-h" class="helper-line">{{ 'settings.staff.accessHelp' | t }}</span>
           <span class="field-error" *ngIf="errors['accessRole']">{{ errors['accessRole'] }}</span>
         </div>
         <div class="form-group">
-          <label for="st-sub">Auth0 subject <span class="q-optional">(optional)</span></label>
+          <label for="st-sub">{{ 'settings.staff.sub' | t }} <span class="q-optional">({{ 'common.optional' | t }})</span></label>
           <input id="st-sub" name="auth0Subject" type="text" class="mono" maxlength="255" autocomplete="off" spellcheck="false" [(ngModel)]="form.auth0Subject" aria-describedby="st-sub-h">
-          <span id="st-sub-h" class="helper-line">Optional. Links this person to their login (e.g. auth0|64f…). Their name then appears on notes and messages.</span>
+          <span id="st-sub-h" class="helper-line">{{ 'settings.staff.subHelp' | t }}</span>
           <span class="field-error" *ngIf="errors['auth0Subject']">{{ errors['auth0Subject'] }}</span>
         </div>
       </div>
       <div class="drawer__footer">
-        <button type="button" class="btn btn--secondary" (click)="closeDrawer()">Cancel</button>
-        <button type="submit" class="btn btn--primary save-staff" [disabled]="!canSave">{{ saving ? 'Saving…' : 'Save' }}</button>
+        <button type="button" class="btn btn--secondary" (click)="closeDrawer()">{{ 'common.cancel' | t }}</button>
+        <button type="submit" class="btn btn--primary save-staff" [disabled]="!canSave">{{ (saving ? 'common.saving' : 'common.save') | t }}</button>
       </div>
     </form>
   </div>

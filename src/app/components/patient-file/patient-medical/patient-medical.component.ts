@@ -1,58 +1,62 @@
 import { Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { PatientFileService } from '../../../Services/PatientFile.service';
 import { StaffService } from '../../../Services/Staff.service';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { enumKey } from '../../../i18n/enum-key';
+import { fmtDate, fmtNum } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
+import { TKey } from '../../../i18n/i18n.types';
 import { ApiError, apiErrorOf } from '../../../models/api-error.model';
 import { AllergySeverity, MedicalList, PatientMedical } from '../../../models/medical.model';
 import { Patient } from '../../../models/patient.model';
 import { Staff } from '../../../models/staff.model';
 import { ageOn } from '../../../shared/age.util';
-import { addDays, businessToday, humanize } from '../../../shared/link.util';
-import { fmtDayYear } from '../../../shared/messages.util';
+import { addDays, businessToday } from '../../../shared/link.util';
 import { formatRamq, isValidRamq } from '../../../shared/ramq.util';
 import { ChipSpec, allergyChip } from '../../../shared/status';
 
 export const REVEAL_MS = 30_000;
 
 export interface FieldDef {
-  key: string; label: string; type: 'text' | 'select' | 'date' | 'surgeon';
-  required?: boolean; max?: number; options?: { value: string; label: string }[]; helper?: string; mono?: boolean;
+  key: string; label: TKey; type: 'text' | 'select' | 'date' | 'surgeon';
+  required?: boolean; max?: number; options?: { value: string; label: TKey }[]; helper?: TKey; mono?: boolean;
 }
-export interface ListCfg { key: MedicalList; title: string; addLabel: string; empty: string; fields: FieldDef[]; dated?: boolean }
+export interface ListCfg { key: MedicalList; title: TKey; addLabel: TKey; editLabel: TKey; empty: TKey; fields: FieldDef[]; dated?: boolean }
 
 const SEVERITIES: AllergySeverity[] = ['SEVERE', 'MODERATE', 'MILD', 'UNKNOWN'];
 
 export const LISTS: ListCfg[] = [
   {
-    key: 'allergies', title: 'Allergies', addLabel: 'Add allergy', empty: 'No known allergies recorded.',
+    key: 'allergies', title: 'pf.medical.allergies', addLabel: 'pf.medical.addAllergy', editLabel: 'pf.medical.editAllergies', empty: 'pf.medical.noAllergies',
     fields: [
-      { key: 'substance', label: 'Substance', type: 'text', required: true, max: 200 },
-      { key: 'severity', label: 'Severity', type: 'select', required: true, options: SEVERITIES.map(s => ({ value: s, label: humanize(s) })) },
-      { key: 'reaction', label: 'Reaction', type: 'text', max: 500 }
+      { key: 'substance', label: 'pf.medical.f.substance', type: 'text', required: true, max: 200 },
+      { key: 'severity', label: 'pf.medical.f.severity', type: 'select', required: true, options: SEVERITIES.map(s => ({ value: s, label: enumKey('allergySeverity', s) })) },
+      { key: 'reaction', label: 'pf.medical.f.reaction', type: 'text', max: 500 }
     ]
   },
   {
-    key: 'medications', title: 'Medications', addLabel: 'Add medication', empty: 'No medications recorded.',
+    key: 'medications', title: 'pf.medical.medications', addLabel: 'pf.medical.addMedication', editLabel: 'pf.medical.editMedications', empty: 'pf.medical.noMedications',
     fields: [
-      { key: 'name', label: 'Name', type: 'text', required: true, max: 200 },
-      { key: 'dose', label: 'Dose', type: 'text', max: 100 },
-      { key: 'frequency', label: 'Frequency', type: 'text', max: 100 },
-      { key: 'startDate', label: 'Start date', type: 'date' }
+      { key: 'name', label: 'pf.medical.f.name', type: 'text', required: true, max: 200 },
+      { key: 'dose', label: 'pf.medical.f.dose', type: 'text', max: 100 },
+      { key: 'frequency', label: 'pf.medical.f.frequency', type: 'text', max: 100 },
+      { key: 'startDate', label: 'pf.medical.f.startDate', type: 'date' }
     ]
   },
   {
-    key: 'procedures', title: 'Procedures', addLabel: 'Add procedure', empty: 'No procedures recorded.', dated: true,
+    key: 'procedures', title: 'pf.medical.procedures', addLabel: 'pf.medical.addProcedure', editLabel: 'pf.medical.editProcedures', empty: 'pf.medical.noProcedures', dated: true,
     fields: [
-      { key: 'name', label: 'Procedure', type: 'text', required: true, max: 200 },
-      { key: 'performedOn', label: 'Performed on', type: 'date', required: true },
-      { key: 'surgeon', label: 'Surgeon', type: 'surgeon' }
+      { key: 'name', label: 'pf.medical.f.procedure', type: 'text', required: true, max: 200 },
+      { key: 'performedOn', label: 'pf.medical.f.performedOn', type: 'date', required: true },
+      { key: 'surgeon', label: 'pf.medical.f.surgeon', type: 'surgeon' }
     ]
   },
   {
-    key: 'diagnoses', title: 'Diagnoses', addLabel: 'Add diagnosis', empty: 'No diagnoses recorded.',
+    key: 'diagnoses', title: 'pf.medical.diagnoses', addLabel: 'pf.medical.addDiagnosis', editLabel: 'pf.medical.editDiagnoses', empty: 'pf.medical.noDiagnoses',
     fields: [
-      { key: 'description', label: 'Description', type: 'text', required: true, max: 300 },
-      { key: 'icd10Code', label: 'ICD-10 code', type: 'text', max: 16, mono: true, helper: 'Optional, e.g. K35.80' },
-      { key: 'diagnosedOn', label: 'Diagnosed on', type: 'date' }
+      { key: 'description', label: 'pf.medical.f.description', type: 'text', required: true, max: 300 },
+      { key: 'icd10Code', label: 'pf.medical.f.icd10', type: 'text', max: 16, mono: true, helper: 'pf.medical.f.icd10Help' },
+      { key: 'diagnosedOn', label: 'pf.medical.f.diagnosedOn', type: 'date' }
     ]
   }
 ];
@@ -75,7 +79,6 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
   readonly today = businessToday();
   /** Latest selectable date of birth: yesterday in the clinic's time zone. */
   readonly dobMax = addDays(businessToday(), -1);
-  readonly humanize = humanize;
   readonly allergyChip = allergyChip;
 
   /* RAMQ */
@@ -106,7 +109,15 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
   surgeonOther = false;
   private staffLoaded = false;
 
-  constructor(private files: PatientFileService, private staffService: StaffService, private host: ElementRef<HTMLElement>) {}
+  constructor(private files: PatientFileService, private staffService: StaffService, private host: ElementRef<HTMLElement>, public i18n: I18nService, private errors: ApiErrorsService) {}
+
+  fmt(iso: string | null | undefined, preset: 'date' | 'dayShortYear'): string {
+    return fmtDate(iso, preset, this.i18n.lang);
+  }
+
+  num(v: number): string {
+    return fmtNum(v, '1.0-0', this.i18n.lang);
+  }
 
   private focusLater(selector: string): void {
     setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(selector)?.focus());
@@ -117,7 +128,7 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
   }
 
   get dobText(): string {
-    return this.medical.dateOfBirth ? fmtDayYear(this.medical.dateOfBirth + 'T12:00:00Z') : '—';
+    return this.medical.dateOfBirth ? fmtDate(this.medical.dateOfBirth, 'date', this.i18n.lang) : '—';
   }
 
   get hnValid(): boolean {
@@ -177,7 +188,7 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
       },
       error: err => {
         this.revealBusy = false;
-        this.revealError = err?.status === 404 ? 'No health number on file.' : 'Could not reveal the number.';
+        this.revealError = this.errors.text(err, 'pf.medical.error.reveal');
       }
     });
   }
@@ -223,7 +234,8 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
       },
       error: err => {
         this.hnBusy = false;
-        this.hnError = apiErrorOf(err)?.fieldErrors['healthNumber'] ?? 'Could not save the health number.';
+        const msg = apiErrorOf(err)?.fieldErrors['healthNumber'];
+        this.hnError = msg ? this.errors.fieldText('healthNumber', msg) : this.errors.text(err, 'pf.medical.error.saveHn');
       }
     });
   }
@@ -237,9 +249,9 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
         this.hideRevealed();
         this.medicalChange.emit({ ...this.medical, healthNumberMasked: null });
       },
-      error: () => {
+      error: err => {
         this.hnBusy = false;
-        this.hnError = 'Could not remove the health number.';
+        this.hnError = this.errors.text(err, 'pf.medical.error.removeHn');
       }
     });
   }
@@ -264,7 +276,8 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
       },
       error: err => {
         this.dobBusy = false;
-        this.dobError = apiErrorOf(err)?.fieldErrors['dateOfBirth'] ?? 'Could not save the date of birth.';
+        const msg = apiErrorOf(err)?.fieldErrors['dateOfBirth'];
+        this.dobError = msg ? this.errors.fieldText('dateOfBirth', msg) : this.errors.text(err, 'pf.medical.error.saveDob');
       }
     });
   }
@@ -277,6 +290,10 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
 
   items(key: MedicalList): any[] {
     return this.medical[key] as any[];
+  }
+
+  menuItems(): { key: string; label: string }[] {
+    return [{ key: 'edit', label: this.i18n.t('common.edit') }, { key: 'remove', label: this.i18n.t('common.remove') }];
   }
 
   rowName(key: MedicalList, i: any): string {
@@ -365,12 +382,12 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
         f.saving = false;
         const api: ApiError | null = apiErrorOf(err);
         if (api && Object.keys(api.fieldErrors).length) {
-          f.errors = { ...api.fieldErrors };
+          f.errors = this.errors.fieldTexts(err);
           if (api.fieldErrors['surgeonStaffId'] || api.fieldErrors['surgeonName']) {
-            f.errors['surgeon'] = api.fieldErrors['surgeonStaffId'] ?? api.fieldErrors['surgeonName'];
+            f.errors['surgeon'] = f.errors['surgeonStaffId'] ?? f.errors['surgeonName'];
           }
         } else {
-          f.banner = api?.error === 'STAFF_INACTIVE' ? api.message : 'Could not save. Try again.';
+          f.banner = this.errors.text(err, 'pf.medical.error.save');
         }
       }
     });
@@ -392,7 +409,7 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
         this.removing = null;
         this.medicalChange.emit({ ...this.medical, [r.list]: this.items(r.list).filter(x => x.id !== r.id) });
       },
-      error: () => (this.removeError = 'Could not remove the item.')
+      error: err => (this.removeError = this.errors.text(err, 'pf.medical.error.remove'))
     });
   }
 

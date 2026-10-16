@@ -7,6 +7,7 @@ import { TimelineItem } from '../../../models/timeline.model';
 import { careNote, timelineItem, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { PatientTimelineComponent } from './patient-timeline.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('PatientTimelineComponent', () => {
   let fixture: ComponentFixture<PatientTimelineComponent>;
@@ -20,7 +21,7 @@ describe('PatientTimelineComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       providers: [providePermissions('NURSE')],
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientTimelineComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -249,7 +250,7 @@ describe('PatientTimelineComponent', () => {
       http.expectOne(`${environment.apiUrl}/patients/5/notes`).flush(
         { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { notedAt: 'must be within the last 7 days' } }, { status: 400, statusText: 'Bad Request' });
       await settle();
-      expect(q('.composer-card .banner--error').textContent).toContain('must be within the last 7 days');
+      expect(q('.composer-card .banner--error').textContent).toContain('Must be within the last 7 days.');
       expect(q<HTMLTextAreaElement>('#note-body').value).toBe('Late entry');
     });
   });

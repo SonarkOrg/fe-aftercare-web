@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "i18n:inventory": "node scripts/i18n-check.mjs --inventory"
   },
   "private": true,
   "dependencies": {

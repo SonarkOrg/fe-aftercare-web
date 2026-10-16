@@ -5,30 +5,34 @@ import { Subscription } from 'rxjs';
 import { CareDataService } from '../../Services/CareData.service';
 import { PatientService } from '../../Services/Patient.service';
 import { Permissions } from '../../auth/permissions.service';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { collate, fmtClock, fmtDate } from '../../i18n/format';
+import { I18nService } from '../../i18n/i18n.service';
+import { TKey } from '../../i18n/i18n.types';
 import { Patient } from '../../models/patient.model';
 import { CareSnapshot, PatientRow, PatientStatus, SeriesPoint } from '../../shared/care.model';
-import { addDays, businessToday, humanize, relativeDay } from '../../shared/link.util';
+import { addDays, businessToday, relativeDay } from '../../shared/link.util';
 import { STATUS_RANK } from '../../shared/patient-status';
 import { GLYPH, patientStatusChip } from '../../shared/status';
 
 export type StatusFilter = 'all' | 'critical' | 'attention' | 'stable' | 'inactive';
 export type SortKey = 'patient' | 'status' | 'followUp' | 'lastCheckIn' | 'pain' | 'alerts' | 'next';
 
-export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'status', label: 'Status' },
-  { key: 'patient', label: 'Name' },
-  { key: 'lastCheckIn', label: 'Last check-in' },
-  { key: 'pain', label: 'Pain' },
-  { key: 'alerts', label: 'Open alerts' },
-  { key: 'next', label: 'Next appointment' }
+export const SORT_OPTIONS: { key: SortKey; label: TKey }[] = [
+  { key: 'status', label: 'patients.sort.status' },
+  { key: 'patient', label: 'patients.sort.name' },
+  { key: 'lastCheckIn', label: 'patients.col.lastCheckIn' },
+  { key: 'pain', label: 'patients.col.pain' },
+  { key: 'alerts', label: 'patients.sort.alerts' },
+  { key: 'next', label: 'patients.col.next' }
 ];
 
-const FILTERS: { key: StatusFilter; label: string; glyph: string; status?: PatientStatus }[] = [
-  { key: 'all', label: 'All', glyph: '' },
-  { key: 'critical', label: 'Critical', glyph: GLYPH.critical, status: 'CRITICAL' },
-  { key: 'attention', label: 'Needs attention', glyph: GLYPH.warning, status: 'ATTENTION' },
-  { key: 'stable', label: 'Stable', glyph: GLYPH.good, status: 'STABLE' },
-  { key: 'inactive', label: 'Inactive', glyph: GLYPH.neutral, status: 'INACTIVE' }
+const FILTERS: { key: StatusFilter; label: TKey; glyph: string; status?: PatientStatus }[] = [
+  { key: 'all', label: 'patients.filter.all', glyph: '' },
+  { key: 'critical', label: 'enum.patientStatus.CRITICAL', glyph: GLYPH.critical, status: 'CRITICAL' },
+  { key: 'attention', label: 'enum.patientStatus.ATTENTION', glyph: GLYPH.warning, status: 'ATTENTION' },
+  { key: 'stable', label: 'enum.patientStatus.STABLE', glyph: GLYPH.good, status: 'STABLE' },
+  { key: 'inactive', label: 'enum.patientStatus.INACTIVE', glyph: GLYPH.neutral, status: 'INACTIVE' }
 ];
 
 export function normalizeText(s: string): string {
@@ -55,6 +59,8 @@ export class PatientsComponent implements OnInit, OnDestroy {
   notice: string | null = null;
   saving = false;
   addError: string | null = null;
+  /** Per-field messages of a VALIDATION_FAILED answer to the add-patient form, by field name ("address.city"). */
+  fieldErrors: Record<string, string> = {};
   drawerOpen = false;
 
   /** Status, follow-up and alert data exist only with CLINICAL_READ (the server sends them as null otherwise). */
@@ -66,7 +72,6 @@ export class PatientsComponent implements OnInit, OnDestroy {
   sortKey: SortKey = 'status';
   sortDir: 'asc' | 'desc' = 'asc';
 
-  humanize = humanize;
   relativeDay = relativeDay;
   chipOf = patientStatusChip;
 
@@ -81,7 +86,9 @@ export class PatientsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     @Inject(DOCUMENT) private doc: Document,
-    public permissions: Permissions
+    public permissions: Permissions,
+    public i18n: I18nService,
+    private errors: ApiErrorsService
   ) {}
 
   ngOnInit(): void {
@@ -117,7 +124,7 @@ export class PatientsComponent implements OnInit, OnDestroy {
       },
       error: error => {
         this.loading = false;
-        this.errorMessage = 'Could not load patients.';
+        this.errorMessage = this.i18n.t('patients.error.load');
         console.error('Fetch patients error', error?.status);
       }
     });
@@ -196,7 +203,7 @@ export class PatientsComponent implements OnInit, OnDestroy {
   }
 
   private byName(a: PatientRow, b: PatientRow): number {
-    return a.patient.lastName.localeCompare(b.patient.lastName) || a.patient.firstName.localeCompare(b.patient.firstName);
+    return collate(a.patient.lastName, b.patient.lastName) || collate(a.patient.firstName, b.patient.firstName);
   }
 
   setStatus(key: StatusFilter): void {
@@ -226,12 +233,28 @@ export class PatientsComponent implements OnInit, OnDestroy {
   }
 
   get sortLabel(): string {
-    return SORT_OPTIONS.find(o => o.key === this.sortKey)!.label;
+    return this.i18n.t(SORT_OPTIONS.find(o => o.key === this.sortKey)!.label);
+  }
+
+  reasonsText(r: PatientRow): string {
+    return r.reasons.map(m => this.i18n.t(m)).join(' · ');
+  }
+
+  nextDate(r: PatientRow): string {
+    return fmtDate(r.nextAppointment!.scheduledAt.substring(0, 10), 'dayShort', this.i18n.lang);
+  }
+
+  nextTime(r: PatientRow): string {
+    return fmtClock(r.nextAppointment!.scheduledAt.substring(11, 16), this.i18n.lang);
+  }
+
+  sortDirText(): string {
+    return this.i18n.t(this.sortDir === 'asc' ? 'patients.sort.ascending' : 'patients.sort.descending');
   }
 
   /** Accessible name of the direction button: it states the CURRENT order, which is what the list actually shows. */
   get sortDirLabel(): string {
-    return `${this.sortLabel}: ${this.sortDir === 'asc' ? 'ascending' : 'descending'}. Switch to ${this.sortDir === 'asc' ? 'descending' : 'ascending'}`;
+    return this.i18n.t(this.sortDir === 'asc' ? 'patients.sort.dirAsc' : 'patients.sort.dirDesc', { sort: this.sortLabel });
   }
 
   rowClick(r: PatientRow, e: Event): void {
@@ -272,6 +295,7 @@ export class PatientsComponent implements OnInit, OnDestroy {
     }
     this.drawerOpen = false;
     this.addError = null;
+    this.fieldErrors = {};
     this.doc.body.classList.remove('drawer-open');
     if (this.route.snapshot.queryParamMap.get('add')) {
       this.router.navigate([], { relativeTo: this.route, queryParams: { add: null }, queryParamsHandling: 'merge', replaceUrl: true });
@@ -307,36 +331,37 @@ export class PatientsComponent implements OnInit, OnDestroy {
 
   addPatient(): void {
     this.addError = null;
+    this.fieldErrors = {};
     this.saving = true;
     this.patientService.addPatient({ ...this.patient, dateOfBirth: this.patient.dateOfBirth || null }).subscribe({
       next: () => {
         this.saving = false;
+        this.actionError = null; // a failed delete from before is no longer relevant
         this.resetForm();
         this.closeDrawer();
         this.load();
-        this.notice = 'Patient added.';
+        this.notice = this.i18n.t('patients.added');
         clearTimeout(this.noticeTimer);
         this.noticeTimer = setTimeout(() => (this.notice = null), 4000);
       },
       error: error => {
         this.saving = false;
-        this.addError = 'Error adding patient.';
+        this.addError = this.errors.text(error, 'patients.error.add');
+        this.fieldErrors = this.errors.fieldTexts(error);
         console.error('Add patient error', error?.status);
       }
     });
   }
 
   deletePatient(p: Patient): void {
-    if (!window.confirm(`Delete ${p.firstName} ${p.lastName}?`)) {
+    if (!window.confirm(this.i18n.t('patients.confirmDelete', { name: `${p.firstName} ${p.lastName}` }))) {
       return;
     }
     this.actionError = null;
     this.patientService.deletePatient(p.id!).subscribe({
       next: () => this.load(),
       error: error => {
-        this.actionError = error?.status === 409
-          ? 'Patient has follow-up or appointment records and cannot be deleted.'
-          : 'Error deleting patient.';
+        this.actionError = this.errors.text(error, 'patients.error.delete');
         console.error('Delete patient error', error?.status);
       }
     });

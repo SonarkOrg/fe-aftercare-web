@@ -9,6 +9,7 @@ import { PatientMedicalComponent } from '../components/patient-file/patient-medi
 import { PatientTimelineComponent } from '../components/patient-file/patient-timeline/patient-timeline.component';
 import { AccessRole, Permission } from '../models/me.model';
 import { JANE, careNote, me, medical, providePermissions, ROLE_PERMISSIONS } from './fixtures';
+import { I18nTestingModule } from './i18n-testing.module';
 import { SHARED_DECLARATIONS } from './shared-declarations';
 
 /**
@@ -56,7 +57,7 @@ describe('role matrix', () => {
   async function render<T>(type: Type<T>, role: AccessRole, setup: (c: T) => void = () => undefined, extra: Type<unknown>[] = []): Promise<{ el: HTMLElement; http: HttpTestingController; fixture: ComponentFixture<T> }> {
     await TestBed.configureTestingModule({
       providers: [providePermissions(role)],
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [type, ...extra, ...SHARED_DECLARATIONS]
     }).compileComponents();
     const fixture = TestBed.createComponent(type);

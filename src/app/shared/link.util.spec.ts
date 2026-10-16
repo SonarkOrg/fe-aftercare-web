@@ -1,3 +1,4 @@
+import { testT } from '../testing/i18n-testing.module';
 import { addDays, buildPatientLink, businessDateOf, businessHour, daysBetween, humanize, initials, mondayOf, businessNow, relativeDay, businessToday } from './link.util';
 
 describe('link.util', () => {
@@ -56,10 +57,13 @@ describe('link.util date helpers', () => {
     expect(daysBetween('2026-10-31', '2026-11-01')).toBe(1);
   });
   it('relativeDay', () => {
-    expect(relativeDay('2026-10-13', '2026-10-13')).toBe('Today');
-    expect(relativeDay('2026-10-12', '2026-10-13')).toBe('Yesterday');
-    expect(relativeDay('2026-10-10', '2026-10-13')).toBe('3 days ago');
-    expect(relativeDay('2026-10-16', '2026-10-13')).toBe('in 3 days');
+    const t = testT('en');
+    const rel = (a: string, b: string) => { const m = relativeDay(a, b); return t(m.key, m.params); };
+    expect(rel('2026-10-13', '2026-10-13')).toBe('Today');
+    expect(rel('2026-10-12', '2026-10-13')).toBe('Yesterday');
+    expect(rel('2026-10-10', '2026-10-13')).toBe('3 days ago');
+    expect(rel('2026-10-16', '2026-10-13')).toBe('in 3 days');
+    expect(testT('fr')(relativeDay('2026-10-10', '2026-10-13').key, { count: 3 })).toBe('Il y a 3 jours');
   });
   it('initials', () => {
     expect(initials('marie', 'Tremblay')).toBe('MT');

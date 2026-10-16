@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Permissions } from '../../auth/permissions.service';
+import { I18nService } from '../../i18n/i18n.service';
 import { ROLE_LABEL } from '../../models/me.model';
 import { SharedModule } from '../shared.module';
 
@@ -10,10 +11,10 @@ import { SharedModule } from '../shared.module';
   templateUrl: './forbidden.component.html'
 })
 export class ForbiddenComponent {
-  constructor(private permissions: Permissions) {}
+  constructor(private permissions: Permissions, private i18n: I18nService) {}
 
   get roleLabel(): string {
     const r = this.permissions.role;
-    return r ? ROLE_LABEL[r] : 'unknown role';
+    return this.i18n.t(r ? ROLE_LABEL[r] : 'auth.forbidden.unknownRole');
   }
 }

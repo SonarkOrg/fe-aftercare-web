@@ -1,4 +1,5 @@
 import { answerOf } from '../fhir/fhir.util';
+import type { Msg } from '../i18n/i18n.types';
 import { Alert } from '../models/alert.model';
 import { Appointment } from '../models/appointment.model';
 import { CheckIn, FollowUp } from '../models/follow-up.model';
@@ -57,9 +58,8 @@ export interface StatusInput {
   today: string;
 }
 
-export interface StatusResult { status: PatientStatus; reasons: string[] }
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** Reasons are dictionary keys (with params), translated where they are shown. */
+export interface StatusResult { status: PatientStatus; reasons: Msg[] }
 
 export function computeStatus(input: StatusInput): StatusResult {
   const f = input.followUp ?? null;
@@ -68,16 +68,16 @@ export function computeStatus(input: StatusInput): StatusResult {
   const missed = missedYesterday(f, input.checkIns, input.today);
   const active = !!f && f.status === 'ACTIVE';
 
-  const reasons: string[] = [];
+  const reasons: Msg[] = [];
   if (openHigh > 0) {
-    reasons.push(`${plural(openHigh, 'high alert', 'high alerts')} open`);
+    reasons.push({ key: 'status.reason.highOpen', params: { count: openHigh } });
   }
   const others = unresolved.length - openHigh;
   if (others > 0) {
-    reasons.push(`${plural(others, 'alert', 'alerts')} unresolved`);
+    reasons.push({ key: 'status.reason.unresolved', params: { count: others } });
   }
   if (missed) {
-    reasons.push(`Missed check-in ${addDays(input.today, -1)}`);
+    reasons.push({ key: 'status.reason.missed', params: { date: addDays(input.today, -1) } });
   }
 
   let status: PatientStatus;
@@ -87,10 +87,10 @@ export function computeStatus(input: StatusInput): StatusResult {
     status = 'ATTENTION';
   } else if (active) {
     status = 'STABLE';
-    reasons.push('On track');
+    reasons.push({ key: 'status.reason.onTrack' });
   } else {
     status = 'INACTIVE';
-    reasons.push('No active follow-up');
+    reasons.push({ key: 'status.reason.noFollowUp' });
   }
   return { status, reasons };
 }

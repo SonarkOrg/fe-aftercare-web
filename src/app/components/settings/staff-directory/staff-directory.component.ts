@@ -2,10 +2,12 @@ import { Router } from '@angular/router';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { StaffService } from '../../../Services/Staff.service';
 import { Permissions } from '../../../auth/permissions.service';
-import { apiErrorOf, errorText } from '../../../models/api-error.model';
+import { apiErrorOf } from '../../../models/api-error.model';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { collate } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
 import { ACCESS_ROLES, AccessRole } from '../../../models/me.model';
 import { STAFF_ROLES, Staff, StaffRequest, StaffRole } from '../../../models/staff.model';
-import { humanize } from '../../../shared/link.util';
 import { ChipSpec, linkedChip, staffActiveChip } from '../../../shared/status';
 
 export type StaffFilter = 'active' | 'inactive' | 'all';
@@ -17,8 +19,6 @@ export type StaffFilter = 'active' | 'inactive' | 'all';
 export class StaffDirectoryComponent implements OnInit, OnDestroy {
   readonly roles = STAFF_ROLES;
   readonly accessRoles = ACCESS_ROLES;
-  readonly lastAdminText = 'At least one active administrator is required. Make someone else an admin first.';
-  readonly humanize = humanize;
   readonly inactiveChip: ChipSpec = staffActiveChip(false);
   readonly linked = linkedChip(true);
   readonly notLinked = linkedChip(false);
@@ -42,7 +42,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   @ViewChild('drawerEl') drawerEl?: ElementRef<HTMLElement>;
   private trigger: HTMLElement | null = null;
 
-  constructor(private staff: StaffService, private permissions: Permissions, private router: Router) {}
+  constructor(private staff: StaffService, private permissions: Permissions, private router: Router, private i18n: I18nService, private errors2: ApiErrorsService) {}
 
   ngOnInit(): void {
     this.load();
@@ -83,7 +83,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   }
 
   menuItems(s: Staff) {
-    return [{ key: 'edit', label: 'Edit' }, { key: s.active ? 'deactivate' : 'reactivate', label: s.active ? 'Deactivate' : 'Reactivate' }];
+    return [{ key: 'edit', label: this.i18n.t('common.edit') }, { key: s.active ? 'deactivate' : 'reactivate', label: this.i18n.t(s.active ? 'settings.staff.deactivate' : 'settings.staff.reactivate') }];
   }
 
   onMenu(s: Staff, key: string): void {
@@ -112,7 +112,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
           this.permissions.load(true).subscribe({ error: () => { /* NOT_STAFF: the interceptor sends us to /not-staff */ } });
         }
       },
-      error: err => (this.actionError = apiErrorOf(err)?.error === 'LAST_ADMIN' ? this.lastAdminText : errorText(err, `Could not ${key} ${s.displayName}.`))
+      error: err => (this.actionError = this.errors2.text(err, key === 'deactivate' ? 'settings.staff.error.deactivate' : 'settings.staff.error.reactivate'))
     });
   }
 
@@ -180,7 +180,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
       next: s => {
         this.saving = false;
         this.all = this.editId === null ? [...this.all, s] : this.all.map(x => (x.id === s.id ? s : x));
-        this.all = [...this.all].sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr-CA', { sensitivity: 'base' }));
+        this.all = [...this.all].sort((a, b) => collate(a.displayName, b.displayName));
         this.closeDrawer();
         if (this.editId !== null && this.permissions.me?.staffId === s.id) {
           // our own role may have changed: refresh permissions and leave if Settings is no longer allowed
@@ -197,14 +197,10 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
       error: err => {
         this.saving = false;
         const api = apiErrorOf(err);
-        if (api?.error === 'LAST_ADMIN') {
-          this.banner = this.lastAdminText;
-        } else if (api?.error === 'DUPLICATE_STAFF') {
-          this.banner = api.message || 'A staff member with this email or login already exists';
-        } else if (api && Object.keys(api.fieldErrors).length) {
-          this.errors = { ...api.fieldErrors };
+        if (api && api.error === 'VALIDATION_FAILED' && Object.keys(api.fieldErrors).length) {
+          this.errors = this.errors2.fieldTexts(err);
         } else {
-          this.banner = errorText(err, 'Could not save the staff member.');
+          this.banner = this.errors2.text(err, 'settings.staff.error.save');
         }
       }
     });

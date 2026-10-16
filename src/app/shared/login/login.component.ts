@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { StaffAuth } from '../../auth/staff-auth';
+import { PageTitleService } from '../../shell/page-title.service';
 
 @Component({
   selector: 'app-login',
@@ -7,7 +8,9 @@ import { StaffAuth } from '../../auth/staff-auth';
 })
 export class LoginComponent {
 
-  constructor(public auth: StaffAuth) { }
+  constructor(public auth: StaffAuth, titles: PageTitleService) {
+    titles.set('page.login');
+  }
 
   login() {
     this.auth.login('/dashboard');

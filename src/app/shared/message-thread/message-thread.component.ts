@@ -3,13 +3,14 @@ import { Subscription, interval } from 'rxjs';
 import { MessageService } from '../../Services/Message.service';
 import { MessageCountService } from '../../Services/MessageCount.service';
 import { PatientService } from '../../Services/Patient.service';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { I18nService } from '../../i18n/i18n.service';
 import { apiErrorOf } from '../../models/api-error.model';
 import { Message } from '../../models/message.model';
 import { ChipSpec, messagingChip } from '../status';
 import { DayGroup, fmtTime, groupByDay } from '../messages.util';
 
 export const MESSAGE_MAX = 2000;
-const CLOSED = 'Messaging is closed: the patient has no active link. Create a follow-up or appointment to reopen it. History stays available.';
 
 /** Staff view of one patient's message thread, with the composer. Plain text only (Angular escapes the interpolation). */
 @Component({
@@ -38,17 +39,20 @@ export class MessageThreadComponent implements OnInit, OnChanges, OnDestroy {
   draft = '';
   name: string | null = null;
   readonly max = MESSAGE_MAX;
-  readonly closedText = CLOSED;
 
   @ViewChild('log') log?: ElementRef<HTMLElement>;
 
   private poll?: Subscription;
   private seq = 0;
 
-  constructor(private messages: MessageService, private count: MessageCountService, private patients: PatientService) {}
+  constructor(private messages: MessageService, private count: MessageCountService, private patients: PatientService, private i18n: I18nService, private errors: ApiErrorsService) {}
+
+  get closedText(): string {
+    return this.i18n.t('thread.closed');
+  }
 
   get chip(): ChipSpec {
-    return messagingChip(this.open, this.openUntil);
+    return messagingChip(this.open, this.openUntil, this.i18n.lang);
   }
 
   get canSend(): boolean {
@@ -56,11 +60,11 @@ export class MessageThreadComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   time(m: Message): string {
-    return fmtTime(m.sentAt, 'en');
+    return fmtTime(m.sentAt, this.i18n.lang);
   }
 
   who(m: Message): string {
-    return m.senderName ?? (m.sender === 'PATIENT' ? 'Patient' : 'Staff');
+    return m.senderName ?? this.i18n.t(m.sender === 'PATIENT' ? 'common.patient' : 'thread.staff');
   }
 
   ngOnInit(): void {
@@ -145,7 +149,7 @@ export class MessageThreadComponent implements OnInit, OnChanges, OnDestroy {
       },
       error: () => {
         if (pid === this.patientId) {
-          this.sendError = 'Could not load earlier messages.';
+          this.sendError = this.i18n.t('thread.earlierError');
         }
       }
     });
@@ -182,7 +186,7 @@ export class MessageThreadComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private regroup(): void {
-    this.groups = groupByDay(this.items, 'en');
+    this.groups = groupByDay(this.items, this.i18n.lang);
   }
 
   private scrollDown(): void {
@@ -253,9 +257,9 @@ export class MessageThreadComponent implements OnInit, OnChanges, OnDestroy {
           this.open = false;
           this.openUntil = null;
         } else if (err?.status === 400) {
-          this.sendError = 'The message must be plain text, 1 to 2,000 characters.';
+          this.sendError = this.i18n.t('thread.plainTextError', { max: this.max });
         } else {
-          this.sendError = 'Could not send the message. Try again.';
+          this.sendError = this.errors.text(err, 'thread.sendError');
         }
       }
     });

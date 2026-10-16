@@ -1,3 +1,4 @@
+import type { Msg } from '../i18n/i18n.types';
 import { Alert } from '../models/alert.model';
 import { Appointment } from '../models/appointment.model';
 import { CheckIn, FollowUp } from '../models/follow-up.model';
@@ -9,7 +10,7 @@ export interface SeriesPoint { day: number; date: string; value: number | null }
 
 export interface PatientRow {
   patient: Patient; name: string; initials: string;
-  status: PatientStatus; reasons: string[];
+  status: PatientStatus; reasons: Msg[];
   followUp: FollowUp | null; day: { day: number; total: number; ended: boolean } | null;
   lastCheckInDate: string | null;
   painSeries: SeriesPoint[];

@@ -15,6 +15,7 @@ import { addDays, businessToday } from '../../shared/link.util';
 import { SEED_RULES, alertDto, appointment, checkInDto, followUp, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { PatientsComponent } from './patients.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('PatientsComponent', () => {
   let component: PatientsComponent;
@@ -40,7 +41,7 @@ describe('PatientsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       providers: [providePermissions('ADMIN')],
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -238,7 +239,7 @@ describe('PatientsComponent', () => {
     component.deletePatient(marie);
     http.expectOne(`${base}/1`).flush({ status: 409, error: 'PATIENT_HAS_RECORDS', message: 'x', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
     fixture.detectChanges();
-    expect(el.textContent).toContain('Patient has follow-up or appointment records and cannot be deleted.');
+    expect(el.textContent).toContain('This patient has records and cannot be deleted.');
   });
 
   describe('add-patient drawer', () => {
@@ -329,6 +330,38 @@ describe('PatientsComponent', () => {
       expect(el.textContent).toContain('Patient added.');
       component.ngOnDestroy();
     });
+
+    it('shows each server field message under its own input on VALIDATION_FAILED', () => {
+      spyOn(console, 'error');
+      init([]);
+      component.openDrawer(null);
+      fixture.detectChanges();
+      component.patient = { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', phone: '555-0111', gender: 'female', address: { city: 'Austin', state: 'TX', zip: '73301' } };
+      component.addPatient();
+      http.expectOne(`${base}/register`).flush(
+        { status: 400, error: 'VALIDATION_FAILED', message: 'x', fieldErrors: { phone: 'must be a valid phone number', 'address.zip': 'must be a valid postal code' } },
+        { status: 400, statusText: 'Bad Request' });
+      fixture.detectChanges();
+      const under = (id: string) => el.querySelector(`#${id}`)!.parentElement!.querySelector('.field-error')?.textContent?.trim();
+      expect(under('new-phone')).toBe('Invalid phone number.');
+      expect(under('new-zip')).toBe('Invalid postal code.');
+      expect(under('new-email')).toBeUndefined();
+    });
+
+    it('clears a stale delete error once a patient is added', () => {
+      spyOn(console, 'error');
+      init([marie]);
+      spyOn(window, 'confirm').and.returnValue(true);
+      component.deletePatient(marie);
+      http.expectOne(`${base}/1`).flush({ status: 409, error: 'PATIENT_HAS_RECORDS', message: 'x', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
+      expect(component.actionError).not.toBeNull();
+      component.openDrawer(null);
+      component.patient = { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', phone: '555-0111', gender: 'female', address: { city: 'Austin', state: 'TX', zip: '73301' } };
+      component.addPatient();
+      http.expectOne(`${base}/register`).flush({ id: 9 });
+      expect(component.actionError).toBeNull();
+      http.match(() => true).forEach(r => r.flush([]));
+    });
   });
 });
 
@@ -339,7 +372,7 @@ describe('PatientsComponent inside the shell (real typing)', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule.withRoutes([{ path: 'patients', component: PatientsComponent, data: { title: 'Patients' } }])],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule.withRoutes([{ path: 'patients', component: PatientsComponent, data: { title: 'page.patients' } }])],
       declarations: [PatientsComponent, ShellComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), 
         { provide: StaffAuth, useValue: { userName$: of('Dev Nurse'), logout: () => undefined } },
@@ -406,7 +439,7 @@ describe('PatientsComponent by access role', () => {
 
   async function setup(role: AccessRole) {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientsComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions(role)]
     }).compileComponents();

@@ -1,8 +1,12 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription, forkJoin } from 'rxjs';
 import { AppointmentService } from '../../Services/Appointment.service';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { enumKey } from '../../i18n/enum-key';
+import { fmtClock, fmtPct } from '../../i18n/format';
+import { I18nService } from '../../i18n/i18n.service';
 import { Appointment, AppointmentMetrics } from '../../models/appointment.model';
-import { addDays, humanize, mondayOf, businessNow, businessToday } from '../../shared/link.util';
+import { addDays, mondayOf, businessNow, businessToday } from '../../shared/link.util';
 import { appointmentChip } from '../../shared/status';
 import { BoardGroup, MINUTES_SAVED_PER_INTAKE, Week, endTime, groupForBoard, layoutWeek } from './appointment-board';
 
@@ -24,20 +28,31 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   metrics: AppointmentMetrics | null = null;
   loading = false;
   errorMessage: string | null = null;
-  humanize = humanize;
   appointmentChip = appointmentChip;
   endTime = endTime;
   minutesPerIntake = MINUTES_SAVED_PER_INTAKE;
   board: BoardGroup[] = [];
   week: Week | null = null;
-  metricsTitle = 'Today';
-  rangeFrom = new Date();
-  rangeTo = new Date();
+  metricsTitle: 'common.today' | 'appts.thisWeek' = 'common.today';
+  rangeFrom = businessToday();
+  rangeTo = businessToday();
   actionError: string | null = null;
   live = '';
   codes: Record<number, string> = {};
 
-  constructor(private appointments: AppointmentService) {}
+  constructor(private appointments: AppointmentService, public i18n: I18nService, private errors: ApiErrorsService) {}
+
+  typeLabel(a: Appointment): string {
+    return this.i18n.t(enumKey('appointmentType', a.type));
+  }
+
+  blockTitle(a: Appointment): string {
+    return `${this.time(a)} ${a.patientFirstName} ${a.patientLastName} · ${this.i18n.t(appointmentChip(a).label)}`;
+  }
+
+  hourLabel(h: number): string {
+    return fmtClock(`${h}:00`, this.i18n.lang);
+  }
 
   ngOnInit(): void {
     this.load();
@@ -61,7 +76,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   get completionPercent(): string {
     const r = this.metrics?.completionRate;
-    return r === null || r === undefined ? '—' : `${Math.round(r * 100)}%`;
+    return fmtPct(r, this.i18n.lang);
   }
 
   hours(w: Week): number[] {
@@ -76,12 +91,6 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     this.setDate(businessToday());
   }
 
-  /** A local Date from the y/m/d parts of a YYYY-MM-DD string (never from scheduledAt). */
-  private localDate(iso: string): Date {
-    const [y, m, d] = iso.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-
   get doneBeforeVisit(): number {
     const m = this.metrics;
     return m ? m.total - m.cancelled : 0;
@@ -92,22 +101,22 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   }
 
   endOf(a: Appointment): string {
-    return endTime(a.scheduledAt, a.durationMinutes);
+    return fmtClock(endTime(a.scheduledAt, a.durationMinutes), this.i18n.lang);
   }
 
   markReviewed(a: Appointment): void {
-    this.act(this.appointments.markReviewed(a.id), 'Appointment marked reviewed.');
+    this.act(this.appointments.markReviewed(a.id), this.i18n.t('dashboard.live.reviewed'));
   }
 
   markCompleted(a: Appointment): void {
-    if (!window.confirm('Mark this appointment as completed?')) {
+    if (!window.confirm(this.i18n.t('appts.confirmComplete'))) {
       return;
     }
-    this.act(this.appointments.setStatus(a.id, 'COMPLETED'), 'Appointment marked completed.');
+    this.act(this.appointments.setStatus(a.id, 'COMPLETED'), this.i18n.t('appts.live.completed'));
   }
 
   newLink(a: Appointment): void {
-    if (!window.confirm('The previous link will stop working. Continue?')) {
+    if (!window.confirm(this.i18n.t('dashboard.confirmNewLink'))) {
       return;
     }
     this.actionError = null;
@@ -130,16 +139,16 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   private fail(err: { status?: number }): void {
     if (err?.status === 409) {
-      this.actionError = 'This appointment was updated by someone else. Reloading.';
+      this.actionError = this.i18n.t('dashboard.error.apptConflict');
       this.load();
     } else {
-      this.actionError = 'Could not update the appointment.';
+      this.actionError = this.errors.text(err, 'appts.error.update');
     }
   }
 
   setView(v: 'day' | 'week'): void {
     this.view = v;
-    this.metricsTitle = v === 'week' ? 'This week' : 'Today';
+    this.metricsTitle = v === 'week' ? 'appts.thisWeek' : 'common.today';
     this.load();
   }
 
@@ -156,7 +165,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   }
 
   time(a: Appointment): string {
-    return a.scheduledAt.substring(11, 16);
+    return fmtClock(a.scheduledAt.substring(11, 16), this.i18n.lang);
   }
 
   load(): void {
@@ -170,9 +179,9 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         this.metrics = r.metrics;
         this.count = r.list.length;
         this.board = groupForBoard(r.list);
-        this.week = this.view === 'week' ? layoutWeek(r.list, from) : null;
-        this.rangeFrom = this.localDate(from);
-        this.rangeTo = this.localDate(to);
+        this.week = this.view === 'week' ? layoutWeek(r.list, from, { lang: this.i18n.lang }) : null;
+        this.rangeFrom = from;
+        this.rangeTo = to;
         const byDate = new Map<string, Appointment[]>();
         for (const a of r.list) {
           const d = a.scheduledAt.substring(0, 10);
@@ -188,7 +197,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         this.metrics = null;
         this.board = [];
         this.week = null;
-        this.errorMessage = 'Could not load appointments.';
+        this.errorMessage = this.i18n.t('appts.error.load');
       }
     });
   }

@@ -1,3 +1,4 @@
+import { Title } from '@angular/platform-browser';
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
@@ -10,6 +11,7 @@ import { Permissions } from '../../auth/permissions.service';
 import { StaffAuth } from '../../auth/staff-auth';
 import { me } from '../../testing/fixtures';
 import { NotStaffComponent } from './not-staff.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 @Component({ selector: 'app-fake-dev-ui', standalone: true, template: '<select id="dev-role"></select>' })
 class FakeDevUi {}
@@ -24,7 +26,7 @@ describe('NotStaffComponent', () => {
   function setup(extra: object[] = []) {
     auth = { subject$: new BehaviorSubject<string | null>('dev|unlinked'), logout: jasmine.createSpy('logout'), getAccessToken: jasmine.createSpy('getAccessToken').and.returnValue(of('t')) };
     TestBed.configureTestingModule({
-      imports: [NotStaffComponent, HttpClientTestingModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), NotStaffComponent, HttpClientTestingModule, RouterTestingModule],
       providers: [{ provide: StaffAuth, useValue: auth }, ...extra]
     });
     http = TestBed.inject(HttpTestingController);
@@ -35,6 +37,11 @@ describe('NotStaffComponent', () => {
     fixture.detectChanges();
   }
   afterEach(() => http.verify());
+
+  it('sets the page title', () => {
+    setup();
+    expect(TestBed.inject(Title).getTitle()).toBe('Not linked · Aftercare');
+  });
 
   it('explains the situation and shows the login id in a mono box', () => {
     setup();

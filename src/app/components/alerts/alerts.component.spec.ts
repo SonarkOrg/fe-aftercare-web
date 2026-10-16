@@ -8,6 +8,7 @@ import { AlertCountService } from '../../Services/AlertCount.service';
 import { alertDto, providePermissions, missedAlert } from '../../testing/fixtures';
 import { AlertTableComponent } from '../alert-table/alert-table.component';
 import { AlertsComponent } from './alerts.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('AlertsComponent', () => {
   let fixture: ComponentFixture<AlertsComponent>;
@@ -18,7 +19,7 @@ describe('AlertsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [AlertsComponent, AlertTableComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), { provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } }]
     }).compileComponents();
@@ -90,7 +91,7 @@ describe('AlertsComponent', () => {
     fixture.detectChanges();
     alertsReq().flush('x', { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
-    expect(el.textContent).toContain('Could not load alerts.');
+    expect(el.textContent).toContain('Server error. Please try again later.');
   });
 
   it('clears the list on a failed reload and renders no rows next to the error', () => {
@@ -103,7 +104,7 @@ describe('AlertsComponent', () => {
     fixture.detectChanges();
     expect(el.querySelectorAll('.alert-row').length).toBe(0);
     expect(el.querySelector('app-alert-table')).toBeNull();
-    expect(el.textContent).toContain('Could not load alerts.');
+    expect(el.textContent).toContain('Server error. Please try again later.');
     expect(el.textContent).not.toContain('No resolved alerts.');
   });
 
@@ -125,7 +126,7 @@ describe('AlertsComponent type filter', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [AlertsComponent, AlertTableComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), { provide: AlertCountService, useValue: { refresh: jasmine.createSpy('refresh') } }]
     }).compileComponents();

@@ -8,6 +8,7 @@ import { environment } from '../../../environments/environment';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { JANE, appointment, appointmentDetail } from '../../testing/fixtures';
 import { AppointmentFormComponent } from './appointment-form.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('AppointmentFormComponent', () => {
   let fixture: ComponentFixture<AppointmentFormComponent>;
@@ -19,7 +20,7 @@ describe('AppointmentFormComponent', () => {
 
   function setup(params: Record<string, string>, query: Record<string, string>) {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [AppointmentFormComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [{
         provide: ActivatedRoute,
@@ -87,13 +88,13 @@ describe('AppointmentFormComponent', () => {
       { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { scheduledAt: 'must be in the future' } },
       { status: 400, statusText: 'Bad Request' });
     fixture.detectChanges();
-    expect(el.textContent).toContain('scheduledAt: must be in the future');
+    expect(el.textContent).toContain('Date and time: Must be in the future.');
 
     component.submit();
     http.expectOne(`${api}/appointments`).flush(
       { status: 409, error: 'NO_ACTIVE_QUESTIONNAIRE', message: '', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
     fixture.detectChanges();
-    expect(el.textContent).toContain('No active form is configured for this appointment type.');
+    expect(el.textContent).toContain('No active questionnaire for this appointment type.');
 
     component.submit();
     http.expectOne(`${api}/appointments`).flush(
@@ -136,6 +137,6 @@ describe('AppointmentFormComponent', () => {
     http.expectOne(`${api}/patients`).flush([JANE]);
     fixture.detectChanges();
     expect(el.querySelector('form')).toBeNull();
-    expect(el.querySelector('#load-error')!.textContent).toContain('Could not load the appointment.');
+    expect(el.querySelector('#load-error')!.textContent).toContain('Server error. Please try again later.');
   });
 });

@@ -3,10 +3,11 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { AccessRole } from '../../models/me.model';
 import { providePermissions } from '../../testing/fixtures';
 import { ForbiddenComponent } from './forbidden.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('ForbiddenComponent', () => {
   function render(role: AccessRole | null): HTMLElement {
-    TestBed.configureTestingModule({ imports: [ForbiddenComponent, RouterTestingModule], providers: [providePermissions(role)] });
+    TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang(), ForbiddenComponent, RouterTestingModule], providers: [providePermissions(role)] });
     const fixture: ComponentFixture<ForbiddenComponent> = TestBed.createComponent(ForbiddenComponent);
     fixture.detectChanges();
     return fixture.nativeElement;

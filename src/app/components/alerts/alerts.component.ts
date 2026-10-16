@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AlertService } from '../../Services/Alert.service';
-import { errorText } from '../../models/api-error.model';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { I18nService } from '../../i18n/i18n.service';
 import { Alert, AlertSeverity } from '../../models/alert.model';
 
 export type SeverityFilter = 'all' | AlertSeverity;
@@ -19,7 +20,7 @@ export class AlertsComponent implements OnInit {
   errorMessage: string | null = null;
   live = '';
 
-  constructor(private alertService: AlertService) {}
+  constructor(private alertService: AlertService, private i18n: I18nService, private errors: ApiErrorsService) {}
 
   ngOnInit(): void {
     this.load();
@@ -37,12 +38,12 @@ export class AlertsComponent implements OnInit {
 
   setSeverity(s: SeverityFilter): void {
     this.severity = s;
-    this.live = `${this.visible.length} alerts shown`;
+    this.live = this.i18n.t('alerts.shown', { count: this.visible.length });
   }
 
   setType(t: TypeFilter): void {
     this.type = t;
-    this.live = `${this.visible.length} alerts shown`;
+    this.live = this.i18n.t('alerts.shown', { count: this.visible.length });
   }
 
   /** Alerts of the chosen type (the severity counts and list work on these). */
@@ -82,7 +83,7 @@ export class AlertsComponent implements OnInit {
       error: err => {
         this.loading = false;
         this.alerts = []; // never keep showing a stale list next to the error
-        this.errorMessage = errorText(err, 'Could not load alerts.');
+        this.errorMessage = this.errors.text(err, 'alerts.error.load');
       }
     });
   }

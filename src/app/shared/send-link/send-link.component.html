@@ -1,14 +1,14 @@
 <span class="row-menu-wrap send-link">
   <button type="button" class="btn btn--secondary send-link__btn" aria-haspopup="menu" [attr.aria-expanded]="open" [disabled]="busy" (click)="toggle()">
-    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg><span>{{ busy ? 'Sending…' : 'Send link' }}</span>
+    <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg><span>{{ (busy ? 'sendLink.sending' : 'sendLink.button') | t }}</span>
   </button>
-  <div class="row-menu send-link__menu" role="menu" aria-label="Send link" *ngIf="open" (keydown)="onMenuKey($event)">
-    <span class="row-menu__item muted" *ngIf="loadingPrefs">Loading…</span>
+  <div class="row-menu send-link__menu" role="menu" [attr.aria-label]="'sendLink.button' | t" *ngIf="open" (keydown)="onMenuKey($event)">
+    <span class="row-menu__item muted" *ngIf="loadingPrefs">{{ 'common.loading' | t }}</span>
     <button type="button" role="menuitem" class="row-menu__item send-link__item" *ngFor="let o of options; trackBy: trackChannel" (click)="send(o)">{{ o.label }}</button>
   </div>
 </span>
 <div class="banner banner--info send-link__ok" role="status" *ngIf="success"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ success }}</span></div>
 <div class="banner banner--error send-link__err" role="alert" *ngIf="error">
   <span class="banner__glyph" aria-hidden="true">▲</span>
-  <span>{{ error }} <a *ngIf="noConsent" [routerLink]="['/patients', patientId]" [queryParams]="{ tab: 'contacts' }">Open Contacts</a></span>
+  <span>{{ error }} <a *ngIf="noConsent" [routerLink]="['/patients', patientId]" [queryParams]="{ tab: 'contacts' }">{{ 'sendLink.openContacts' | t }}</a></span>
 </div>

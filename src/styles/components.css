@@ -238,3 +238,10 @@ ul.plain, ul.flags { list-style: none; padding: 0; margin: 8px 0; }
 ul.banner { list-style: none; margin-left: 0; margin-right: 0; }
 .card > dl.kv, .card > .btn-row { margin-top: 16px; }
 .card__header + dl.kv { margin-top: 0; }
+
+/* Language switch (user menu, login and not-staff pages) */
+.lang-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; }
+.lang-switch__label { font-size: 12px; color: var(--muted, #5b6470); flex-basis: 100%; }
+.lang-switch__btn.is-active { background: var(--sage-600, #4f6b4a); color: #fff; border-color: transparent; }
+.lang-switch__err { flex-basis: 100%; }
+table.sr-only { display: block; max-width: 1px; }

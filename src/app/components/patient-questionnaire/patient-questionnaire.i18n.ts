@@ -1,4 +1,6 @@
-export type PatientLang = 'fr' | 'en';
+import type { Lang } from '../../i18n/i18n.types';
+
+export type PatientLang = Lang;
 
 export interface QuestionnaireText {
   checkinTitle: string;

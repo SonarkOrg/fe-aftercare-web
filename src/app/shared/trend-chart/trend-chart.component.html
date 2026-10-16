@@ -1,14 +1,14 @@
 <ng-container *ngIf="kind === 'full'; else small">
   <figure class="trend">
     <figcaption class="trend__caption">
-      <h3 class="trend__title">{{ label }}</h3>
+      <h3 class="trend__title">{{ labelText }}</h3>
       <span class="trend__legend">
-        ▨ daily value · ▲ red: at or above alert · – no check-in
+        {{ 'chart.legend.base' | t }}
         <ng-container [ngSwitch]="true">
-          <ng-container *ngSwitchCase="model.hasThreshold"> · dashed: alert threshold ≥ {{ threshold }}{{ unit }}</ng-container>
-          <ng-container *ngSwitchCase="thresholdState === 'loading'"> · Loading alert threshold…</ng-container>
-          <ng-container *ngSwitchCase="thresholdState === 'failed'"> · Alert threshold unavailable</ng-container>
-          <ng-container *ngSwitchDefault> · No alert rule for this measure.</ng-container>
+          <ng-container *ngSwitchCase="model.hasThreshold"> · {{ 'chart.legend.threshold' | t:{ threshold: thresholdText } }}</ng-container>
+          <ng-container *ngSwitchCase="thresholdState === 'loading'"> · {{ 'chart.legend.loading' | t }}</ng-container>
+          <ng-container *ngSwitchCase="thresholdState === 'failed'"> · {{ 'chart.legend.failed' | t }}</ng-container>
+          <ng-container *ngSwitchDefault> · {{ 'chart.legend.none' | t }}</ng-container>
         </ng-container>
       </span>
     </figcaption>
@@ -35,15 +35,15 @@
         </g>
       </svg>
       <div class="chart-tip" *ngIf="active as a" role="status" [style.left.px]="tipLeft" [style.top.px]="a.tip.y">
-        <div>Day {{ a.day }}<ng-container *ngIf="a.date"> · {{ a.date | date:'EEE d MMM' }}</ng-container></div>
+        <div>{{ 'chart.tip.day' | t:{ day: a.day } }}<ng-container *ngIf="a.date"> · {{ a.date | tzDate:'dayShort' }}</ng-container></div>
         <div *ngIf="a.value !== null; else none"><strong>{{ a.value }}</strong>{{ unit }}</div>
-        <ng-template #none><div>No check-in</div></ng-template>
-        <div *ngIf="a.alert">▲ At or above alert</div>
+        <ng-template #none><div>{{ 'chart.status.missed' | t }}</div></ng-template>
+        <div *ngIf="a.alert">▲ {{ 'chart.tip.alert' | t }}</div>
       </div>
     </div>
     <table class="sr-only">
       <caption>{{ model.title }}</caption>
-      <thead><tr><th scope="col">Day</th><th scope="col">Date</th><th scope="col">Value</th><th scope="col">Status</th></tr></thead>
+      <thead><tr><th scope="col">{{ 'chart.table.day' | t }}</th><th scope="col">{{ 'chart.table.date' | t }}</th><th scope="col">{{ 'chart.table.value' | t }}</th><th scope="col">{{ 'chart.table.status' | t }}</th></tr></thead>
       <tbody>
         <tr *ngFor="let r of model.rows"><td>{{ r.day }}</td><td>{{ r.date }}</td><td>{{ r.value }}</td><td>{{ r.status }}</td></tr>
       </tbody>

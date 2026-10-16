@@ -1,70 +1,70 @@
 <div class="page">
   <section class="hero">
     <div>
-      <h1 class="hero__title">Patients</h1>
-      <p class="hero__sub" *ngIf="!loading && !errorMessage">{{ rows.length }} patients<ng-container *ngIf="clinical"> · {{ activeCount }} in active follow-up</ng-container></p>
+      <h1 class="hero__title">{{ 'page.patients' | t }}</h1>
+      <p class="hero__sub" *ngIf="!loading && !errorMessage">{{ 'patients.count' | t:{ count: rows.length } }}<ng-container *ngIf="clinical"> · {{ 'patients.activeCount' | t:{ count: activeCount } }}</ng-container></p>
     </div>
     <div class="hero__actions">
-      <button type="button" id="open-add-patient" class="btn btn--accent" *appCan="'PATIENT_WRITE'" #addBtn (click)="openDrawer(addBtn)"><app-icon name="plus" [size]="16"></app-icon>Add patient</button>
+      <button type="button" id="open-add-patient" class="btn btn--accent" *appCan="'PATIENT_WRITE'" #addBtn (click)="openDrawer(addBtn)"><app-icon name="plus" [size]="16"></app-icon>{{ 'dashboard.addPatient' | t }}</button>
     </div>
   </section>
 
   <div class="banner banner--info" role="status" *ngIf="notice"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ notice }}</span></div>
   <div class="banner banner--error error-message" *ngIf="errorMessage">
-    <span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span>
-    <button type="button" class="btn btn--secondary btn--sm" (click)="retry()">Retry</button>
+    <span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span>
+    <button type="button" class="btn btn--secondary btn--sm" (click)="retry()">{{ 'common.retry' | t }}</button>
   </div>
   <div class="banner banner--error error-message" *ngIf="actionError">
-    <span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ actionError }}</span>
+    <span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ actionError }}</span>
   </div>
 
   <div class="toolbar" *ngIf="!errorMessage">
     <div class="search-pill">
       <app-icon name="search" [size]="16"></app-icon>
-      <input type="search" id="patient-search" aria-label="Search by name" placeholder="Search by name" [value]="query" (input)="setQuery($any($event.target).value)">
+      <input type="search" id="patient-search" [attr.aria-label]="'patients.search' | t" [placeholder]="'patients.search' | t" [value]="query" (input)="setQuery($any($event.target).value)">
     </div>
-    <div class="pill-group" role="group" aria-label="Filter patients by status" *ngIf="clinical">
+    <div class="pill-group" role="group" [attr.aria-label]="'patients.filter.aria' | t" *ngIf="clinical">
       <button *ngFor="let f of filters" type="button" class="pill-group__item" [attr.data-filter]="f.key" [attr.aria-pressed]="statusFilter === f.key"
-              [attr.aria-label]="f.label + ', ' + count(f.key)" (click)="setStatus(f.key)">
-        <span class="glyph" *ngIf="f.glyph" aria-hidden="true">{{ f.glyph }}</span>{{ f.label }}
+              [attr.aria-label]="'patients.filter.itemAria' | t:{ label: (f.label | t), count: count(f.key) }" (click)="setStatus(f.key)">
+        <span class="glyph" *ngIf="f.glyph" aria-hidden="true">{{ f.glyph }}</span>{{ f.label | t }}
         <span class="pill-group__count" aria-hidden="true">{{ count(f.key) }}</span>
       </button>
     </div>
     <span class="toolbar__spacer"></span>
-    <div class="sort-ctl" role="group" aria-label="Sort patients">
-      <label for="sort-key" class="muted">Sort</label>
+    <div class="sort-ctl" role="group" [attr.aria-label]="'patients.sort.aria' | t">
+      <label for="sort-key" class="muted">{{ 'patients.sort.label' | t }}</label>
       <select id="sort-key" class="select" [ngModel]="sortKey" (ngModelChange)="sortBy($event)">
-        <option *ngFor="let o of sortOptions" [ngValue]="o.key">{{ o.label }}</option>
+        <option *ngFor="let o of sortOptions" [ngValue]="o.key">{{ o.label | t }}</option>
       </select>
       <button type="button" id="sort-dir" class="btn btn--secondary btn--icon" [attr.aria-label]="sortDirLabel" [attr.data-dir]="sortDir" (click)="toggleSortDir()">
         <app-icon [name]="sortDir === 'asc' ? 'arrow-up' : 'arrow-down'" [size]="16"></app-icon>
       </button>
     </div>
   </div>
-  <p class="sr-only" aria-live="polite">{{ visible.length }} of {{ rows.length }} patients shown, sorted by {{ sortLabel }}, {{ sortDir === 'asc' ? 'ascending' : 'descending' }}</p>
+  <p class="sr-only" aria-live="polite">{{ 'patients.shown' | t:{ count: visible.length, total: rows.length, sort: sortLabel, dir: sortDirText() } }}</p>
 
   <div *ngIf="loading" aria-busy="true">
-    <span class="sr-only">Loading…</span>
+    <span class="sr-only">{{ 'common.loading' | t }}</span>
     <div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3, 4, 5]"></div>
   </div>
 
   <div class="card empty" *ngIf="!loading && !errorMessage && rows.length === 0">
     <span class="empty__glyph" aria-hidden="true">—</span>
-    <p class="empty__title">No patients yet.</p>
-    <p class="empty__text">Add the first patient to start follow-ups.</p>
-    <button type="button" class="btn btn--primary" *appCan="'PATIENT_WRITE'" (click)="openDrawer($any($event.target))">Add patient</button>
+    <p class="empty__title">{{ 'patients.empty.title' | t }}</p>
+    <p class="empty__text">{{ 'patients.empty.text' | t }}</p>
+    <button type="button" class="btn btn--primary" *appCan="'PATIENT_WRITE'" (click)="openDrawer($any($event.target))">{{ 'dashboard.addPatient' | t }}</button>
   </div>
 
   <div class="card empty" *ngIf="!loading && !errorMessage && rows.length > 0 && visible.length === 0">
     <span class="empty__glyph" aria-hidden="true">—</span>
-    <p class="empty__title">No patients match these filters.</p>
-    <button type="button" class="btn btn--ghost" (click)="clearFilters()">Clear filters</button>
+    <p class="empty__title">{{ 'patients.noMatch' | t }}</p>
+    <button type="button" class="btn btn--ghost" (click)="clearFilters()">{{ 'patients.clearFilters' | t }}</button>
   </div>
 
-  <section class="card card--list patient-list" *ngIf="!loading && visible.length > 0" aria-label="Patients">
+  <section class="card card--list patient-list" *ngIf="!loading && visible.length > 0" [attr.aria-label]="'page.patients' | t">
     <div class="prow prow--head" [class.prow--plain]="!clinical" aria-hidden="true">
-      <span>Patient</span><span *ngIf="clinical">Status</span>
-      <span class="prow__meta"><ng-container *ngIf="clinical"><span>Follow-up</span><span class="c-last">Last check-in</span><span>Pain</span></ng-container><span class="c-next">Next appointment</span></span>
+      <span>{{ 'common.patient' | t }}</span><span *ngIf="clinical">{{ 'patients.col.status' | t }}</span>
+      <span class="prow__meta"><ng-container *ngIf="clinical"><span>{{ 'patients.col.followUp' | t }}</span><span class="c-last">{{ 'patients.col.lastCheckIn' | t }}</span><span>{{ 'patients.col.pain' | t }}</span></ng-container><span class="c-next">{{ 'patients.col.next' | t }}</span></span>
       <span></span>
     </div>
     <ul class="rows">
@@ -77,43 +77,43 @@
           </div>
         </div>
         <div class="prow__status" *ngIf="clinical">
-          <span class="sr-only">Status: </span>
+          <span class="sr-only">{{ 'common.withColon' | t:{ label: ('patients.col.status' | t) } }} </span>
           <app-status-chip [spec]="chipOf(r.status)"></app-status-chip>
-          <div class="row__sub prow__reason" [title]="r.reasons.join(' · ')">{{ r.reasons[0] }}</div>
+          <div class="row__sub prow__reason" [title]="reasonsText(r)">{{ r.reasons[0] | t }}</div>
         </div>
         <div class="prow__meta">
           <div class="c-fu" *ngIf="clinical">
-            <span class="sr-only">Follow-up: </span>
+            <span class="sr-only">{{ 'common.withColon' | t:{ label: ('patients.col.followUp' | t) } }} </span>
             <ng-container *ngIf="r.followUp && r.followUp.status === 'ACTIVE' && r.day; else noDay">
-              <span class="num">Day {{ r.day.day }} of {{ r.day.total }}</span>
-              <div class="progress" role="progressbar" aria-label="Follow-up progress" aria-valuemin="0" [attr.aria-valuemax]="r.day.total" [attr.aria-valuenow]="r.day.day"><span [style.width.%]="(r.day.day / r.day.total) * 100"></span></div>
+              <span class="num">{{ 'common.dayOf' | t:{ day: r.day.day, total: r.day.total } }}</span>
+              <div class="progress" role="progressbar" [attr.aria-label]="'patients.progress' | t" aria-valuemin="0" [attr.aria-valuemax]="r.day.total" [attr.aria-valuenow]="r.day.day"><span [style.width.%]="(r.day.day / r.day.total) * 100"></span></div>
             </ng-container>
-            <ng-template #noDay>{{ r.followUp && r.followUp.status === 'EXPIRED' ? 'Ended ' + r.followUp.endDate : '—' }}</ng-template>
+            <ng-template #noDay>{{ r.followUp && r.followUp.status === 'EXPIRED' ? ('patients.ended' | t:{ date: (r.followUp.endDate | tzDate:'date') }) : '—' }}</ng-template>
           </div>
           <div class="c-last" *ngIf="clinical">
-            <span class="sr-only">Last check-in: </span>
-            <span *ngIf="r.lastCheckInDate; else dash" [title]="r.lastCheckInDate">{{ relativeDay(r.lastCheckInDate, today) }}</span>
+            <span class="sr-only">{{ 'common.withColon' | t:{ label: ('patients.col.lastCheckIn' | t) } }} </span>
+            <span *ngIf="r.lastCheckInDate; else dash" [title]="r.lastCheckInDate">{{ relativeDay(r.lastCheckInDate, today) | t }}</span>
           </div>
           <div class="c-pain" *ngIf="clinical">
-            <span class="sr-only">Pain: </span>
+            <span class="sr-only">{{ 'common.withColon' | t:{ label: ('patients.col.pain' | t) } }} </span>
             <ng-container *ngIf="r.lastPain !== null; else dash">
               <span class="pain-val num">{{ r.lastPain }}</span>
-              <ng-container *ngIf="atOrAbove(r)"><span class="pain-flag" aria-hidden="true">▲</span><span class="sr-only">, at or above alert threshold</span></ng-container>
-              <app-trend-chart variant="micro" label="Pain" [points]="recent(r)" [totalDays]="r.day ? r.day.total : 7" [threshold]="r.painThreshold" [todayDay]="r.day ? r.day.day : null"></app-trend-chart>
+              <ng-container *ngIf="atOrAbove(r)"><span class="pain-flag" aria-hidden="true">▲</span><span class="sr-only">, {{ 'patients.painAbove' | t }}</span></ng-container>
+              <app-trend-chart variant="micro" [points]="recent(r)" [totalDays]="r.day ? r.day.total : 7" [threshold]="r.painThreshold" [todayDay]="r.day ? r.day.day : null"></app-trend-chart>
             </ng-container>
           </div>
           <div class="c-next">
-            <span class="sr-only">Next appointment: </span>
+            <span class="sr-only">{{ 'common.withColon' | t:{ label: ('patients.col.next' | t) } }} </span>
             <ng-container *ngIf="r.nextAppointment as a; else none">
-              <span class="num">{{ a.scheduledAt.substring(0, 10) | date:'EEE d MMM' }} · {{ a.scheduledAt.substring(11, 16) }}</span>
-              <div class="row__sub">{{ humanize(a.type) }}</div>
+              <span class="num">{{ nextDate(r) }} · {{ nextTime(r) }}</span>
+              <div class="row__sub">{{ a.type | enumLabel:'appointmentType' }}</div>
             </ng-container>
-            <ng-template #none>None in 30 days</ng-template>
+            <ng-template #none>{{ 'patients.noNext' | t }}</ng-template>
           </div>
         </div>
         <div class="prow__actions">
-          <a class="btn btn--secondary btn--sm" [routerLink]="['/patients', r.patient.id]">Open</a>
-          <button type="button" class="btn btn--ghost-danger btn--sm btn--icon" *appCan="'PATIENT_DELETE'" [attr.aria-label]="'Delete ' + r.name" (click)="deletePatient(r.patient)"><app-icon name="trash" [size]="16"></app-icon></button>
+          <a class="btn btn--secondary btn--sm" [routerLink]="['/patients', r.patient.id]">{{ 'dashboard.menu.open' | t }}</a>
+          <button type="button" class="btn btn--ghost-danger btn--sm btn--icon" *appCan="'PATIENT_DELETE'" [attr.aria-label]="'patients.deleteAria' | t:{ name: r.name }" (click)="deletePatient(r.patient)"><app-icon name="trash" [size]="16"></app-icon></button>
         </div>
       </li>
     </ul>
@@ -126,58 +126,67 @@
   <div class="drawer" #drawerEl role="dialog" aria-modal="true" aria-labelledby="add-patient-title">
     <form (ngSubmit)="addPatient()">
       <div class="drawer__header">
-        <h2 id="add-patient-title">Add patient</h2>
-        <button type="button" class="btn btn--ghost btn--icon" aria-label="Close" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
+        <h2 id="add-patient-title">{{ 'dashboard.addPatient' | t }}</h2>
+        <button type="button" class="btn btn--ghost btn--icon" [attr.aria-label]="'common.close' | t" (click)="closeDrawer()"><app-icon name="close"></app-icon></button>
       </div>
       <div class="drawer__body">
-        <div class="banner banner--error error-message" *ngIf="addError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ addError }}</span></div>
+        <div class="banner banner--error error-message" *ngIf="addError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ addError }}</span></div>
         <div class="grid-form">
           <div class="form-group">
-            <label for="new-firstName">First Name:</label>
+            <label for="new-firstName">{{ 'patients.form.firstName' | t }}</label>
             <input type="text" id="new-firstName" name="firstName" [(ngModel)]="patient.firstName" required>
+            <span class="field-error" *ngIf="fieldErrors['firstName']">{{ fieldErrors['firstName'] }}</span>
           </div>
           <div class="form-group">
-            <label for="new-lastName">Last Name:</label>
+            <label for="new-lastName">{{ 'patients.form.lastName' | t }}</label>
             <input type="text" id="new-lastName" name="lastName" [(ngModel)]="patient.lastName" required>
+            <span class="field-error" *ngIf="fieldErrors['lastName']">{{ fieldErrors['lastName'] }}</span>
           </div>
           <div class="form-group">
-            <label for="new-email">Email:</label>
+            <label for="new-email">{{ 'patients.form.email' | t }}</label>
             <input type="email" id="new-email" name="email" [(ngModel)]="patient.email" required>
+            <span class="field-error" *ngIf="fieldErrors['email']">{{ fieldErrors['email'] }}</span>
           </div>
           <div class="form-group">
-            <label for="new-phone">Phone:</label>
+            <label for="new-phone">{{ 'patients.form.phone' | t }}</label>
             <input type="tel" id="new-phone" name="phone" [(ngModel)]="patient.phone" required>
+            <span class="field-error" *ngIf="fieldErrors['phone']">{{ fieldErrors['phone'] }}</span>
           </div>
           <div class="form-group">
-            <label for="new-gender">Gender:</label>
+            <label for="new-gender">{{ 'patients.form.gender' | t }}</label>
             <select id="new-gender" name="gender" [(ngModel)]="patient.gender" required>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
+              <option value="male">{{ 'patients.form.male' | t }}</option>
+              <option value="female">{{ 'patients.form.female' | t }}</option>
             </select>
+            <span class="field-error" *ngIf="fieldErrors['gender']">{{ fieldErrors['gender'] }}</span>
           </div>
           <div class="form-group">
-            <label for="new-dob">Date of birth <span class="q-optional">(optional)</span>:</label>
+            <label for="new-dob">{{ 'patients.form.dobOptional' | t }}</label>
             <input type="date" id="new-dob" name="dateOfBirth" [max]="dobMax" [(ngModel)]="patient.dateOfBirth">
+            <span class="field-error" *ngIf="fieldErrors['dateOfBirth']">{{ fieldErrors['dateOfBirth'] }}</span>
           </div>
         </div>
         <div class="grid-form grid-form--3">
           <div class="form-group">
-            <label for="new-city">City:</label>
+            <label for="new-city">{{ 'patients.form.city' | t }}</label>
             <input type="text" id="new-city" name="city" [(ngModel)]="patient.address.city" required>
+            <span class="field-error" *ngIf="fieldErrors['address.city']">{{ fieldErrors['address.city'] }}</span>
           </div>
           <div class="form-group">
-            <label for="new-state">State:</label>
+            <label for="new-state">{{ 'patients.form.state' | t }}</label>
             <input type="text" id="new-state" name="state" [(ngModel)]="patient.address.state" required>
+            <span class="field-error" *ngIf="fieldErrors['address.state']">{{ fieldErrors['address.state'] }}</span>
           </div>
           <div class="form-group">
-            <label for="new-zip">Zip Code:</label>
+            <label for="new-zip">{{ 'patients.form.zip' | t }}</label>
             <input type="text" id="new-zip" name="zip" [(ngModel)]="patient.address.zip" required>
+            <span class="field-error" *ngIf="fieldErrors['address.zip']">{{ fieldErrors['address.zip'] }}</span>
           </div>
         </div>
       </div>
       <div class="drawer__footer">
-        <button type="button" class="btn btn--secondary" (click)="closeDrawer()">Cancel</button>
-        <button type="submit" class="btn btn--primary" [disabled]="!isFormValid() || saving">Add patient</button>
+        <button type="button" class="btn btn--secondary" (click)="closeDrawer()">{{ 'common.cancel' | t }}</button>
+        <button type="submit" class="btn btn--primary" [disabled]="!isFormValid() || saving">{{ 'dashboard.addPatient' | t }}</button>
       </div>
     </form>
   </div>

@@ -7,6 +7,7 @@ import { environment } from '../../../environments/environment';
 import { NotificationItem } from '../../models/notification.model';
 import { contactPrefs, notification } from '../../testing/fixtures';
 import { SendLinkComponent } from './send-link.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 @Component({
   template: `<app-send-link [kind]="kind" [targetId]="11" [patientId]="5" (sent)="sentEvents.push($event)"></app-send-link>`,
@@ -25,7 +26,7 @@ describe('SendLinkComponent', () => {
   let el: HTMLElement;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [HostComponent, HttpClientTestingModule, RouterTestingModule] });
+    TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang(), HostComponent, HttpClientTestingModule, RouterTestingModule] });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(HostComponent);
     el = fixture.nativeElement;
@@ -157,10 +158,10 @@ describe('SendLinkComponent', () => {
       expect(errorText()).toBe('▲Generate a new link first, then send it.');
     });
 
-    it('NOTIFICATION_LIMIT shows the server message', () => {
+    it('NOTIFICATION_LIMIT shows the translated code text, not the server message', () => {
       openMenu();
       fail(url, 'NOTIFICATION_LIMIT', 429, 'Too many notifications for this patient; try again later');
-      expect(errorText()).toBe('▲Too many notifications for this patient; try again later');
+      expect(errorText()).toBe('▲Too many notifications for this patient. Please try again later.');
     });
 
     it('FORBIDDEN and unknown failures use the shared error text', () => {
@@ -171,7 +172,7 @@ describe('SendLinkComponent', () => {
       items()[0].click();
       http.expectOne(url).flush({ status: 409, error: 'INVALID_STATE', message: 'Follow-up is not active', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
       fixture.detectChanges();
-      expect(errorText()).toBe('▲Follow-up is not active');
+      expect(errorText()).toBe('▲This follow-up is not active.');
     });
 
     it('a failed preferences load shows its error and closes the menu', () => {
@@ -179,7 +180,7 @@ describe('SendLinkComponent', () => {
       http.expectOne(`${api}/patients/5/contact-preferences`).flush('x', { status: 500, statusText: 'Server Error' });
       fixture.detectChanges();
       expect(el.querySelector('.send-link__menu')).toBeNull();
-      expect(errorText()).toContain('Could not load the contact preferences.');
+      expect(errorText()).toContain('Server error. Please try again later.');
     });
 
     it('a new attempt clears the previous banner', () => {

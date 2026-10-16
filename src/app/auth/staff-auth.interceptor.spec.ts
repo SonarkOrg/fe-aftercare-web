@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { MeService } from '../Services/Me.service';
 import { PublicMessageService } from '../Services/PublicMessage.service';
 import { StaffAuth } from './staff-auth';
 import { StaffAuthInterceptor } from './staff-auth.interceptor';
@@ -32,6 +33,14 @@ describe('StaffAuthInterceptor', () => {
   it('attaches the bearer token to staff URLs', () => {
     http.get(`${api}/patients/5`).subscribe();
     const req = httpMock.expectOne(`${api}/patients/5`);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer tok-123');
+    req.flush({});
+  });
+
+  it('sends the language switch (PUT /me/preferences) with the bearer token', () => {
+    TestBed.inject(MeService).updatePreferences('en').subscribe();
+    const req = httpMock.expectOne(`${api}/me/preferences`);
+    expect(req.request.method).toBe('PUT');
     expect(req.request.headers.get('Authorization')).toBe('Bearer tok-123');
     req.flush({});
   });

@@ -1,3 +1,4 @@
+import type { TKey } from '../../i18n/i18n.types';
 import { Alert } from '../../models/alert.model';
 import { Appointment } from '../../models/appointment.model';
 import { PatientRow } from '../../shared/care.model';
@@ -51,8 +52,8 @@ export function appointmentsToPrepare(appts: Appointment[], today: string): ToPr
   return { needsReview, missing, total: needsReview + missing };
 }
 
-export function greeting(hour: number): string {
-  return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+export function greeting(hour: number): TKey {
+  return hour < 12 ? 'dashboard.greeting.morning' : hour < 18 ? 'dashboard.greeting.afternoon' : 'dashboard.greeting.evening';
 }
 
 const isActive = (r: PatientRow) => r.followUp?.status === 'ACTIVE';

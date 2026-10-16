@@ -29,7 +29,7 @@
   </figcaption>
   <table class="sr-only">
     <caption>{{ model.title }}</caption>
-    <thead><tr><th scope="col">Week</th><th scope="col" *ngFor="let s of series">{{ s.label }}</th></tr></thead>
+    <thead><tr><th scope="col">{{ 'weekBars.week' | t }}</th><th scope="col" *ngFor="let s of series">{{ s.label }}</th></tr></thead>
     <tbody><tr *ngFor="let r of model.rows"><th scope="row">{{ r.label }}</th><td *ngFor="let v of r.values">{{ v }}</td></tr></tbody>
   </table>
 </figure>

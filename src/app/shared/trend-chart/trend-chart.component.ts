@@ -1,5 +1,7 @@
 import { AfterViewInit, Component, ElementRef, Input, NgZone, OnChanges, OnDestroy } from '@angular/core';
+import { I18nService } from '../../i18n/i18n.service';
 import { SeriesPoint } from '../care.model';
+import { chartTextFor } from '../chart-text';
 import { BarModel, DayModel, Variant, computeBars } from './trend-chart.geometry';
 
 let nextId = 0;
@@ -19,7 +21,8 @@ export class TrendChartComponent implements OnChanges, AfterViewInit, OnDestroy 
   @Input() threshold: number | null = null;
   /** Why `threshold` is null: still loading, failed to load, or genuinely no rule ('known'). */
   @Input() thresholdState: ThresholdState = 'known';
-  @Input() label = 'Pain';
+  /** Already translated; defaults to "Pain". */
+  @Input() label: string | null = null;
   @Input() unit = '';
   @Input() domain: [number, number] | 'auto' = [0, 10];
   @Input() variant: ChartVariant = 'full';
@@ -40,8 +43,17 @@ export class TrendChartComponent implements OnChanges, AfterViewInit, OnDestroy 
 
   private ro?: ResizeObserver;
 
-  constructor(private host: ElementRef<HTMLElement>, private zone: NgZone) {
+  constructor(private host: ElementRef<HTMLElement>, private zone: NgZone, private i18n: I18nService) {
     this.recompute();
+  }
+
+  get labelText(): string {
+    return this.label ?? this.i18n.t('chart.pain');
+  }
+
+  /** The threshold with its unit, formatted for the legend. */
+  get thresholdText(): string {
+    return this.threshold === null ? '' : chartTextFor(this.i18n).value(this.threshold, this.unit);
   }
 
   get kind(): Variant {
@@ -75,9 +87,9 @@ export class TrendChartComponent implements OnChanges, AfterViewInit, OnDestroy 
 
   private recompute(): void {
     this.model = computeBars({
-      points: this.points ?? [], totalDays: this.totalDays, threshold: this.threshold, label: this.label,
+      points: this.points ?? [], totalDays: this.totalDays, threshold: this.threshold, label: this.labelText,
       unit: this.unit, domain: this.domain, variant: this.kind, todayDay: this.todayDay, nowDay: this.nowDay
-    }, this.width);
+    }, this.width, chartTextFor(this.i18n));
   }
 
   show(d: DayModel): void {

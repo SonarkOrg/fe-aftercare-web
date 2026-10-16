@@ -1,8 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { AuditQuery, AuditService } from '../../../Services/Audit.service';
-import { errorText } from '../../../models/api-error.model';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { enumKey } from '../../../i18n/enum-key';
+import { fmtDate } from '../../../i18n/format';
+import { I18nService } from '../../../i18n/i18n.service';
 import { AUDIT_ACTIONS, AuditAction, AuditEvent } from '../../../models/audit.model';
-import { addDays, businessNow, businessToday, humanize } from '../../../shared/link.util';
+import { addDays, businessToday } from '../../../shared/link.util';
 
 export const ACCESS_LOG_PAGE_SIZE = 50;
 
@@ -13,7 +16,6 @@ export const ACCESS_LOG_PAGE_SIZE = 50;
 })
 export class AccessLogComponent implements OnInit {
   readonly actions = AUDIT_ACTIONS;
-  readonly humanize = humanize;
 
   actorSub: string | null = null;
   action: AuditAction | '' = '';
@@ -34,7 +36,7 @@ export class AccessLogComponent implements OnInit {
     this.reset();
   }
 
-  constructor(private audit: AuditService) {}
+  constructor(private audit: AuditService, private i18n: I18nService, private errors: ApiErrorsService) {}
 
   /** Back to "everyone, any action, last 30 days". */
   reset(): void {
@@ -50,11 +52,11 @@ export class AccessLogComponent implements OnInit {
   apply(): void {
     this.filterError = null;
     if (this.from && this.to && this.from > this.to) {
-      this.filterError = 'The start date must not be after the end date.';
+      this.filterError = this.i18n.t('settings.log.startAfterEnd');
       return;
     }
     if (this.from && this.to && (Date.parse(this.to) - Date.parse(this.from)) / 86_400_000 > 366) {
-      this.filterError = 'The range must not exceed 366 days.';
+      this.filterError = this.i18n.t('error.field.rangeMax', { days: 366 });
       return;
     }
     const id = this.patientId;
@@ -81,7 +83,7 @@ export class AccessLogComponent implements OnInit {
       },
       error: err => {
         this.loading = false;
-        this.errorMessage = errorText(err, 'Could not load the access log.');
+        this.errorMessage = this.errors.text(err, 'pf.audit.loadError');
       }
     });
   }
@@ -92,10 +94,10 @@ export class AccessLogComponent implements OnInit {
 
   /** yyyy-MM-dd HH:mm in America/Toronto. */
   when(iso: string): string {
-    return businessNow(new Date(iso)).slice(0, 16).replace('T', ' ');
+    return fmtDate(iso, 'isoDateTime', this.i18n.lang);
   }
 
   item(e: AuditEvent): string {
-    return humanize(e.resourceType) + (e.resourceId !== null ? ` #${e.resourceId}` : '');
+    return this.i18n.t(enumKey('auditResource', e.resourceType)) + (e.resourceId !== null ? ` #${e.resourceId}` : '');
   }
 }

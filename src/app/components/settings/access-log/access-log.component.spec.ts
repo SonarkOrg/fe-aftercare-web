@@ -8,6 +8,7 @@ import { ActorSelectComponent } from '../../../shared/actor-select/actor-select.
 import { addDays, businessToday } from '../../../shared/link.util';
 import { staffMember } from '../../../testing/fixtures';
 import { AccessLogComponent } from './access-log.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('AccessLogComponent', () => {
   const api = environment.apiUrl;
@@ -25,7 +26,7 @@ describe('AccessLogComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule, ActorSelectComponent],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule, ActorSelectComponent],
       declarations: [AccessLogComponent]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -165,7 +166,7 @@ describe('AccessLogComponent', () => {
     audit().flush('x', { status: 500, statusText: 'Server Error' });
     http.expectOne(r => r.url === `${api}/staff`).flush(staff);
     await settle();
-    expect(q('.banner--error').textContent).toContain('Could not load the access log.');
+    expect(q('.banner--error').textContent).toContain('Server error. Please try again later.');
     q<HTMLButtonElement>('.retry').click();
     audit().flush(page([ev()]));
     await settle();

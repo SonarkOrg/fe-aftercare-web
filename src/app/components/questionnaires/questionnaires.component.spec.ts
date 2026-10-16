@@ -4,6 +4,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { QuestionnairesComponent } from './questionnaires.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('QuestionnairesComponent', () => {
   let fixture: ComponentFixture<QuestionnairesComponent>;
@@ -11,7 +12,7 @@ describe('QuestionnairesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule],
       declarations: [QuestionnairesComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -34,13 +35,13 @@ describe('QuestionnairesComponent', () => {
     const rows: HTMLElement[] = Array.from(fixture.nativeElement.querySelectorAll('tbody tr'));
     expect(rows.length).toBe(2);
     expect(rows[0].textContent).toContain('Daily check-in — visceral surgery');
-    expect(rows[0].textContent).toContain('Follow up checkin');
+    expect(rows[0].textContent).toContain('Follow-up check-in');
     expect(rows[0].textContent).toContain('Visceral surgery');
-    expect(rows[0].textContent).toContain('ACTIVE');
+    expect(rows[0].textContent).toContain('Active');
     expect(rows[0].textContent).toContain('followup-visceral-surgery');
     expect(rows[0].querySelector('a')!.getAttribute('href')).toBe('/questionnaires/1');
     expect(rows[1].textContent).toContain('Surgery');
-    expect(rows[1].textContent).toContain('RETIRED');
+    expect(rows[1].textContent).toContain('Retired');
   });
 
   it('shows an error when loading fails', () => {

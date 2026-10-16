@@ -14,7 +14,7 @@ export const staffApiAllowedList = [
   `${environment.apiUrl}/staff`, `${environment.apiUrl}/staff/*`,
   `${environment.apiUrl}/settings/*`,
   `${environment.apiUrl}/reports/*`,
-  `${environment.apiUrl}/me`,
+  `${environment.apiUrl}/me`, `${environment.apiUrl}/me/preferences`,
   `${environment.apiUrl}/audit`,
   `${environment.apiUrl}/retention/*`,
 ];

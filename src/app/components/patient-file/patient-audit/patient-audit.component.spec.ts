@@ -5,6 +5,7 @@ import { AuditEvent } from '../../../models/audit.model';
 import { ActorSelectComponent } from '../../../shared/actor-select/actor-select.component';
 import { staffMember } from '../../../testing/fixtures';
 import { PatientAuditComponent } from './patient-audit.component';
+import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
 describe('PatientAuditComponent', () => {
   let fixture: ComponentFixture<PatientAuditComponent>;
@@ -30,7 +31,7 @@ describe('PatientAuditComponent', () => {
   };
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [HttpClientTestingModule, ActorSelectComponent], declarations: [PatientAuditComponent] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang(), HttpClientTestingModule, ActorSelectComponent], declarations: [PatientAuditComponent] }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PatientAuditComponent);
     fixture.componentInstance.patientId = 5;

@@ -1,4 +1,5 @@
 import { SeriesPoint } from '../care.model';
+import { ChartText } from '../chart-text';
 import { addDays } from '../link.util';
 
 export type Variant = 'full' | 'compact' | 'micro';
@@ -27,7 +28,7 @@ export const LIMIT_PILL_FULL_W = 88;
 export const LIMIT_PILL_COMPACT_W = 30;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
-const fmt = (n: number) => String(Math.round(n * 100) / 100);
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export function yDomain(inputs: Pick<ChartInputs, 'points' | 'threshold' | 'domain'>): [number, number] {
   if (inputs.domain !== 'auto') {
@@ -126,7 +127,8 @@ export interface BarModel {
   hasThreshold: boolean;
 }
 
-export function computeBars(inputs: ChartInputs, width: number): BarModel {
+export function computeBars(inputs: ChartInputs, width: number, text: ChartText): BarModel {
+  const fmt = (n: number) => text.num(round2(n), '1.0-2');
   const { variant, unit, threshold, label } = inputs;
   const total = Math.max(inputs.totalDays, 1);
   const points = inputs.points.filter(p => p.value !== null).sort((a, b) => a.day - b.day);
@@ -175,7 +177,7 @@ export function computeBars(inputs: ChartInputs, width: number): BarModel {
     const fs = full ? 13 : 11;
     limit = {
       y: ty, x1: pw, x2: W - pad.r,
-      pill: { x: 0, y: ty - ph / 2, w: pw, h: ph, rx: ph / 2, text: full ? `Alert ≥ ${fmt(thr)}${unit}` : `≥${fmt(thr)}`, fs, ty: ty + fs * 0.36 }
+      pill: { x: 0, y: ty - ph / 2, w: pw, h: ph, rx: ph / 2, text: full ? text.t('chart.limit.full', { value: text.value(round2(thr), unit) }) : text.t('chart.limit.compact', { value: fmt(thr) }), fs, ty: ty + fs * 0.36 }
     };
   }
 
@@ -201,11 +203,11 @@ export function computeBars(inputs: ChartInputs, width: number): BarModel {
     const isToday = nowDay !== null && d === nowDay;
     const regular = (d - startDay) % labelEvery === 0 && !(nowDay !== null && d !== nowDay && Math.abs(d - nowDay) < labelEvery);
     if (full && (isToday || regular || (d === startDay && !(nowDay !== null && Math.abs(d - nowDay) < labelEvery)))) {
-      labels.push({ day: d, x: cx, y: H - 6, text: 'D' + d, today: isToday, future: d > horizonDay });
+      labels.push({ day: d, x: cx, y: H - 6, text: text.t('chart.dayLabel', { day: d }), today: isToday, future: d > horizonDay });
     }
     const p = byDay.get(d);
     const dateText = dateOf(d);
-    const dateAria = dateText ? `, ${dateText}` : '';
+    const dateAria = dateText ? text.date(dateText, 'isoDate') : '';
     if (p) {
       const v = p.value as number;
       const al = alertAt(v);
@@ -230,7 +232,7 @@ export function computeBars(inputs: ChartInputs, width: number): BarModel {
         pill,
         focus: { x: x - 3, y: fy, w: bw + 6, h: base - fy + 3 },
         tip: { x: cx, y: pill ? pill.y : top },
-        aria: `Day ${d}${dateAria}: ${fmt(v)}${unit}${al ? ', at or above alert threshold' : ''}`,
+        aria: text.t(dateAria ? (al ? 'chart.aria.dayAlertDate' : 'chart.aria.dayDate') : (al ? 'chart.aria.dayAlert' : 'chart.aria.day'), { day: d, date: dateAria, value: text.value(round2(v), unit) }),
         title: ''
       });
     } else if (missed.has(d)) {
@@ -248,36 +250,37 @@ export function computeBars(inputs: ChartInputs, width: number): BarModel {
         pill,
         focus: { x: x - 3, y: fy, w: bw + 6, h: base - fy + 3 },
         tip: { x: cx, y: pill ? pill.y : top },
-        aria: `Day ${d}${dateAria}: no check-in`,
-        title: `No check-in · Day ${d}`
+        aria: text.t(dateAria ? 'chart.aria.missedDate' : 'chart.aria.missed', { day: d, date: dateAria }),
+        title: text.t('chart.missedTitle', { day: d })
       });
     }
   }
 
   const alertCount = points.filter(p => alertAt(p.value as number)).length;
   const missedAll = missedDays(points, inputs.todayDay, total);
-  const latest = lastPoint ? `Latest ${fmt(lastPoint.value as number)}${unit} on day ${lastPoint.day}.` : 'No check-ins yet.';
+  const latest = lastPoint ? text.t('chart.desc.latest', { value: text.value(lastPoint.value as number, unit), day: lastPoint.day }) : text.t('chart.desc.noCheckIns');
   const thrText = threshold !== null
-    ? `${alertCount} at or above the alert threshold of ${threshold}${unit}.`
-    : 'No alert threshold defined.';
-  const desc = `${points.length} check-ins over ${total} days. ${latest} ${thrText} ${missedAll.length} missed days.`;
+    ? text.t('chart.desc.aboveThreshold', { count: alertCount, threshold: text.value(threshold, unit) })
+    : text.t('chart.desc.noThreshold');
+  const desc = [text.t('chart.desc.counts', { count: points.length, days: total }), latest, thrText, text.t('chart.desc.missed', { count: missedAll.length })].join(' ');
 
-  const lastN = points.slice(-5).map(p => p.value);
+  const lastN = points.slice(-5).map(p => text.num(p.value as number, '1.0-2'));
   const summary = lastPoint
-    ? `${label}, last ${lastN.length} check-ins: ${lastN.join(', ')}. Latest ${lastPoint.value}${unit}` +
-      (threshold !== null ? (alertAt(lastPoint.value as number) ? `, at or above alert threshold ${threshold}.` : `, below alert threshold ${threshold}.`) : '.')
-    : `${label}: no check-ins yet.`;
+    ? text.t(threshold === null ? 'chart.summary.plain' : alertAt(lastPoint.value as number) ? 'chart.summary.above' : 'chart.summary.below', {
+      label, count: lastN.length, values: lastN.join(', '), value: text.value(lastPoint.value as number, unit), threshold: threshold === null ? '' : text.num(threshold, '1.0-2')
+    })
+    : text.t('chart.summary.empty', { label });
 
   const rows: TableRow[] = [
     ...points.map(p => ({
-      day: p.day, date: p.date, value: `${p.value}${unit}`,
-      status: threshold === null ? 'No alert threshold' : alertAt(p.value as number) ? 'At or above alert threshold' : 'Below threshold'
+      day: p.day, date: p.date, value: text.value(p.value as number, unit),
+      status: text.t(threshold === null ? 'chart.status.noThreshold' : alertAt(p.value as number) ? 'chart.status.above' : 'chart.status.below')
     })),
-    ...missedAll.map(d => ({ day: d, date: dateOf(d), value: '—', status: 'No check-in' }))
+    ...missedAll.map(d => ({ day: d, date: dateOf(d), value: '—', status: text.t('chart.status.missed') }))
   ].sort((a, b) => a.day - b.day);
 
   return {
     w: W, h: H, pad, domain, band, bw, gap, mode, baseline: base, yTicks: tickModels, days, labels, limit,
-    alertCount, title: `${label} by follow-up day`, desc, summary, rows, hasThreshold: threshold !== null
+    alertCount, title: text.t('chart.title', { label }), desc, summary, rows, hasThreshold: threshold !== null
   };
 }

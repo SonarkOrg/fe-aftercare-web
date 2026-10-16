@@ -1,36 +1,36 @@
 <div class="page">
   <section class="hero">
     <div>
-      <h1 class="hero__title">Alerts</h1>
-      <p class="hero__sub" *ngIf="!showResolved && !errorMessage && !loading">{{ openCount }} open · {{ ackCount }} acknowledged</p>
-      <p class="hero__sub" *ngIf="showResolved && !errorMessage && !loading">{{ alerts.length }} resolved</p>
+      <h1 class="hero__title">{{ 'page.alerts' | t }}</h1>
+      <p class="hero__sub" *ngIf="!showResolved && !errorMessage && !loading">{{ 'alerts.summary' | t:{ open: openCount, ack: ackCount } }}</p>
+      <p class="hero__sub" *ngIf="showResolved && !errorMessage && !loading">{{ 'alerts.resolvedCount' | t:{ count: alerts.length } }}</p>
     </div>
   </section>
 
   <div class="toolbar">
-    <div class="pill-group" role="group" aria-label="Alert status">
-      <button type="button" id="filter-open" class="pill-group__item" [attr.aria-pressed]="!showResolved" (click)="setResolved(false)">Needs action</button>
-      <button type="button" id="filter-resolved" class="pill-group__item" [attr.aria-pressed]="showResolved" (click)="setResolved(true)">Resolved</button>
+    <div class="pill-group" role="group" [attr.aria-label]="'alerts.status.aria' | t">
+      <button type="button" id="filter-open" class="pill-group__item" [attr.aria-pressed]="!showResolved" (click)="setResolved(false)">{{ 'alerts.status.needsAction' | t }}</button>
+      <button type="button" id="filter-resolved" class="pill-group__item" [attr.aria-pressed]="showResolved" (click)="setResolved(true)">{{ 'alerts.status.resolved' | t }}</button>
     </div>
-    <div class="pill-group" role="group" aria-label="Filter alerts by type">
-      <button type="button" class="pill-group__item" data-type="all" [attr.aria-pressed]="type === 'all'" [attr.aria-label]="'All types, ' + typeCount('all')" (click)="setType('all')">All <span class="pill-group__count" aria-hidden="true">{{ typeCount('all') }}</span></button>
-      <button type="button" class="pill-group__item" data-type="answers" [attr.aria-pressed]="type === 'answers'" [attr.aria-label]="'Answers, ' + typeCount('answers')" (click)="setType('answers')">Answers <span class="pill-group__count" aria-hidden="true">{{ typeCount('answers') }}</span></button>
-      <button type="button" class="pill-group__item" data-type="missed" [attr.aria-pressed]="type === 'missed'" [attr.aria-label]="'Missed check-ins, ' + typeCount('missed')" (click)="setType('missed')">Missed check-ins <span class="pill-group__count" aria-hidden="true">{{ typeCount('missed') }}</span></button>
+    <div class="pill-group" role="group" [attr.aria-label]="'alerts.filter.type' | t">
+      <button type="button" class="pill-group__item" data-type="all" [attr.aria-pressed]="type === 'all'" [attr.aria-label]="'alerts.filter.allTypes' | t:{ count: typeCount('all') }" (click)="setType('all')">{{ 'alerts.filter.all' | t }} <span class="pill-group__count" aria-hidden="true">{{ typeCount('all') }}</span></button>
+      <button type="button" class="pill-group__item" data-type="answers" [attr.aria-pressed]="type === 'answers'" [attr.aria-label]="'alerts.filter.answersAria' | t:{ count: typeCount('answers') }" (click)="setType('answers')">{{ 'alerts.filter.answers' | t }} <span class="pill-group__count" aria-hidden="true">{{ typeCount('answers') }}</span></button>
+      <button type="button" class="pill-group__item" data-type="missed" [attr.aria-pressed]="type === 'missed'" [attr.aria-label]="'alerts.filter.missedAria' | t:{ count: typeCount('missed') }" (click)="setType('missed')">{{ 'alerts.filter.missed' | t }} <span class="pill-group__count" aria-hidden="true">{{ typeCount('missed') }}</span></button>
     </div>
-    <div class="pill-group" role="group" aria-label="Filter alerts by severity">
-      <button type="button" class="pill-group__item" data-severity="all" [attr.aria-pressed]="severity === 'all'" [attr.aria-label]="'All, ' + count('all')" (click)="setSeverity('all')">All <span class="pill-group__count" aria-hidden="true">{{ count('all') }}</span></button>
-      <button type="button" class="pill-group__item" data-severity="HIGH" [attr.aria-pressed]="severity === 'HIGH'" [attr.aria-label]="'High, ' + count('HIGH')" (click)="setSeverity('HIGH')"><span class="glyph" aria-hidden="true">▲</span>High <span class="pill-group__count" aria-hidden="true">{{ count('HIGH') }}</span></button>
-      <button type="button" class="pill-group__item" data-severity="MEDIUM" [attr.aria-pressed]="severity === 'MEDIUM'" [attr.aria-label]="'Medium, ' + count('MEDIUM')" (click)="setSeverity('MEDIUM')"><span class="glyph" aria-hidden="true">●</span>Medium <span class="pill-group__count" aria-hidden="true">{{ count('MEDIUM') }}</span></button>
+    <div class="pill-group" role="group" [attr.aria-label]="'alerts.filter.severity' | t">
+      <button type="button" class="pill-group__item" data-severity="all" [attr.aria-pressed]="severity === 'all'" [attr.aria-label]="'alerts.filter.allAria' | t:{ count: count('all') }" (click)="setSeverity('all')">{{ 'alerts.filter.allSeverities' | t }} <span class="pill-group__count" aria-hidden="true">{{ count('all') }}</span></button>
+      <button type="button" class="pill-group__item" data-severity="HIGH" [attr.aria-pressed]="severity === 'HIGH'" [attr.aria-label]="'alerts.filter.highAria' | t:{ count: count('HIGH') }" (click)="setSeverity('HIGH')"><span class="glyph" aria-hidden="true">▲</span>{{ 'enum.alertSeverity.HIGH' | t }} <span class="pill-group__count" aria-hidden="true">{{ count('HIGH') }}</span></button>
+      <button type="button" class="pill-group__item" data-severity="MEDIUM" [attr.aria-pressed]="severity === 'MEDIUM'" [attr.aria-label]="'alerts.filter.mediumAria' | t:{ count: count('MEDIUM') }" (click)="setSeverity('MEDIUM')"><span class="glyph" aria-hidden="true">●</span>{{ 'enum.alertSeverity.MEDIUM' | t }} <span class="pill-group__count" aria-hidden="true">{{ count('MEDIUM') }}</span></button>
     </div>
   </div>
   <p class="sr-only" aria-live="polite">{{ live }}</p>
 
-  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
-  <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3, 4]"></div></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
+  <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3, 4]"></div></div>
   <app-alert-table *ngIf="visible.length > 0 && !errorMessage" [alerts]="visible" [showPatient]="true" (changed)="load()"></app-alert-table>
   <div class="card empty" *ngIf="!loading && !errorMessage && visible.length === 0">
     <span class="empty__glyph" aria-hidden="true">✓</span>
-    <p class="empty__title" *ngIf="alerts.length === 0">{{ showResolved ? 'No resolved alerts.' : 'No open alerts.' }}</p>
-    <p class="empty__title" *ngIf="alerts.length > 0">No alerts match this filter.</p>
+    <p class="empty__title" *ngIf="alerts.length === 0">{{ (showResolved ? 'alerts.empty.resolved' : 'alerts.empty.open') | t }}</p>
+    <p class="empty__title" *ngIf="alerts.length > 0">{{ 'alerts.empty.filter' | t }}</p>
   </div>
 </div>

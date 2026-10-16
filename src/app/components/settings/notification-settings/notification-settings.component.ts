@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { SettingsService } from '../../../Services/Settings.service';
-import { apiErrorOf, errorText } from '../../../models/api-error.model';
+import { ApiErrorsService } from '../../../i18n/api-errors';
+import { I18nService } from '../../../i18n/i18n.service';
+import { apiErrorOf } from '../../../models/api-error.model';
 import { NotificationSettings, NotificationSettingsRequest } from '../../../models/notification.model';
 import { ChipSpec } from '../../../shared/status';
 
@@ -8,9 +10,9 @@ const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function providerChip(provider: string): ChipSpec {
   if (provider === 'LOG') {
-    return { tone: 'warning', glyph: '●', label: 'Logging only: messages are not delivered' };
+    return { tone: 'warning', glyph: '●', label: { key: 'settings.notif.logOnly' } };
   }
-  return { tone: 'neutral', glyph: '—', label: `Delivered via ${provider === 'TWILIO' ? 'Twilio' : provider}` };
+  return { tone: 'neutral', glyph: '—', label: { key: 'settings.notif.deliveredVia', params: { provider: provider === 'TWILIO' ? 'Twilio' : provider } } };
 }
 
 @Component({
@@ -29,7 +31,7 @@ export class NotificationSettingsComponent implements OnInit {
   banner: string | null = null;
   errors: Record<string, string> = {};
 
-  constructor(private settings: SettingsService) {}
+  constructor(private settings: SettingsService, private i18n: I18nService, private apiErrors: ApiErrorsService) {}
 
   ngOnInit(): void {
     this.load();
@@ -39,7 +41,7 @@ export class NotificationSettingsComponent implements OnInit {
     this.loadError = null;
     this.settings.notifications().subscribe({
       next: s => this.apply(s),
-      error: err => (this.loadError = errorText(err, 'Could not load the notification settings.'))
+      error: err => (this.loadError = this.apiErrors.text(err, 'settings.notif.error.load'))
     });
   }
 
@@ -70,17 +72,17 @@ export class NotificationSettingsComponent implements OnInit {
     const f = this.form;
     const e: Record<string, string> = {};
     if (!TIME.test(f.checkInReminderTime ?? '')) {
-      e['checkInReminderTime'] = 'Enter a time as HH:mm.';
+      e['checkInReminderTime'] = this.i18n.t('settings.notif.timeFormat');
     }
     if (!TIME.test(f.missedCheckInCutoff ?? '')) {
-      e['missedCheckInCutoff'] = 'Enter a time as HH:mm.';
+      e['missedCheckInCutoff'] = this.i18n.t('settings.notif.timeFormat');
     }
     if (!e['checkInReminderTime'] && !e['missedCheckInCutoff'] && f.checkInReminderTime >= f.missedCheckInCutoff) {
-      e['checkInReminderTime'] = 'must be before the missed check-in cutoff';
+      e['checkInReminderTime'] = this.i18n.t('error.field.reminderBeforeCutoff');
     }
     const h = f.appointmentReminderHours;
     if (!Number.isInteger(h) || h < 24 || h > 72) {
-      e['appointmentReminderHours'] = 'Enter a whole number of hours from 24 to 72.';
+      e['appointmentReminderHours'] = this.i18n.t('settings.notif.hoursRange');
     }
     return e;
   }
@@ -107,9 +109,9 @@ export class NotificationSettingsComponent implements OnInit {
         this.saving = false;
         const api = apiErrorOf(err);
         if (api && Object.keys(api.fieldErrors).length) {
-          this.errors = { ...api.fieldErrors };
+          this.errors = this.apiErrors.fieldTexts(err);
         } else {
-          this.banner = errorText(err, 'Could not save the notification settings.');
+          this.banner = this.apiErrors.text(err, 'settings.notify.error.save');
         }
       }
     });

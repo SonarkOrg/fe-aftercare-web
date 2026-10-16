@@ -1,23 +1,5 @@
+import type { TKey } from '../i18n/i18n.types';
 import { ReportSummary } from '../models/report.model';
-
-export function pct(rate: number | null | undefined): string {
-  return rate === null || rate === undefined ? '—' : `${Math.round(rate * 100)} %`;
-}
-
-export function minutes(m: number | null | undefined): string {
-  if (m === null || m === undefined) {
-    return '—';
-  }
-  if (m < 0) {
-    return '—'; // defensive: a negative duration is bad data, not a time
-  }
-  const total = Math.round(m);
-  if (total < 60) {
-    return `${total} min`;
-  }
-  const mm = total % 60;
-  return `${Math.floor(total / 60)} h ${mm < 10 ? '0' + mm : mm}`;
-}
 
 /** Quotes a cell and defuses spreadsheet formula injection: only STRINGS starting with = + - @ TAB or CR get a ' prefix (a negative number stays a number). */
 function cell(v: string | number | null): string {
@@ -30,9 +12,12 @@ function cell(v: string | number | null): string {
 
 const RATE_KEYS = new Set(['completionRate', 'questionnaireCompletionRate', 'needsReviewRate', 'cancellationRate', 'noShowRate']);
 
-/** UTF-8 (with BOM), CRLF, every cell quoted. Metrics first, then one row per week. */
-export function reportCsv(s: ReportSummary): string {
-  const lines: string[] = [['Metric', 'Value'].map(cell).join(',')];
+/**
+ * UTF-8 (with BOM), CRLF, every cell quoted. Metrics first, then one row per week. Only the two header rows are translated:
+ * the metric keys, numbers (`.` decimal separator) and ISO dates are the same in every language, so a parser never cares who exported.
+ */
+export function reportCsv(s: ReportSummary, text: (key: TKey) => string): string {
+  const lines: string[] = [[text('reports.csv.metric'), text('reports.csv.value')].map(cell).join(',')];
   for (const section of ['checkIns', 'followUps', 'alerts', 'appointments'] as const) {
     for (const [key, value] of Object.entries(s[section]) as [string, string | number | null][]) {
       const v = typeof value === 'number' && RATE_KEYS.has(key) ? value.toFixed(4) : value;
@@ -40,7 +25,8 @@ export function reportCsv(s: ReportSummary): string {
     }
   }
   lines.push('');
-  lines.push(['Week start', 'From', 'To', 'Check-ins expected', 'Check-ins received', 'Alerts high', 'Alerts medium'].map(cell).join(','));
+  lines.push([text('reports.csv.weekStart'), text('reports.csv.from'), text('reports.csv.to'), text('reports.csv.expected'), text('reports.csv.received'),
+    text('reports.csv.alertsHigh'), text('reports.csv.alertsMedium')].map(cell).join(','));
   for (const w of s.weeks) {
     lines.push([w.weekStart, w.from, w.to, w.checkInsExpected, w.checkInsReceived, w.alertsHigh, w.alertsMedium].map(cell).join(','));
   }

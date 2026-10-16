@@ -1,32 +1,32 @@
-<a class="skip-link" href="#main" (click)="$event.preventDefault(); main.focus()">Skip to content</a>
+<a class="skip-link" href="#main" (click)="$event.preventDefault(); main.focus()">{{ 'shell.a11y.skip' | t }}</a>
 <header class="app-top">
   <div class="app-top__row">
     <div class="app-top__left">
-      <a class="brand" routerLink="/dashboard" aria-label="Aftercare home"><app-icon name="activity" [size]="26" [stroke]="2.4"></app-icon></a>
+      <a class="brand" routerLink="/dashboard" [attr.aria-label]="'shell.brand.aria' | t"><app-icon name="activity" [size]="26" [stroke]="2.4"></app-icon></a>
       <span class="user-pill">
         <app-icon name="grid-dots" [size]="16"></app-icon>
         <span class="user-pill__name">{{ userName$ | async }}</span>
         <app-role-badge [role]="role"></app-role-badge>
         <span class="user-pill__initials" aria-hidden="true">{{ initials$ | async }}</span>
-        <span class="chip chip--warning chip--sm" *ngIf="devAuth"><span class="chip__glyph" aria-hidden="true">●</span><span class="chip__label">DEV AUTH: {{ roleLabel }}</span></span>
+        <span class="chip chip--warning chip--sm" *ngIf="devAuth"><span class="chip__glyph" aria-hidden="true">●</span><span class="chip__label" lang="en">DEV AUTH: {{ roleLabel }}</span></span>
       </span>
     </div>
 
-    <nav class="top-nav" aria-label="Main">
+    <nav class="top-nav" [attr.aria-label]="'shell.nav.main' | t">
       <a *ngFor="let item of navItems" class="top-nav__item" [routerLink]="item.link" routerLinkActive="is-active" ariaCurrentWhenActive="page"
          [attr.aria-label]="badgeLabel(item)">
-        <span>{{ item.label }}</span>
+        <span>{{ item.label | t }}</span>
         <span class="top-nav__count" *ngIf="count(item) > 0" aria-hidden="true">{{ count(item) }}</span>
       </a>
     </nav>
 
     <div class="app-top__right">
-      <a class="icon-btn settings-btn" *ngIf="canSettings" routerLink="/settings" routerLinkActive="is-active" ariaCurrentWhenActive="page" aria-label="Settings"><app-icon name="settings" [size]="22" [stroke]="1.6"></app-icon></a>
-      <a class="icon-btn alerts-btn" *ngIf="canClinical" routerLink="/alerts" [attr.aria-label]="alerts ? 'Alerts, ' + alerts + ' open' : 'Alerts'">
+      <a class="icon-btn settings-btn" *ngIf="canSettings" routerLink="/settings" routerLinkActive="is-active" ariaCurrentWhenActive="page" [attr.aria-label]="'shell.nav.settings' | t"><app-icon name="settings" [size]="22" [stroke]="1.6"></app-icon></a>
+      <a class="icon-btn alerts-btn" *ngIf="canClinical" routerLink="/alerts" [attr.aria-label]="alerts ? ('shell.nav.badge.alerts' | t:{ count: alerts }) : ('shell.nav.alerts' | t)">
         <app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon>
         <span class="icon-btn__dot" *ngIf="alerts > 0" aria-hidden="true"></span>
       </a>
-      <button #menuButton type="button" class="icon-btn menu-btn" aria-label="Menu" aria-haspopup="true" aria-controls="top-menu"
+      <button #menuButton type="button" class="icon-btn menu-btn" [attr.aria-label]="'shell.menu' | t" aria-haspopup="true" aria-controls="top-menu"
               [attr.aria-expanded]="menuOpen" (click)="toggleMenu()">
         <app-icon [name]="menuOpen ? 'close' : 'menu'" [size]="22" [stroke]="1.6"></app-icon>
       </button>
@@ -37,22 +37,23 @@
     <div class="menu-pop__who">
       <strong>{{ userName$ | async }}</strong>
       <app-role-badge [role]="role"></app-role-badge>
-      <span class="chip chip--warning chip--sm menu-dev" *ngIf="devAuth"><span class="chip__glyph" aria-hidden="true">●</span><span class="chip__label">Dev auth</span></span>
+      <span class="chip chip--warning chip--sm menu-dev" *ngIf="devAuth"><span class="chip__glyph" aria-hidden="true">●</span><span class="chip__label" lang="en">Dev auth</span></span>
     </div>
     <ng-container *ngIf="devAuth && devUi"><ng-container *ngComponentOutlet="$any(devUi)"></ng-container></ng-container>
-    <nav class="menu-nav" aria-label="Main (menu)">
+    <nav class="menu-nav" [attr.aria-label]="'shell.nav.menu' | t">
       <a *ngFor="let item of navItems" class="menu-nav__item" [routerLink]="item.link" routerLinkActive="is-active" ariaCurrentWhenActive="page"
          [attr.aria-label]="badgeLabel(item)">
-        <span>{{ item.label }}</span>
+        <span>{{ item.label | t }}</span>
         <span class="badge-count" *ngIf="count(item) > 0" aria-hidden="true">{{ count(item) }}</span>
       </a>
-      <a class="menu-nav__item" *ngIf="canSettings" routerLink="/settings" routerLinkActive="is-active" ariaCurrentWhenActive="page"><span>Settings</span></a>
+      <a class="menu-nav__item" *ngIf="canSettings" routerLink="/settings" routerLinkActive="is-active" ariaCurrentWhenActive="page"><span>{{ 'shell.nav.settings' | t }}</span></a>
     </nav>
+    <app-language-switch mode="profile"></app-language-switch>
     <div class="search-pill">
       <app-icon name="search" [size]="16"></app-icon>
-      <input type="search" placeholder="Search patients" aria-label="Search patients" [(ngModel)]="searchTerm" (keydown.enter)="search()">
+      <input type="search" [placeholder]="'common.searchPatients' | t" [attr.aria-label]="'common.searchPatients' | t" [(ngModel)]="searchTerm" (keydown.enter)="search()">
     </div>
-    <button type="button" class="btn btn--ghost logout" (click)="logout()"><app-icon name="logout" [size]="18"></app-icon><span>Log out</span></button>
+    <button type="button" class="btn btn--ghost logout" (click)="logout()"><app-icon name="logout" [size]="18"></app-icon><span>{{ 'common.logOut' | t }}</span></button>
   </div>
 </header>
 

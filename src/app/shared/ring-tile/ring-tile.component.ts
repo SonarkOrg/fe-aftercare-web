@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { I18nService } from '../../i18n/i18n.service';
 import { IconName } from '../icon/icon.component';
 
 export const RING_C = 2 * Math.PI * 21.5; // circumference of r = 21.5
@@ -19,6 +20,8 @@ export const RING_C = 2 * Math.PI * 21.5; // circumference of r = 21.5
 </ng-template>`
 })
 export class RingTileComponent {
+  constructor(private i18n: I18nService) {}
+
   @Input() label = '';
   @Input() value: number | string = 0;
   /** Denominator; null for a tile without one (the ring is then full). */
@@ -52,6 +55,7 @@ export class RingTileComponent {
   }
 
   get aria(): string {
-    return `${this.label.replace('\n', ' ')}: ${this.value}${this.total !== null ? ' of ' + this.total : ''}`;
+    const label = this.label.replace('\n', ' ');
+    return this.total !== null ? this.i18n.t('common.ratioAria', { label, value: this.value, total: this.total }) : this.i18n.t('common.valueAria', { label, value: this.value });
   }
 }

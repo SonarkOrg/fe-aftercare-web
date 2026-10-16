@@ -4,9 +4,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
-import { AppointmentDetail, AppointmentStatusRequest } from '../../models/appointment.model';
-import { errorText } from '../../models/api-error.model';
-import { businessNow, humanize, initials } from '../../shared/link.util';
+import { AppointmentDetail, AppointmentStatusRequest, ReadinessFlagView } from '../../models/appointment.model';
+import { ApiErrorsService } from '../../i18n/api-errors';
+import { intakeFlagLabel, intakeFlagMessage } from '../../i18n/content';
+import { fmtClock } from '../../i18n/format';
+import { I18nService } from '../../i18n/i18n.service';
+import { Lang, TKey } from '../../i18n/i18n.types';
+import { businessNow, initials } from '../../shared/link.util';
 import { PageTitleService } from '../../shell/page-title.service';
 
 @Component({
@@ -21,7 +25,6 @@ export class AppointmentDetailComponent implements OnInit {
   loading = true;
   notFound = false;
   errorMessage: string | null = null;
-  humanize = humanize;
   initials = initials;
 
   constructor(
@@ -30,8 +33,26 @@ export class AppointmentDetailComponent implements OnInit {
     private appointments: AppointmentService,
     private definitions: QuestionnaireDefinitionService,
     private titles: PageTitleService,
-    private notifications: NotificationService
+    private notifications: NotificationService,
+    public i18n: I18nService,
+    private errors: ApiErrorsService
   ) {}
+
+  get formLang(): Lang {
+    return this.i18n.lang === 'fr' ? 'fr' : 'en';
+  }
+
+  clock(a: AppointmentDetail): string {
+    return fmtClock(a.scheduledAt.substring(11, 16), this.i18n.lang);
+  }
+
+  flagLabel(f: ReadinessFlagView): string {
+    return intakeFlagLabel(f, this.i18n.lang);
+  }
+
+  flagMessage(f: ReadinessFlagView): string {
+    return intakeFlagMessage(f, this.i18n.lang);
+  }
 
   onLinkSent(patientId: number): void {
     this.notifications.notifySent(patientId);
@@ -57,11 +78,11 @@ export class AppointmentDetailComponent implements OnInit {
       next: a => {
         this.appt = a;
         this.loading = false;
-        this.titles.set(`Appointment · ${a.patientFirstName} ${a.patientLastName}`);
+        this.titles.setText(`${this.i18n.t('page.appointment')} · ${a.patientFirstName} ${a.patientLastName}`);
         if (a.intake) {
           this.definitions.get(a.intake.questionnaireDefinitionId).subscribe({
             next: d => (this.questionnaire = d.questionnaire),
-            error: () => (this.errorMessage = 'Could not load the form definition.')
+            error: () => (this.errorMessage = this.i18n.t('appt.error.definition'))
           });
         }
       },
@@ -70,14 +91,14 @@ export class AppointmentDetailComponent implements OnInit {
         if (err?.status === 404) {
           this.notFound = true;
         } else {
-          this.errorMessage = 'Could not load appointment.';
+          this.errorMessage = this.errors.text(err, 'appt.error.load');
         }
       }
     });
   }
 
   private fail(err?: unknown): void {
-    this.errorMessage = errorText(err, 'Action failed. The appointment may have changed; reloading.');
+    this.errorMessage = this.errors.text(err, 'appt.error.action');
     this.load();
   }
 
@@ -86,8 +107,8 @@ export class AppointmentDetailComponent implements OnInit {
     this.appointments.markReviewed(this.id).subscribe({ next: () => this.load(), error: err => this.fail(err) });
   }
 
-  setStatus(status: AppointmentStatusRequest['status'], question: string): void {
-    if (!window.confirm(question)) {
+  setStatus(status: AppointmentStatusRequest['status'], question: TKey): void {
+    if (!window.confirm(this.i18n.t(question))) {
       return;
     }
     this.errorMessage = null;
@@ -95,7 +116,7 @@ export class AppointmentDetailComponent implements OnInit {
   }
 
   regenerate(): void {
-    if (!window.confirm('The previous link will stop working. Continue?')) {
+    if (!window.confirm(this.i18n.t('dashboard.confirmNewLink'))) {
       return;
     }
     this.errorMessage = null;
@@ -109,7 +130,7 @@ export class AppointmentDetailComponent implements OnInit {
   }
 
   delete(): void {
-    if (!window.confirm('Delete this appointment?')) {
+    if (!window.confirm(this.i18n.t('appt.confirm.delete'))) {
       return;
     }
     this.errorMessage = null;

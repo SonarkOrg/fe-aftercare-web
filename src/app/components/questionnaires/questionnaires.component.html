@@ -1,27 +1,27 @@
 <div class="page">
   <section class="hero">
     <div>
-      <h1 class="hero__title">Forms</h1>
-      <p class="hero__sub">Questionnaires sent to patients after discharge.</p>
+      <h1 class="hero__title">{{ 'shell.nav.forms' | t }}</h1>
+      <p class="hero__sub">{{ 'forms.intro' | t }}</p>
     </div>
   </section>
-  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
-  <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
+  <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
   <div class="table-card" *ngIf="definitions.length > 0">
   <table class="table table--hover">
-    <caption class="sr-only">Forms</caption>
-    <thead><tr><th scope="col">Title</th><th scope="col">Purpose</th><th scope="col">Specialty / appointment types</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">URL</th></tr></thead>
+    <caption class="sr-only">{{ 'shell.nav.forms' | t }}</caption>
+    <thead><tr><th scope="col">{{ 'forms.col.title' | t }}</th><th scope="col">{{ 'forms.col.purpose' | t }}</th><th scope="col">{{ 'forms.col.scope' | t }}</th><th scope="col">{{ 'forms.col.version' | t }}</th><th scope="col">{{ 'patients.col.status' | t }}</th><th scope="col">{{ 'forms.col.url' | t }}</th></tr></thead>
     <tbody>
       <tr *ngFor="let d of definitions">
-        <td><a [routerLink]="['/questionnaires', d.id]">{{ d.title.en }}</a></td>
-        <td>{{ humanize(d.purpose) }}</td>
+        <td><a [routerLink]="['/questionnaires', d.id]">{{ titleOf(d) }}</a></td>
+        <td>{{ d.purpose | enumLabel:'questionnairePurpose' }}</td>
         <td>{{ scope(d) }}</td>
         <td>{{ d.version }}</td>
-        <td>{{ d.status }}</td>
+        <td>{{ d.status | enumLabel:'questionnaireStatus' }}</td>
         <td class="mono">{{ d.url }}</td>
       </tr>
     </tbody>
   </table>
   </div>
-  <div class="card empty" *ngIf="!loading && !errorMessage && definitions.length === 0"><p class="empty__title">No forms.</p></div>
+  <div class="card empty" *ngIf="!loading && !errorMessage && definitions.length === 0"><p class="empty__title">{{ 'forms.empty' | t }}</p></div>
 </div>

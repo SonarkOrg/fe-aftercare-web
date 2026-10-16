@@ -1,52 +1,52 @@
 <div class="page">
-  <a class="back-link" routerLink="/questionnaires"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>Forms</a>
+  <a class="back-link" routerLink="/questionnaires"><app-icon name="chevron-left" [size]="16" [stroke]="2"></app-icon>{{ 'shell.nav.forms' | t }}</a>
   <section class="hero" *ngIf="def as hd">
-    <div><h1 class="hero__title">{{ hd.title.en }}</h1></div>
+    <div><h1 class="hero__title">{{ titleOf(hd) }}</h1></div>
   </section>
-  <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> Form not found.</span></div>
-  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ 'forms.notFound' | t }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
   <ng-container *ngIf="def as d">
     <section class="card">
-      <div class="card__header"><h2 class="card__title">Details</h2></div>
+      <div class="card__header"><h2 class="card__title">{{ 'forms.details' | t }}</h2></div>
       <dl class="kv">
-        <dt>URL</dt><dd class="mono">{{ d.url }}</dd>
-        <dt>Version</dt><dd>{{ d.version }}</dd>
-        <dt>Purpose</dt><dd>{{ humanize(d.purpose) }}</dd>
-        <dt>Specialty</dt><dd>{{ d.specialty ? humanize(d.specialty) : '—' }}</dd>
-        <dt>Appointment types</dt><dd>{{ d.appointmentTypes.length ? d.appointmentTypes.join(', ') : '—' }}</dd>
-        <dt>Status</dt><dd>{{ d.status }}</dd>
+        <dt>{{ 'forms.col.url' | t }}</dt><dd class="mono">{{ d.url }}</dd>
+        <dt>{{ 'forms.col.version' | t }}</dt><dd>{{ d.version }}</dd>
+        <dt>{{ 'forms.col.purpose' | t }}</dt><dd>{{ d.purpose | enumLabel:'questionnairePurpose' }}</dd>
+        <dt>{{ 'appt.specialty' | t }}</dt><dd>{{ d.specialty ? (d.specialty | enumLabel:'specialty') : '—' }}</dd>
+        <dt>{{ 'forms.appointmentTypes' | t }}</dt><dd>{{ appointmentTypes(d) }}</dd>
+        <dt>{{ 'patients.col.status' | t }}</dt><dd>{{ d.status | enumLabel:'questionnaireStatus' }}</dd>
       </dl>
     </section>
 
     <section class="card preview">
-      <div class="card__header"><h2 class="card__title">Preview</h2>
-        <div class="pill-group toggle" role="group" aria-label="Preview language">
-          <button type="button" id="lang-fr" class="pill-group__item" [class.selected]="lang === 'fr'" [attr.aria-pressed]="lang === 'fr'" (click)="lang = 'fr'">FR</button>
-          <button type="button" id="lang-en" class="pill-group__item" [class.selected]="lang === 'en'" [attr.aria-pressed]="lang === 'en'" (click)="lang = 'en'">EN</button>
+      <div class="card__header"><h2 class="card__title">{{ 'forms.preview' | t }}</h2>
+        <div class="pill-group toggle" role="group" [attr.aria-label]="'forms.previewLang' | t">
+          <button type="button" id="lang-fr" lang="fr-CA" class="pill-group__item" [class.selected]="lang === 'fr'" [attr.aria-pressed]="lang === 'fr'" (click)="lang = 'fr'">FR</button>
+          <button type="button" id="lang-en" lang="en-CA" class="pill-group__item" [class.selected]="lang === 'en'" [attr.aria-pressed]="lang === 'en'" (click)="lang = 'en'">EN</button>
         </div>
       </div>
-      <p class="note">Preview — answers are not saved.</p>
+      <p class="note">{{ 'forms.previewNote' | t }}</p>
       <app-questionnaire-form mode="edit" [lang]="lang" [questionnaire]="d.questionnaire"></app-questionnaire-form>
     </section>
 
     <section class="card rules">
-      <div class="card__header"><h2 class="card__title">Rules</h2></div>
+      <div class="card__header"><h2 class="card__title">{{ 'forms.rules' | t }}</h2></div>
       <div class="table-scroll">
       <table class="table">
-        <caption class="sr-only">Alert rules</caption>
-        <thead><tr><th scope="col">linkId</th><th scope="col">Operator</th><th scope="col">Value</th><th scope="col">Outcome</th><th scope="col">Severity</th><th scope="col">Message (EN)</th></tr></thead>
+        <caption class="sr-only">{{ 'forms.alertRules' | t }}</caption>
+        <thead><tr><th scope="col" lang="en">linkId</th><th scope="col">{{ 'forms.rule.operator' | t }}</th><th scope="col">{{ 'chart.table.value' | t }}</th><th scope="col">{{ 'forms.rule.outcome' | t }}</th><th scope="col">{{ 'forms.rule.severity' | t }}</th><th scope="col">{{ 'forms.rule.message' | t }}</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of d.rules">
             <td>{{ r.linkId }}</td>
             <td>{{ r.operator }}</td>
             <td>{{ ruleValue(r) }}</td>
-            <td>{{ r.outcome.type }}</td>
+            <td>{{ outcomeKey(r) | t }}</td>
             <td>
               <app-status-chip *ngIf="r.outcome.severity; else reviewOrNone" size="sm" [spec]="severityChip(r.outcome.severity)"></app-status-chip>
               <ng-template #reviewOrNone><app-status-chip *ngIf="r.outcome.type === 'NEEDS_REVIEW'; else none" size="sm" [spec]="reviewChip"></app-status-chip></ng-template>
               <ng-template #none>—</ng-template>
             </td>
-            <td>{{ r.outcome.message.en }}</td>
+            <td>{{ r.outcome.message[formLang] || r.outcome.message.fr || r.outcome.message.en }}</td>
           </tr>
         </tbody>
       </table>

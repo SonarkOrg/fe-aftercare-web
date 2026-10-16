@@ -2,7 +2,8 @@ import {
   FhirAnswer, FhirCoding, FhirElement, FhirItem, FhirQuestionnaire, FhirQuestionnaireResponse, FhirResponseItem
 } from './fhir.model';
 
-export type Lang = 'fr' | 'en';
+import type { Lang } from '../i18n/i18n.types';
+export type { Lang };
 
 export const TRANSLATION = 'http://hl7.org/fhir/StructureDefinition/translation';
 const EXT_MIN = 'http://hl7.org/fhir/StructureDefinition/minValue';

@@ -1,72 +1,72 @@
 <div class="page">
   <section class="hero">
     <div>
-      <h1 class="hero__title">Today's Aftercare</h1>
-      <p class="hero__sub"><ng-container *ngIf="firstName$ | async as n">{{ greetingText }}, {{ n }}. </ng-container><ng-container *ngIf="clinical; else apptHero">Check-ins, alerts and appointments for every patient in follow-up, in one place.</ng-container><ng-template #apptHero>Today's appointments and questionnaires, in one place.</ng-template></p>
+      <h1 class="hero__title">{{ 'dashboard.hero.title' | t }}</h1>
+      <p class="hero__sub"><ng-container *ngIf="firstName$ | async as n">{{ 'dashboard.hero.greeting' | t:{ greeting: greetingText, name: n } }} </ng-container><ng-container *ngIf="clinical; else apptHero">{{ 'dashboard.hero.clinical' | t }}</ng-container><ng-template #apptHero>{{ 'dashboard.hero.reception' | t }}</ng-template></p>
     </div>
     <div class="hero__actions">
       <div class="hero__meta">
         <div class="hero__clinic"><app-icon name="building" [size]="20" [stroke]="1.6"></app-icon>{{ (clinicName$ | async) ?? clinicName }}</div>
-        <div class="hero__date">{{ today | date:'EEEE, d MMMM y' }}</div>
+        <div class="hero__date">{{ today | tzDate:'dayLongYear' }}</div>
       </div>
       <div class="btn-row">
-        <a class="btn btn--secondary" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new">New appointment</a>
-        <a class="btn btn--accent" *appCan="'PATIENT_WRITE'" routerLink="/patients" [queryParams]="{ add: 1 }"><app-icon name="plus" [size]="16"></app-icon>Add patient</a>
+        <a class="btn btn--secondary" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new">{{ 'dashboard.newAppointment' | t }}</a>
+        <a class="btn btn--accent" *appCan="'PATIENT_WRITE'" routerLink="/patients" [queryParams]="{ add: 1 }"><app-icon name="plus" [size]="16"></app-icon>{{ 'dashboard.addPatient' | t }}</a>
       </div>
     </div>
   </section>
 
-  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ errorMessage }}</span>
-    <button type="button" class="btn btn--secondary btn--sm" (click)="reload()">Retry</button></div>
-  <div class="banner banner--error error-message" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ actionError }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span>
+    <button type="button" class="btn btn--secondary btn--sm" (click)="reload()">{{ 'common.retry' | t }}</button></div>
+  <div class="banner banner--error error-message" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ actionError }}</span></div>
   <p class="sr-only" aria-live="polite">{{ live }}</p>
 
   <div class="grid-a" *ngIf="clinical && (loading || snapshot)">
     <!-- Patient Care Overview -->
     <section class="card overview" aria-labelledby="overview-title" [attr.aria-busy]="loading">
       <div class="card__head">
-        <h2 id="overview-title" class="card__title">Patient Care Overview</h2>
-        <select class="select" id="overview-day" aria-label="Period" *ngIf="snapshot" [ngModel]="overviewDay" (ngModelChange)="setOverview($event)">
-          <option value="today">Today</option>
-          <option value="yesterday">Yesterday</option>
+        <h2 id="overview-title" class="card__title">{{ 'dashboard.overview.title' | t }}</h2>
+        <select class="select" id="overview-day" [attr.aria-label]="'dashboard.overview.period' | t" *ngIf="snapshot" [ngModel]="overviewDay" (ngModelChange)="setOverview($event)">
+          <option value="today">{{ 'common.today' | t }}</option>
+          <option value="yesterday">{{ 'common.yesterday' | t }}</option>
         </select>
       </div>
-      <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--tile" style="margin-top: 22px"></div></div>
+      <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--tile" style="margin-top: 22px"></div></div>
       <ng-container *ngIf="!loading && snapshot">
         <div class="prog">
-          <div class="label-lg">Check-ins {{ overviewDay === 'today' ? 'today' : 'yesterday' }}</div>
+          <div class="label-lg">{{ (overviewDay === 'today' ? 'dashboard.overview.checkInsToday' : 'dashboard.overview.checkInsYesterday') | t }}</div>
           <ng-container *ngIf="progress.expected > 0; else noneDue">
             <div class="seg-wrap">
-              <div class="seg-marker" *ngIf="progress.received > 0" [style.left.%]="progress.aPct" [attr.title]="progress.received + ' received (' + progress.aPct + ' %)'">
+              <div class="seg-marker" *ngIf="progress.received > 0" [style.left.%]="progress.aPct" [attr.title]="'dashboard.seg.receivedTitle' | t:{ count: progress.received, pct: (progress.aPct / 100 | pct) }">
                 <span class="seg-marker__pin"><app-icon name="check" [size]="14" [stroke]="1.8"></app-icon></span><span class="seg-marker__stem"></span><span class="seg-marker__dot"></span>
               </div>
-              <div class="seg-marker" *ngIf="progress.pending > 0 && progress.abPct > progress.aPct" [style.left.%]="progress.abPct" [attr.title]="progress.received + progress.pending + ' expected today (' + progress.abPct + ' %)'">
+              <div class="seg-marker" *ngIf="progress.pending > 0 && progress.abPct > progress.aPct" [style.left.%]="progress.abPct" [attr.title]="'dashboard.seg.expectedTitle' | t:{ count: progress.received + progress.pending, pct: (progress.abPct / 100 | pct) }">
                 <span class="seg-marker__pin"><app-icon name="clock" [size]="14" [stroke]="1.8"></app-icon></span><span class="seg-marker__stem"></span><span class="seg-marker__dot"></span>
               </div>
               <div class="seg-bar" role="img"
-                   [attr.aria-label]="'Check-ins ' + overviewDay + ': ' + progress.received + ' of ' + progress.expected + ' received' + (progress.pending ? ', ' + progress.pending + ' still due today' : '') + (progress.missed ? ', ' + progress.missed + ' not received' : '')">
+                   [attr.aria-label]="segAria">
                 <span class="seg-bar__a" [style.width.%]="progress.aPct"></span>
                 <span class="seg-bar__b" [style.left.%]="progress.aPct" [style.width.%]="progress.abPct - progress.aPct"></span>
               </div>
             </div>
             <div class="seg-scale" aria-hidden="true">
-              <span *ngFor="let v of scale; first as f; last as l" [class.is-first]="f" [class.is-last]="l" [style.left.%]="v">{{ v }}<i>%</i></span>
+              <span *ngFor="let v of scale; first as f; last as l" [class.is-first]="f" [class.is-last]="l" [style.left.%]="v">{{ v / 100 | pct }}</span>
             </div>
             <p class="seg-legend">
-              <span><i class="sw-a"></i>{{ progress.received }} received</span>
-              <span *ngIf="progress.pending > 0"><i class="sw-r"></i>{{ progress.pending }} still due today</span>
-              <span *ngIf="progress.missed > 0"><i class="sw-r"></i>{{ progress.missed }} not received</span>
+              <span><i class="sw-a"></i>{{ 'dashboard.seg.received' | t:{ count: progress.received } }}</span>
+              <span *ngIf="progress.pending > 0"><i class="sw-r"></i>{{ 'dashboard.seg.pending' | t:{ count: progress.pending } }}</span>
+              <span *ngIf="progress.missed > 0"><i class="sw-r"></i>{{ 'dashboard.seg.missed' | t:{ count: progress.missed } }}</span>
             </p>
           </ng-container>
           <ng-template #noneDue>
-            <div class="empty"><span class="empty__glyph" aria-hidden="true">✓</span><p class="empty__title">No check-ins due {{ overviewDay }}</p></div>
+            <div class="empty"><span class="empty__glyph" aria-hidden="true">✓</span><p class="empty__title">{{ (overviewDay === 'today' ? 'dashboard.overview.noneDueToday' : 'dashboard.overview.noneDueYesterday') | t }}</p></div>
           </ng-template>
         </div>
         <div class="tiles">
-          <app-ring-tile label="Active&#10;follow-ups" icon="users" [value]="stats.active" link="/patients" [params]="{ status: 'all' }"></app-ring-tile>
-          <app-ring-tile label="Stable&#10;patients" icon="check" [value]="stats.stable" [total]="stats.active" link="/patients" [params]="{ status: 'stable' }"></app-ring-tile>
-          <app-ring-tile label="Critical&#10;patients" icon="alert-triangle" [value]="stats.critical" [total]="stats.active" link="/patients" [params]="{ status: 'critical' }"></app-ring-tile>
-          <app-ring-tile label="Missed&#10;yesterday" icon="slash-circle" [value]="stats.missedYesterday" [total]="stats.expectedYesterday" link="/patients" [params]="{ status: 'attention' }"></app-ring-tile>
+          <app-ring-tile [label]="'dashboard.tile.active' | t" icon="users" [value]="stats.active" link="/patients" [params]="{ status: 'all' }"></app-ring-tile>
+          <app-ring-tile [label]="'dashboard.tile.stable' | t" icon="check" [value]="stats.stable" [total]="stats.active" link="/patients" [params]="{ status: 'stable' }"></app-ring-tile>
+          <app-ring-tile [label]="'dashboard.tile.critical' | t" icon="alert-triangle" [value]="stats.critical" [total]="stats.active" link="/patients" [params]="{ status: 'critical' }"></app-ring-tile>
+          <app-ring-tile [label]="'dashboard.tile.missed' | t" icon="slash-circle" [value]="stats.missedYesterday" [total]="stats.expectedYesterday" link="/patients" [params]="{ status: 'attention' }"></app-ring-tile>
         </div>
       </ng-container>
     </section>
@@ -74,14 +74,14 @@
     <!-- Needs attention -->
     <section class="card card--list" aria-labelledby="needs-attention-title" [attr.aria-busy]="loading">
       <div class="card__head">
-        <h2 id="needs-attention-title" class="card__title--sm">Needs attention <span class="badge" *ngIf="!loading && snapshot">{{ total }}</span></h2>
+        <h2 id="needs-attention-title" class="card__title--sm">{{ 'dashboard.attention.title' | t }} <span class="badge" *ngIf="!loading && snapshot">{{ total }}</span></h2>
       </div>
-      <div *ngIf="loading"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3, 4]"></div></div>
+      <div *ngIf="loading"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3, 4]"></div></div>
       <ng-container *ngIf="!loading && snapshot">
         <div class="empty" *ngIf="items.length === 0">
           <span class="empty__glyph" aria-hidden="true">✓</span>
-          <p class="empty__title">Nothing needs attention</p>
-          <p class="empty__text">No open high alerts, reviews, missing questionnaires or missed check-ins.</p>
+          <p class="empty__title">{{ 'dashboard.attention.emptyTitle' | t }}</p>
+          <p class="empty__text">{{ 'dashboard.attention.emptyText' | t }}</p>
         </div>
         <ul class="rows attention-list" *ngIf="items.length > 0">
           <li *ngFor="let it of shown" class="attn" [attr.data-kind]="it.kind">
@@ -95,24 +95,24 @@
                 <app-status-chip size="sm" [short]="true" [spec]="it.chip"></app-status-chip>
                 <span class="row-menu-wrap">
                   <button type="button" class="chev more-btn" aria-haspopup="menu" [attr.aria-expanded]="menuKey === it.key" [attr.data-more]="it.key"
-                          [attr.aria-label]="'Actions for ' + it.name + ', ' + it.chip.label" (click)="toggleMenu(it.key, $event)"><app-icon name="more-horizontal" [size]="14"></app-icon></button>
-                  <div class="row-menu" role="menu" *ngIf="menuKey === it.key" [attr.aria-label]="'Actions for ' + it.name">
+                          [attr.aria-label]="'dashboard.row.actionsFor' | t:{ name: it.name, status: (it.chip.label | t) }" (click)="toggleMenu(it.key, $event)"><app-icon name="more-horizontal" [size]="14"></app-icon></button>
+                  <div class="row-menu" role="menu" *ngIf="menuKey === it.key" [attr.aria-label]="'dashboard.row.actions' | t:{ name: it.name }">
                     <ng-container [ngSwitch]="it.kind">
                       <ng-container *ngSwitchCase="'critical'">
-                        <button type="button" role="menuitem" class="row-menu__item btn-ack" (click)="acknowledge(it.alert!)">Acknowledge</button>
-                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">Open patient</a>
+                        <button type="button" role="menuitem" class="row-menu__item btn-ack" (click)="acknowledge(it.alert!)">{{ 'dashboard.menu.acknowledge' | t }}</button>
+                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.openPatient' | t }}</a>
                       </ng-container>
                       <ng-container *ngSwitchCase="'review'">
-                        <button type="button" role="menuitem" class="row-menu__item btn-reviewed" (click)="markReviewed(it.appt!)">Mark reviewed</button>
-                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">Review</a>
+                        <button type="button" role="menuitem" class="row-menu__item btn-reviewed" (click)="markReviewed(it.appt!)">{{ 'dashboard.menu.markReviewed' | t }}</button>
+                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.review' | t }}</a>
                       </ng-container>
                       <ng-container *ngSwitchCase="'missing'">
-                        <button type="button" role="menuitem" class="row-menu__item btn-newlink" *ngIf="canRegenerate(it.appt!)" (click)="newLink(it.appt!)">New link</button>
-                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">Open</a>
+                        <button type="button" role="menuitem" class="row-menu__item btn-newlink" *ngIf="canRegenerate(it.appt!)" (click)="newLink(it.appt!)">{{ 'dashboard.menu.newLink' | t }}</button>
+                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.open' | t }}</a>
                       </ng-container>
                       <ng-container *ngSwitchCase="'missed'">
-                        <a role="menuitem" class="row-menu__item btn-call" [attr.href]="'tel:' + it.phone">Call</a>
-                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">Open patient</a>
+                        <a role="menuitem" class="row-menu__item btn-call" [attr.href]="'tel:' + it.phone">{{ 'dashboard.menu.call' | t }}</a>
+                        <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.openPatient' | t }}</a>
                       </ng-container>
                     </ng-container>
                   </div>
@@ -123,9 +123,9 @@
           </li>
         </ul>
         <div class="card__foot" *ngIf="items.length > limit">
-          <button type="button" class="btn btn--ghost btn--sm view-all" [attr.aria-expanded]="showAll" (click)="showAll = !showAll">{{ showAll ? 'Show fewer' : 'View all (' + items.length + ')' }}</button>
+          <button type="button" class="btn btn--ghost btn--sm view-all" [attr.aria-expanded]="showAll" (click)="showAll = !showAll">{{ showAll ? ('dashboard.attention.showFewer' | t) : ('dashboard.attention.viewAll' | t:{ count: items.length }) }}</button>
         </div>
-        <p class="note medium-line card__foot" *ngIf="mediumCount > 0">{{ mediumCount }} medium alerts open → <a routerLink="/alerts">View alerts</a></p>
+        <p class="note medium-line card__foot" *ngIf="mediumCount > 0">{{ 'dashboard.attention.medium' | t:{ count: mediumCount } }} → <a routerLink="/alerts">{{ 'dashboard.attention.viewAlerts' | t }}</a></p>
       </ng-container>
     </section>
     <ng-container *ngTemplateOutlet="apptCard"></ng-container>
@@ -133,38 +133,38 @@
 
   <!-- Pastel KPI row -->
   <div class="kpis" *ngIf="clinical && loading" aria-busy="true">
-    <span class="sr-only">Loading…</span>
+    <span class="sr-only">{{ 'common.loading' | t }}</span>
     <div class="skeleton skeleton--kpi" *ngFor="let i of [1, 2, 3, 4]"></div>
   </div>
   <div class="kpis" *ngIf="clinical && !loading && snapshot">
-    <a class="kpi" routerLink="/alerts" id="kpi-critical" [title]="kpi.newToday + ' new today · ' + kpi.ackHigh + ' acknowledged'">
+    <a class="kpi" routerLink="/alerts" id="kpi-critical" [title]="criticalTitle">
       <span class="kpi__icon"><app-icon name="bell" [size]="22" [stroke]="1.6"></app-icon></span>
       <span class="kpi__body">
-        <span class="kpi__label">Critical alerts</span>
-        <span class="kpi__value">{{ kpi.openHigh }}<small>open</small></span>
+        <span class="kpi__label">{{ 'dashboard.kpi.critical' | t }}</span>
+        <span class="kpi__value">{{ kpi.openHigh }}<small>{{ 'dashboard.kpi.open' | t }}</small></span>
         <app-status-chip class="kpi__chip" size="sm" [spec]="kpi.openHigh > 0 ? criticalChip : noneChip"></app-status-chip>
       </span>
     </a>
     <a class="kpi" routerLink="/patients" [queryParams]="{ status: 'all' }" id="kpi-checkins">
       <span class="kpi__icon"><app-icon name="check-circle" [size]="22" [stroke]="1.6"></app-icon></span>
       <span class="kpi__body">
-        <span class="kpi__label">Check-ins today</span>
-        <span class="kpi__value" *ngIf="kpi.expected > 0; else noneDueKpi">{{ kpi.received }} / {{ kpi.expected }}<small>received</small></span>
-        <ng-template #noneDueKpi><span class="kpi__value">—<small>none due</small></span></ng-template>
+        <span class="kpi__label">{{ 'dashboard.kpi.checkIns' | t }}</span>
+        <span class="kpi__value" *ngIf="kpi.expected > 0; else noneDueKpi">{{ kpi.received }} / {{ kpi.expected }}<small>{{ 'dashboard.kpi.received' | t }}</small></span>
+        <ng-template #noneDueKpi><span class="kpi__value">—<small>{{ 'dashboard.kpi.noneDue' | t }}</small></span></ng-template>
       </span>
     </a>
-    <a class="kpi" routerLink="/patients" [queryParams]="{ status: 'attention' }" id="kpi-missed" [title]="kpi.missed > 0 ? 'No check-in on ' + yesterday : 'Everyone due checked in'">
+    <a class="kpi" routerLink="/patients" [queryParams]="{ status: 'attention' }" id="kpi-missed" [title]="kpi.missed > 0 ? ('dashboard.kpi.missedTitle' | t:{ date: (yesterday | tzDate:'date') }) : ('dashboard.kpi.missedNone' | t)">
       <span class="kpi__icon"><app-icon name="slash-circle" [size]="22" [stroke]="1.6"></app-icon></span>
       <span class="kpi__body">
-        <span class="kpi__label">Missed yesterday</span>
-        <span class="kpi__value">{{ kpi.missed }}<small>patients</small></span>
+        <span class="kpi__label">{{ 'dashboard.kpi.missed' | t }}</span>
+        <span class="kpi__value">{{ kpi.missed }}<small>{{ 'dashboard.kpi.patients' | t }}</small></span>
       </span>
     </a>
-    <a class="kpi" routerLink="/appointments" id="kpi-prepare" [title]="kpi.prepare.needsReview + ' need review · ' + kpi.prepare.missing + ' questionnaire missing'">
+    <a class="kpi" routerLink="/appointments" id="kpi-prepare" [title]="prepareTitle">
       <span class="kpi__icon"><app-icon name="clipboard" [size]="22" [stroke]="1.6"></app-icon></span>
       <span class="kpi__body">
-        <span class="kpi__label">Appointments to prepare</span>
-        <span class="kpi__value">{{ kpi.prepare.total }}<small>today + tomorrow</small></span>
+        <span class="kpi__label">{{ 'dashboard.kpi.prepare' | t }}</span>
+        <span class="kpi__value">{{ kpi.prepare.total }}<small>{{ 'dashboard.kpi.todayTomorrow' | t }}</small></span>
       </span>
     </a>
   </div>
@@ -173,40 +173,40 @@
   <div class="grid-b" *ngIf="clinical && (loading || snapshot)">
     <section class="card critical-chart" aria-labelledby="critical-chart-title" *ngIf="!loading && chartRow as cr">
       <div class="card__head">
-        <h2 id="critical-chart-title" class="card__title">Critical patient</h2>
-        <select class="select" aria-label="Patient" [ngModel]="chartPatientId" (ngModelChange)="chartPatientId = +$event">
+        <h2 id="critical-chart-title" class="card__title">{{ 'dashboard.critical.title' | t }}</h2>
+        <select class="select" [attr.aria-label]="'common.patient' | t" [ngModel]="chartPatientId" (ngModelChange)="chartPatientId = +$event">
           <option *ngFor="let r of criticalRows" [ngValue]="r.patient.id">{{ r.name }}</option>
         </select>
       </div>
-      <app-trend-chart variant="full" label="Pain (0–10)" [points]="cr.painSeries" [totalDays]="cr.day ? cr.day.total : 7" [threshold]="cr.painThreshold" [todayDay]="chartToday(cr)" [nowDay]="cr.day ? cr.day.day : null"></app-trend-chart>
+      <app-trend-chart variant="full" [label]="'dashboard.critical.pain' | t" [points]="cr.painSeries" [totalDays]="cr.day ? cr.day.total : 7" [threshold]="cr.painThreshold" [todayDay]="chartToday(cr)" [nowDay]="cr.day ? cr.day.day : null"></app-trend-chart>
     </section>
 
     <section class="card card--warm trends" [class.is-wide]="loading || !chartRow" aria-labelledby="trends-title">
       <div class="card__head">
-        <h2 id="trends-title" class="card__title">Pain trends</h2>
-        <a class="card__link" routerLink="/patients">View all</a>
+        <h2 id="trends-title" class="card__title">{{ 'dashboard.trends.title' | t }}</h2>
+        <a class="card__link" routerLink="/patients">{{ 'dashboard.trends.viewAll' | t }}</a>
       </div>
-      <p class="note">Active follow-ups · dashed line = alert threshold</p>
-      <div *ngIf="loading" aria-busy="true"><span class="sr-only">Loading…</span><div class="skeleton skeleton--chart"></div></div>
+      <p class="note">{{ 'dashboard.trends.note' | t }}</p>
+      <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--chart"></div></div>
       <ng-container *ngIf="!loading && snapshot">
-        <div class="empty" *ngIf="trends.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">No active follow-ups.</p></div>
+        <div class="empty" *ngIf="trends.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">{{ 'dashboard.trends.empty' | t }}</p></div>
         <div class="mini-grid">
           <div class="mini" *ngFor="let r of trends">
             <div class="mini__head">
               <a [routerLink]="['/patients', r.patient.id]">{{ r.name }}</a>
-              <span *ngIf="r.day">Day {{ r.day.day }} of {{ r.day.total }}</span>
+              <span *ngIf="r.day">{{ 'common.dayOf' | t:{ day: r.day.day, total: r.day.total } }}</span>
             </div>
-            <app-trend-chart variant="compact" label="Pain" [points]="r.painSeries" [totalDays]="r.day ? r.day.total : 7" [threshold]="r.painThreshold" [todayDay]="chartToday(r)"></app-trend-chart>
+            <app-trend-chart variant="compact" [points]="r.painSeries" [totalDays]="r.day ? r.day.total : 7" [threshold]="r.painThreshold" [todayDay]="chartToday(r)"></app-trend-chart>
             <div class="mini__foot">
               <ng-container *ngIf="r.lastPain !== null; else noData">
-                <span>Latest <strong>{{ r.lastPain }}</strong></span>
+                <span>{{ 'dashboard.trends.latest' | t }} <strong>{{ r.lastPain }}</strong></span>
                 <app-status-chip size="sm" *ngIf="atOrAbove(r)" [spec]="atOrAboveChip"></app-status-chip>
               </ng-container>
-              <ng-template #noData><span>No check-ins yet</span></ng-template>
+              <ng-template #noData><span>{{ 'dashboard.trends.none' | t }}</span></ng-template>
             </div>
           </div>
         </div>
-        <p class="card__foot" *ngIf="trendTotal > trends.length"><a class="card__link" routerLink="/patients">View all patients</a></p>
+        <p class="card__foot" *ngIf="trendTotal > trends.length"><a class="card__link" routerLink="/patients">{{ 'dashboard.trends.viewAllPatients' | t }}</a></p>
       </ng-container>
     </section>
   </div>
@@ -215,18 +215,18 @@
   <div class="grid-2 reception-home" *ngIf="!clinical && (loading || ready)">
     <ng-container *ngTemplateOutlet="apptCard"></ng-container>
     <section class="card" aria-labelledby="today-summary-title" [attr.aria-busy]="loading">
-      <div class="card__head"><h2 id="today-summary-title" class="card__title--sm">Today at a glance</h2></div>
-      <div *ngIf="loading"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
+      <div class="card__head"><h2 id="today-summary-title" class="card__title--sm">{{ 'dashboard.glance.title' | t }}</h2></div>
+      <div *ngIf="loading"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
       <dl class="kv" *ngIf="!loading && metrics as m">
-        <dt>Appointments</dt><dd>{{ m.total }}</dd>
-        <dt>Needs review</dt><dd>{{ m.needsReview }}</dd>
-        <dt>Questionnaire missing</dt><dd>{{ m.questionnaireMissing }}</dd>
-        <dt>Completed</dt><dd>{{ m.completed }}</dd>
-        <dt>Cancelled / no-show</dt><dd>{{ m.cancelled }} / {{ m.noShow }}</dd>
+        <dt>{{ 'shell.nav.appointments' | t }}</dt><dd>{{ m.total }}</dd>
+        <dt>{{ 'enum.appointmentStatus.NEEDS_REVIEW' | t }}</dt><dd>{{ m.needsReview }}</dd>
+        <dt>{{ 'chip.appt.questionnaireMissing' | t }}</dt><dd>{{ m.questionnaireMissing }}</dd>
+        <dt>{{ 'enum.appointmentStatus.COMPLETED' | t }}</dt><dd>{{ m.completed }}</dd>
+        <dt>{{ 'dashboard.glance.cancelledNoShow' | t }}</dt><dd>{{ m.cancelled }} / {{ m.noShow }}</dd>
       </dl>
       <div class="btn-row">
-        <a class="btn btn--secondary quick-patients" routerLink="/patients"><app-icon name="users" [size]="16"></app-icon>Patients</a>
-        <a class="btn btn--secondary" *appCan="'APPOINTMENT_READ'" routerLink="/appointments">Appointments</a>
+        <a class="btn btn--secondary quick-patients" routerLink="/patients"><app-icon name="users" [size]="16"></app-icon>{{ 'shell.nav.patients' | t }}</a>
+        <a class="btn btn--secondary" *appCan="'APPOINTMENT_READ'" routerLink="/appointments">{{ 'shell.nav.appointments' | t }}</a>
       </div>
     </section>
   </div>
@@ -236,25 +236,25 @@
     <!-- Appointments -->
     <section class="card card--appts" aria-labelledby="today-title" [attr.aria-busy]="loading">
       <div class="card__head">
-        <h2 id="today-title" class="card__title--sm">Appointments <span class="badge" *ngIf="!loading && ready">{{ todayAppts.length }}</span></h2>
-        <a class="card__link" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new"><app-icon name="plus" [size]="16"></app-icon>Add new</a>
+        <h2 id="today-title" class="card__title--sm">{{ 'shell.nav.appointments' | t }} <span class="badge" *ngIf="!loading && ready">{{ todayAppts.length }}</span></h2>
+        <a class="card__link" *appCan="'APPOINTMENT_WRITE'" routerLink="/appointments/new"><app-icon name="plus" [size]="16"></app-icon>{{ 'dashboard.appts.addNew' | t }}</a>
       </div>
-      <div *ngIf="loading"><span class="sr-only">Loading…</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
+      <div *ngIf="loading"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3]"></div></div>
       <ng-container *ngIf="!loading && ready">
-        <div class="empty" *ngIf="todayAppts.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">No appointments today.</p></div>
+        <div class="empty" *ngIf="todayAppts.length === 0"><span class="empty__glyph" aria-hidden="true">—</span><p class="empty__title">{{ 'dashboard.appts.empty' | t }}</p></div>
         <ol class="appts" *ngIf="todayAppts.length > 0">
           <li class="appt" *ngFor="let a of todayAppts.slice(0, limit)" [class.appt--closed]="isClosed(a)">
             <span class="appt__time">{{ time(a) }}</span>
             <app-avatar [id]="a.patientId" [initials]="initialsOf(a)"></app-avatar>
             <span class="row__main">
               <div class="row__name">{{ nameOf(a) }}</div>
-              <div class="row__sub">{{ humanize(a.type) }}</div>
+              <div class="row__sub">{{ a.type | enumLabel:'appointmentType' }}</div>
               <app-status-chip *ngIf="appointmentChip(a).tone !== 'info'" size="sm" [short]="true" [spec]="appointmentChip(a)"></app-status-chip>
             </span>
-            <a class="chev-hit" [routerLink]="['/appointments', a.id]" [attr.aria-label]="'Open ' + nameOf(a) + ' ' + time(a)"><span class="chev"><app-icon name="chevron-right" [size]="14" [stroke]="2"></app-icon></span></a>
+            <a class="chev-hit" [routerLink]="['/appointments', a.id]" [attr.aria-label]="'dashboard.appts.open' | t:{ name: nameOf(a), time: time(a) }"><span class="chev"><app-icon name="chevron-right" [size]="14" [stroke]="2"></app-icon></span></a>
           </li>
         </ol>
-        <div class="card__foot" *ngIf="todayAppts.length > limit"><a class="card__link" *appCan="'APPOINTMENT_READ'" routerLink="/appointments">View schedule ({{ todayAppts.length }})</a></div>
+        <div class="card__foot" *ngIf="todayAppts.length > limit"><a class="card__link" *appCan="'APPOINTMENT_READ'" routerLink="/appointments">{{ 'dashboard.appts.viewSchedule' | t:{ count: todayAppts.length } }}</a></div>
       </ng-container>
     </section>
 </ng-template>

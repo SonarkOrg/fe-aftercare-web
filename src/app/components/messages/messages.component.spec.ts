@@ -9,6 +9,7 @@ import { JANE, conversation, thread, providePermissions } from '../../testing/fi
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { MessageThreadComponent } from '../../shared/message-thread/message-thread.component';
 import { MessagesComponent } from './messages.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('MessagesComponent', () => {
   let http: HttpTestingController;
@@ -25,7 +26,7 @@ describe('MessagesComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterModule],
       declarations: [MessagesComponent, MessageThreadComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('NURSE'), 
         provideRouter([{ path: 'messages', component: MessagesComponent }, { path: 'messages/:patientId', component: MessagesComponent }]),
@@ -109,7 +110,7 @@ describe('MessagesComponent', () => {
     await open();
     const [jane, jean] = rows();
     expect(jane.querySelector('.conv-time')!.textContent).toMatch(/^\d{2}:\d{2}$/);
-    expect(jean.querySelector('.conv-time')!.textContent).toBe('1 Sep');
+    expect(jean.querySelector('.conv-time')!.textContent).toBe('1 Sept');
   });
 
   it('filters the conversations by name on the client', async () => {

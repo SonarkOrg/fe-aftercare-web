@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { AppointmentMetrics } from '../../models/appointment.model';
 import { appointment, providePermissions } from '../../testing/fixtures';
 import { AppointmentsComponent } from './appointments.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('AppointmentsComponent', () => {
   let fixture: ComponentFixture<AppointmentsComponent>;
@@ -22,7 +23,7 @@ describe('AppointmentsComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       providers: [providePermissions('NURSE')],
-      imports: [HttpClientTestingModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule],
       declarations: [AppointmentsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -151,7 +152,7 @@ describe('AppointmentsComponent', () => {
     expect(first.textContent).toContain('Pre op consult');
     expect(first.textContent).toContain('Dr. Roy');
     expect(first.textContent).toContain('Clinic A');
-    expect(first.textContent).toContain('2 flag(s)');
+    expect(first.textContent).toContain('2 flags');
     expect(first.querySelector('a')!.getAttribute('href')).toBe('/appointments/1');
     expect(Array.from(el.querySelectorAll('.appt-card .chip__label')).map(b => b.textContent))
       .toContain('Needs review');
@@ -198,7 +199,7 @@ describe('AppointmentsComponent', () => {
     expect(block.textContent).toContain('Jane Doe');
     expect(block.querySelector('.week-block__glyph')!.textContent).toBe('◆');
     expect(block.getAttribute('href')).toBe('/appointments/1');
-    expect(el.textContent).toContain('Oct 12 – Oct 18, 2026');
+    expect(el.textContent).toContain('12 Oct – 18 Oct 2026');
   });
 
   it('week view: back-to-back 15-minute blocks sit in separate lanes and none is shorter than 44px', () => {
@@ -221,7 +222,7 @@ describe('AppointmentsComponent', () => {
     click('view-week');
     flush('2026-10-12', '2026-10-18', [appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00' })]);
     expect(el.querySelector('.agenda .card__title--sm')!.textContent).toContain('Wednesday 14 October');
-    expect(el.querySelector('.hero__sub')!.textContent).toContain('Oct 12 – Oct 18, 2026');
+    expect(el.querySelector('.hero__sub')!.textContent).toContain('12 Oct – 18 Oct 2026');
     expect(el.querySelector('h1')!.textContent).toBe('Appointments');
   });
 

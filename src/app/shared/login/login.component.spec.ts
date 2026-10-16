@@ -1,9 +1,13 @@
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Title } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import { StaffAuth } from '../../auth/staff-auth';
 
+import { LanguageSwitchComponent } from '../../i18n/language-switch/language-switch.component';
 import { IconComponent } from '../icon/icon.component';
 import { LoginComponent } from './login.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;
@@ -16,8 +20,8 @@ describe('LoginComponent', () => {
       login: jasmine.createSpy('login'),
       logout: jasmine.createSpy('logout')
     };
-    TestBed.configureTestingModule({
-      declarations: [LoginComponent, IconComponent],
+    TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang(), HttpClientTestingModule],
+      declarations: [LoginComponent, IconComponent, LanguageSwitchComponent],
       providers: [{ provide: StaffAuth, useValue: authMock }]
     });
     fixture = TestBed.createComponent(LoginComponent);
@@ -28,6 +32,11 @@ describe('LoginComponent', () => {
   it('should create', () => {
     setup(false);
     expect(component).toBeTruthy();
+  });
+
+  it('sets the page title', () => {
+    setup(false);
+    expect(TestBed.inject(Title).getTitle()).toBe('Sign in · Aftercare');
   });
 
   it('should call login("/dashboard") when "Log in" is clicked', () => {

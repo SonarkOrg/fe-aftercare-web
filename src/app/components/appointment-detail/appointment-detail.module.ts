@@ -12,7 +12,7 @@ import { AppointmentDetailComponent } from './appointment-detail.component';
     SharedModule, SendLinkComponent,
     RouterModule.forChild([{
       path: '', component: AppointmentDetailComponent, canActivate: [permissionGuard],
-      data: { permission: 'APPOINTMENT_READ', title: 'Appointment', parent: { label: 'Appointments', link: '/appointments' } }
+      data: { permission: 'APPOINTMENT_READ', title: 'page.appointment', parent: { label: 'page.appointments', link: '/appointments' } }
     }])
   ]
 })

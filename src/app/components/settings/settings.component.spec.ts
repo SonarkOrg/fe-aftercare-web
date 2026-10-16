@@ -10,6 +10,7 @@ import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { AlertRulesComponent } from './alert-rules/alert-rules.component';
 import { SettingsComponent } from './settings.component';
 import { StaffDirectoryComponent } from './staff-directory/staff-directory.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('SettingsComponent', () => {
   let fixture: ComponentFixture<SettingsComponent>;
@@ -27,7 +28,7 @@ describe('SettingsComponent', () => {
   beforeEach(async () => {
     alertRefresh = jasmine.createSpy('refresh');
     await TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [SettingsComponent, StaffDirectoryComponent, AlertRulesComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('ADMIN'), { provide: AlertCountService, useValue: { refresh: alertRefresh } }]
     }).compileComponents();
@@ -119,10 +120,10 @@ describe('SettingsComponent', () => {
       await init();
       q<HTMLButtonElement>('.save-clinic').click();
       http.expectOne(`${api}/settings/clinic`).flush(
-        { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { postalCode: 'must be a valid postal code', province: 'must be 2 letters' } }, { status: 400, statusText: 'Bad Request' });
+        { status: 400, error: 'VALIDATION_FAILED', message: '', fieldErrors: { postalCode: 'must be a valid postal code', province: 'must be a two-letter uppercase code' } }, { status: 400, statusText: 'Bad Request' });
       await settle();
-      expect(q('#c-postal').parentElement!.querySelector('.field-error')!.textContent).toBe('must be a valid postal code');
-      expect(q('#c-province').parentElement!.querySelector('.field-error')!.textContent).toBe('must be 2 letters');
+      expect(q('#c-postal').parentElement!.querySelector('.field-error')!.textContent).toBe('Invalid postal code.');
+      expect(q('#c-province').parentElement!.querySelector('.field-error')!.textContent).toBe('Use the two-letter province code (e.g. QC).');
       expect(el.querySelector('.banner--info[role=status]')).toBeNull();
     });
   });
@@ -173,7 +174,7 @@ describe('SettingsComponent', () => {
       http.expectOne(`${api}/settings/clinic`).flush('x', { status: 500, statusText: 'Server Error' });
       await settle();
       expect(q<HTMLInputElement>('#n-medium').checked).toBeTrue();
-      expect(q('#spanel-notifications .banner--error').textContent).toContain('Could not save the notification settings.');
+      expect(q('#spanel-notifications .banner--error').textContent).toContain('Server error. Please try again later.');
       expect(alertRefresh).not.toHaveBeenCalled();
     });
   });
@@ -356,7 +357,7 @@ describe('SettingsComponent', () => {
       const card = q('.rules-card');
       expect(card.querySelector('.card__title--sm')!.textContent).toBe('Follow-up check-in');
       expect(card.querySelector('.mono')!.textContent).toBe('https://aftercare.example/fhir/Questionnaire/followup|1');
-      expect(card.querySelector('.chip--neutral .chip__label')!.textContent).toBe('Follow up checkin');
+      expect(card.querySelector('.chip--neutral .chip__label')!.textContent).toBe('Follow-up check-in');
       expect(q('#spanel-rules .helper-line').textContent).toContain('Rules are read-only here. To change one, publish a new form version (see API README → Forms). A clinician must validate thresholds.');
     });
 
@@ -385,7 +386,7 @@ describe('SettingsComponent', () => {
       await settle();
       http.expectOne(`${api}/questionnaires`).flush('x', { status: 500, statusText: 'Server Error' });
       await settle();
-      expect(q('#spanel-rules .banner--error').textContent).toContain('Could not load the alert rules');
+      expect(q('#spanel-rules .banner--error').textContent).toContain('Could not load the alert rules.');
     });
   });
 });

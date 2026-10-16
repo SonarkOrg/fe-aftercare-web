@@ -1,45 +1,27 @@
-import { BUSINESS_TZ, businessDateOf } from './link.util';
+import { fmtDate } from '../i18n/format';
+import type { AnyLang } from '../i18n/i18n.types';
+import { businessDateOf } from './link.util';
 
-export type MsgLang = 'fr' | 'en';
-
-const locale = (lang: MsgLang) => (lang === 'fr' ? 'fr-CA' : 'en-CA');
+export type MsgLang = AnyLang;
 
 /** Time of day in America/Toronto, e.g. "14:30" (en) or "14 h 30" (fr). */
 export function fmtTime(iso: string, lang: MsgLang): string {
-  return new Intl.DateTimeFormat(locale(lang), { timeZone: BUSINESS_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
-}
-
-function parts(iso: string, lang: MsgLang, opts: Intl.DateTimeFormatOptions): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const p of new Intl.DateTimeFormat(lang === 'fr' ? 'fr-CA' : 'en-GB', { timeZone: BUSINESS_TZ, ...opts }).formatToParts(new Date(iso))) {
-    out[p.type] = p.value;
-  }
-  return out;
+  return fmtDate(iso, 'time', lang);
 }
 
 /** "Wednesday 14 October" (en) / "mercredi 14 octobre" (fr), in America/Toronto. */
 export function fmtDayLong(iso: string, lang: MsgLang): string {
-  const p = parts(iso, lang, { weekday: 'long', day: 'numeric', month: 'long' });
-  return `${p['weekday']} ${p['day']} ${p['month']}`;
-}
-
-const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function monthShort(iso: string, lang: MsgLang): string {
-  if (lang === 'en') {
-    return MONTHS_EN[Number(parts(iso, lang, { month: 'numeric' })['month']) - 1];
-  }
-  return parts(iso, lang, { month: 'short' })['month'];
+  return fmtDate(iso, 'dayLong', lang);
 }
 
 /** "14 Oct" in America/Toronto. */
 export function fmtDayShort(iso: string, lang: MsgLang = 'en'): string {
-  return `${parts(iso, lang, { day: 'numeric' })['day']} ${monthShort(iso, lang)}`;
+  return fmtDate(iso, 'dateShort', lang);
 }
 
 /** "14 Oct 2026" in America/Toronto. */
 export function fmtDayYear(iso: string, lang: MsgLang = 'en'): string {
-  return `${fmtDayShort(iso, lang)} ${parts(iso, lang, { year: 'numeric' })['year']}`;
+  return fmtDate(iso, 'date', lang);
 }
 
 export interface DayGroup<T> { day: string; label: string; items: T[] }

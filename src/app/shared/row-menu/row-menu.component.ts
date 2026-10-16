@@ -1,5 +1,6 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, Output, ViewChild } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
+import { I18nService } from '../../i18n/i18n.service';
 
 export interface RowMenuItem { key: string; label: string }
 
@@ -10,16 +11,17 @@ const opened$ = new Subject<RowMenuComponent>();
 @Component({
   selector: 'app-row-menu',
   template: `<span class="row-menu-wrap">
-  <button #btn type="button" class="chev more-btn" aria-haspopup="menu" [attr.aria-expanded]="open" [attr.aria-label]="label" (click)="toggle($event)">
+  <button #btn type="button" class="chev more-btn" aria-haspopup="menu" [attr.aria-expanded]="open" [attr.aria-label]="label ?? ('common.actions' | t)" (click)="toggle($event)">
     <app-icon name="more-horizontal" [size]="16"></app-icon>
   </button>
-  <div class="row-menu" role="menu" *ngIf="open" [attr.aria-label]="label">
+  <div class="row-menu" role="menu" *ngIf="open" [attr.aria-label]="label ?? ('common.actions' | t)">
     <button type="button" role="menuitem" class="row-menu__item" *ngFor="let i of items" [attr.data-key]="i.key" (click)="pick(i)">{{ i.label }}</button>
   </div>
 </span>`
 })
 export class RowMenuComponent implements OnDestroy {
-  @Input() label = 'Actions';
+  /** Already translated; defaults to "Actions". */
+  @Input() label: string | null = null;
   @Input() items: RowMenuItem[] = [];
   @Output() selected = new EventEmitter<string>();
   open = false;

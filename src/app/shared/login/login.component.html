@@ -1,10 +1,11 @@
 <div class="public-center login-container">
   <main class="card">
     <div class="brand-mark"><app-icon name="activity" [size]="28"></app-icon><span>Aftercare</span></div>
-    <h1>Login</h1>
+    <h1>{{ 'auth.login.title' | t }}</h1>
     <div class="btn-row">
-      <button *ngIf="!(auth.isAuthenticated$ | async)" id="login-button" class="btn btn--primary" type="button" (click)="login()">Log in</button>
-      <button *ngIf="auth.isAuthenticated$ | async" id="logout-button" class="btn btn--primary" type="button" (click)="logout()">Log out</button>
+      <button *ngIf="!(auth.isAuthenticated$ | async)" id="login-button" class="btn btn--primary" type="button" (click)="login()">{{ 'common.logIn' | t }}</button>
+      <button *ngIf="auth.isAuthenticated$ | async" id="logout-button" class="btn btn--primary" type="button" (click)="logout()">{{ 'common.logOut' | t }}</button>
     </div>
+    <app-language-switch mode="local"></app-language-switch>
   </main>
 </div>

@@ -1,0 +1,6 @@
+<div class="lang-switch" role="group" [attr.aria-labelledby]="labelId">
+  <span class="lang-switch__label" [id]="labelId">{{ 'lang.switch.label' | t }}</span>
+  <button type="button" class="btn btn--secondary btn--sm lang-switch__btn" lang="fr-CA" [attr.aria-pressed]="current === 'fr'" [class.is-active]="current === 'fr'" (click)="choose('fr')">Français</button>
+  <button type="button" class="btn btn--secondary btn--sm lang-switch__btn" lang="en-CA" [attr.aria-pressed]="current === 'en'" [class.is-active]="current === 'en'" (click)="choose('en')">English</button>
+</div>
+<div class="banner banner--error lang-switch__err" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ error }}</span></div>

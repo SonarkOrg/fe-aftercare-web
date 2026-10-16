@@ -115,7 +115,7 @@ export function followUp(over: Partial<FollowUp> = {}): FollowUp {
 export function alertDto(over: Partial<Alert> = {}): Alert {
   return {
     id: 1, patientId: 5, patientFirstName: 'Jane', patientLastName: 'Doe', followUpId: 11, type: 'CHECK_IN_ANSWER', checkInId: 21,
-    checkInDate: '2026-10-13', linkId: 'PAIN', questionLabel: 'Pain level?', answerValue: '8', missedDate: null, severity: 'HIGH',
+    checkInDate: '2026-10-13', linkId: 'PAIN', questionLabel: 'Pain level?', questionLabelFr: 'Intensité de la douleur', answerValue: '8', missedDate: null, severity: 'HIGH',
     message: 'Severe pain reported (8/10)', messageFr: 'Douleur sévère signalée (8/10)', status: 'OPEN',
     createdAt: '2026-10-13T14:00:00Z', acknowledgedAt: null, acknowledgedBy: null, resolvedAt: null, resolvedBy: null,
     resolutionNote: null, ...over
@@ -125,7 +125,7 @@ export function alertDto(over: Partial<Alert> = {}): Alert {
 /** A MISSED_CHECKIN alert: no check-in, question or answer, only the day that was missed. */
 export function missedAlert(over: Partial<Alert> = {}): Alert {
   return alertDto({
-    id: 2, type: 'MISSED_CHECKIN', checkInId: null, checkInDate: null, linkId: null, questionLabel: null, answerValue: null,
+    id: 2, type: 'MISSED_CHECKIN', checkInId: null, checkInDate: null, linkId: null, questionLabel: null, questionLabelFr: null, answerValue: null,
     missedDate: '2026-10-13', severity: 'MEDIUM', message: 'No check-in received for 2026-10-13', messageFr: 'Aucun suivi reçu pour le 2026-10-13', ...over
   });
 }
@@ -218,7 +218,7 @@ export function careNote(over: Partial<CareNote> = {}): CareNote {
 export function timelineItem(over: Partial<TimelineItem> = {}): TimelineItem {
   return {
     id: 100, category: 'CHECK_IN', kind: 'CHECK_IN_SUBMITTED', occurredAt: '2026-10-14T15:00:00Z', actorType: 'PATIENT', actorName: null,
-    refId: 21, severity: null, summary: 'Check-in submitted for 2026-10-14', note: null, ...over
+    refId: 21, severity: null, summary: 'Check-in submitted for 2026-10-14', summaryFr: 'Suivi quotidien reçu pour le 2026-10-14', note: null, ...over
   };
 }
 
@@ -286,7 +286,7 @@ const ME_SUB: Record<AccessRole, string> = { ADMIN: 'dev|admin-1', PHYSICIAN: 'a
 export function me(role: AccessRole = 'NURSE', over: Partial<Me> = {}): Me {
   return {
     staffId: 6, sub: ME_SUB[role], displayName: ME_NAME[role], email: null, role: role === 'ADMIN' ? 'OTHER' : 'NURSE',
-    accessRole: role, permissions: [...ROLE_PERMISSIONS[role]], ...over
+    accessRole: role, permissions: [...ROLE_PERMISSIONS[role]], uiLanguage: null, ...over
   };
 }
 

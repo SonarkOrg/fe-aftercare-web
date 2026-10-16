@@ -2,12 +2,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppointmentStatus } from '../../models/appointment.model';
 import { StatusChipComponent } from '../status-chip/status-chip.component';
 import { AppointmentBadgeComponent } from './appointment-badge.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('AppointmentBadgeComponent', () => {
   let fixture: ComponentFixture<AppointmentBadgeComponent>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ declarations: [AppointmentBadgeComponent, StatusChipComponent] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang()], declarations: [AppointmentBadgeComponent, StatusChipComponent] }).compileComponents();
     fixture = TestBed.createComponent(AppointmentBadgeComponent);
   });
 

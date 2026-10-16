@@ -1,61 +1,61 @@
-<div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ loadError }} <button type="button" class="btn btn--ghost btn--sm" (click)="load()">Retry</button></span></div>
+<div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ loadError }} <button type="button" class="btn btn--ghost btn--sm" (click)="load()">{{ 'common.retry' | t }}</button></span></div>
 
-<form class="notif-settings" *ngIf="current" (ngSubmit)="save()" aria-label="Patient notifications">
-  <div class="banner banner--info" role="status" *ngIf="saved"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>Saved.</span></div>
+<form class="notif-settings" *ngIf="current" (ngSubmit)="save()" [attr.aria-label]="'settings.notif.aria' | t">
+  <div class="banner banner--info" role="status" *ngIf="saved"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ 'common.saved' | t }}</span></div>
   <div class="banner banner--error" role="alert" *ngIf="banner"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ banner }}</span></div>
 
   <section class="card" aria-labelledby="ns-channels">
-    <div class="card__header"><h2 id="ns-channels" class="card__title--sm">Delivery channels</h2></div>
+    <div class="card__header"><h2 id="ns-channels" class="card__title--sm">{{ 'settings.notif.channels' | t }}</h2></div>
     <div class="toggle-row">
-      <label for="ns-email">Email</label>
+      <label for="ns-email">{{ 'enum.notificationChannel.EMAIL' | t }}</label>
       <span class="ns-provider"><app-status-chip size="sm" class="chip-email" [spec]="emailChip!"></app-status-chip></span>
       <input id="ns-email" name="emailEnabled" type="checkbox" [(ngModel)]="form.emailEnabled" (ngModelChange)="touch()">
     </div>
     <div class="toggle-row">
-      <label for="ns-sms">SMS</label>
+      <label for="ns-sms">{{ 'enum.notificationChannel.SMS' | t }}</label>
       <span class="ns-provider"><app-status-chip size="sm" class="chip-sms" [spec]="smsChip!"></app-status-chip></span>
       <input id="ns-sms" name="smsEnabled" type="checkbox" [(ngModel)]="form.smsEnabled" (ngModelChange)="touch()">
     </div>
-    <p class="helper-line"><span aria-hidden="true">ℹ</span> Patients receive messages only if their consent is recorded as granted.</p>
+    <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.consentRule' | t }}</p>
   </section>
 
   <section class="card" aria-labelledby="ns-reminders">
-    <div class="card__header"><h2 id="ns-reminders" class="card__title--sm">Patient reminders</h2></div>
+    <div class="card__header"><h2 id="ns-reminders" class="card__title--sm">{{ 'settings.notif.reminders' | t }}</h2></div>
     <div class="grid-form">
       <div class="form-group">
-        <div class="toggle-row"><label for="ns-ci-on">Daily check-in reminder</label><input id="ns-ci-on" name="checkInReminderEnabled" type="checkbox" [(ngModel)]="form.checkInReminderEnabled" (ngModelChange)="touch()"></div>
+        <div class="toggle-row"><label for="ns-ci-on">{{ 'enum.notificationTemplate.CHECKIN_REMINDER' | t }}</label><input id="ns-ci-on" name="checkInReminderEnabled" type="checkbox" [(ngModel)]="form.checkInReminderEnabled" (ngModelChange)="touch()"></div>
       </div>
       <div class="form-group">
-        <label for="ns-ci-time">Send at</label>
+        <label for="ns-ci-time">{{ 'settings.notif.sendAt' | t }}</label>
         <input id="ns-ci-time" name="checkInReminderTime" type="time" step="60" [(ngModel)]="form.checkInReminderTime" (ngModelChange)="touch()" [attr.aria-invalid]="!!errors['checkInReminderTime']">
         <span class="field-error" role="alert" *ngIf="errors['checkInReminderTime']">{{ errors['checkInReminderTime'] }}</span>
       </div>
       <div class="form-group">
-        <div class="toggle-row"><label for="ns-ap-on">Pre-appointment questionnaire reminder</label><input id="ns-ap-on" name="appointmentReminderEnabled" type="checkbox" [(ngModel)]="form.appointmentReminderEnabled" (ngModelChange)="touch()"></div>
+        <div class="toggle-row"><label for="ns-ap-on">{{ 'settings.notif.apptReminder' | t }}</label><input id="ns-ap-on" name="appointmentReminderEnabled" type="checkbox" [(ngModel)]="form.appointmentReminderEnabled" (ngModelChange)="touch()"></div>
       </div>
       <div class="form-group">
-        <label for="ns-ap-hours">Hours before</label>
+        <label for="ns-ap-hours">{{ 'settings.notif.hoursBefore' | t }}</label>
         <input id="ns-ap-hours" name="appointmentReminderHours" type="number" min="24" max="72" step="1" [(ngModel)]="form.appointmentReminderHours" (ngModelChange)="touch()" [attr.aria-invalid]="!!errors['appointmentReminderHours']">
         <span class="field-error" role="alert" *ngIf="errors['appointmentReminderHours']">{{ errors['appointmentReminderHours'] }}</span>
       </div>
     </div>
-    <p class="helper-line"><span aria-hidden="true">ℹ</span> Reminders are sent only when the check-in or questionnaire is still missing, and never between 21:00 and 08:00.</p>
+    <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.reminderRule' | t }}</p>
   </section>
 
   <section class="card" aria-labelledby="ns-missed">
-    <div class="card__header"><h2 id="ns-missed" class="card__title--sm">Missed check-ins</h2></div>
+    <div class="card__header"><h2 id="ns-missed" class="card__title--sm">{{ 'alerts.filter.missed' | t }}</h2></div>
     <div class="grid-form">
       <div class="form-group">
-        <div class="toggle-row"><label for="ns-mc-on">Create an alert when a daily check-in is missing</label><input id="ns-mc-on" name="missedCheckInEnabled" type="checkbox" [(ngModel)]="form.missedCheckInEnabled" (ngModelChange)="touch()"></div>
+        <div class="toggle-row"><label for="ns-mc-on">{{ 'settings.notif.missedCreate' | t }}</label><input id="ns-mc-on" name="missedCheckInEnabled" type="checkbox" [(ngModel)]="form.missedCheckInEnabled" (ngModelChange)="touch()"></div>
       </div>
       <div class="form-group">
-        <label for="ns-mc-time">After</label>
+        <label for="ns-mc-time">{{ 'settings.notif.after' | t }}</label>
         <input id="ns-mc-time" name="missedCheckInCutoff" type="time" step="60" [(ngModel)]="form.missedCheckInCutoff" (ngModelChange)="touch()" [attr.aria-invalid]="!!errors['missedCheckInCutoff']">
         <span class="field-error" role="alert" *ngIf="errors['missedCheckInCutoff']">{{ errors['missedCheckInCutoff'] }}</span>
       </div>
     </div>
-    <p class="helper-line"><span aria-hidden="true">ℹ</span> A second missed day in a row raises a high alert.</p>
+    <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.missedRule' | t }}</p>
   </section>
 
-  <div class="btn-row"><button type="submit" class="btn btn--accent save-notifications" [disabled]="saving">{{ saving ? 'Saving…' : 'Save' }}</button></div>
+  <div class="btn-row"><button type="submit" class="btn btn--accent save-notifications" [disabled]="saving">{{ (saving ? 'common.saving' : 'common.save') | t }}</button></div>
 </form>

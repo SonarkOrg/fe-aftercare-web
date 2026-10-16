@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ConfirmInlineComponent } from './confirm-inline.component';
+import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
 describe('ConfirmInlineComponent', () => {
   let fixture: ComponentFixture<ConfirmInlineComponent>;
@@ -7,7 +8,7 @@ describe('ConfirmInlineComponent', () => {
   let el: HTMLElement;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ declarations: [ConfirmInlineComponent] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [I18nTestingModule.forLang()], declarations: [ConfirmInlineComponent] }).compileComponents();
     fixture = TestBed.createComponent(ConfirmInlineComponent);
     component = fixture.componentInstance;
     el = fixture.nativeElement;

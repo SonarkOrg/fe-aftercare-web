@@ -1,5 +1,5 @@
-<div class="banner banner--error error-message" *ngIf="message"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>Error:</strong> {{ message }}</span></div>
-<section class="card card--list alert-table" aria-label="Alerts">
+<div class="banner banner--error error-message" *ngIf="message"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ message }}</span></div>
+<section class="card card--list alert-table" [attr.aria-label]="'shell.nav.alerts' | t">
   <ul class="rows">
     <li *ngFor="let a of alerts" class="alert-item">
       <div class="row row--expand alert-row" [class.row-open]="a.status === 'OPEN'" [class.alert-row--solo]="!showPatient">
@@ -7,29 +7,29 @@
           <span class="tone-circle" [ngClass]="'tone-' + severityChip(a.severity).tone" aria-hidden="true">{{ severityChip(a.severity).glyph }}</span>
           <div class="row__main">
             <a *ngIf="showPatient" class="row__name" [routerLink]="['/patients', a.patientId]">{{ a.patientFirstName }} {{ a.patientLastName }}</a>
-            <div class="row__name" *ngIf="!showPatient">{{ a.createdAt | date:'MMM d, HH:mm' }}</div>
-            <div class="row__sub" [title]="a.createdAt"><ng-container *ngIf="showPatient">{{ a.createdAt | date:'MMM d, HH:mm' }}</ng-container></div>
+            <div class="row__name" *ngIf="!showPatient">{{ a.createdAt | tzDate:'dateTime' }}</div>
+            <div class="row__sub" [title]="a.createdAt"><ng-container *ngIf="showPatient">{{ a.createdAt | tzDate:'dateTime' }}</ng-container></div>
           </div>
         </div>
         <div class="alert-row__q">
-          <div class="alert-row__label cell-q"><app-icon *ngIf="isMissed(a)" class="alert-row__glyph" name="calendar" [size]="16"></app-icon> {{ alertLabel(a) }}</div>
-          <div class="row__sub alert-row__answer">Answer <strong>{{ alertAnswer(a) }}</strong><ng-container *ngIf="isMissed(a) && alertDay(a)"> · <span class="alert-day">{{ alertDay(a) | date:'MMM d' }}</span></ng-container> · {{ a.message }}</div>
+          <div class="alert-row__label cell-q"><app-icon *ngIf="isMissed(a)" class="alert-row__glyph" name="calendar" [size]="16"></app-icon> <span [attr.lang]="question(a).english ? 'en' : null">{{ question(a).text }}</span></div>
+          <div class="row__sub alert-row__answer">{{ 'alert.answerPrefix' | t }} <strong>{{ answer(a) }}</strong><ng-container *ngIf="isMissed(a) && alertDay(a)"> · <span class="alert-day">{{ alertDay(a) | tzDate:'dateShort' }}</span></ng-container> · {{ message$(a) }}</div>
         </div>
         <div class="alert-row__chips">
           <app-status-chip [spec]="severityChip(a.severity)"></app-status-chip>
           <app-status-chip [spec]="statusChip(a.status)"></app-status-chip>
         </div>
         <div class="alert-row__actions actions" *appCan="'CLINICAL_WRITE'">
-          <button type="button" class="btn btn--primary btn--sm btn-ack" *ngIf="a.status === 'OPEN'" [disabled]="busy" (click)="acknowledge(a)">Acknowledge</button>
-          <button type="button" class="btn btn--secondary btn--sm btn-resolve" *ngIf="a.status !== 'RESOLVED'" [disabled]="busy" (click)="startResolve(a)">Resolve</button>
+          <button type="button" class="btn btn--primary btn--sm btn-ack" *ngIf="a.status === 'OPEN'" [disabled]="busy" (click)="acknowledge(a)">{{ 'alerts.acknowledge' | t }}</button>
+          <button type="button" class="btn btn--secondary btn--sm btn-resolve" *ngIf="a.status !== 'RESOLVED'" [disabled]="busy" (click)="startResolve(a)">{{ 'alerts.resolve' | t }}</button>
         </div>
         <div class="row__actions resolve-row" *ngIf="resolvingId === a.id">
           <div class="resolve-form">
-            <label for="resolve-note-{{ a.id }}">Resolution note (required)</label>
+            <label for="resolve-note-{{ a.id }}">{{ 'alerts.resolutionNote' | t }}</label>
             <textarea id="resolve-note-{{ a.id }}" rows="2" maxlength="1000" [(ngModel)]="note" name="note-{{ a.id }}"></textarea>
             <div class="btn-row">
-              <button type="button" class="btn btn--primary btn--sm btn-confirm" [disabled]="!note.trim() || busy" (click)="confirmResolve(a)">Confirm resolve</button>
-              <button type="button" class="btn btn--ghost btn--sm btn-secondary" (click)="cancelResolve()">Cancel</button>
+              <button type="button" class="btn btn--primary btn--sm btn-confirm" [disabled]="!note.trim() || busy" (click)="confirmResolve(a)">{{ 'alerts.confirmResolve' | t }}</button>
+              <button type="button" class="btn btn--ghost btn--sm btn-secondary" (click)="cancelResolve()">{{ 'common.cancel' | t }}</button>
             </div>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import type { Msg } from '../i18n/i18n.types';
+
 export function buildPatientLink(code: string): string {
   return new URL('q/' + code, document.baseURI).toString();
 }
@@ -74,19 +76,19 @@ export function daysBetween(a: string, b: string): number {
   return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
 }
 
-/** "Today" | "Yesterday" | "N days ago" | "in N days" (or "Tomorrow"). */
-export function relativeDay(iso: string, today: string): string {
+/** "Today" | "Yesterday" | "N days ago" | "in N days" (or "Tomorrow"), as a dictionary message. */
+export function relativeDay(iso: string, today: string): Msg {
   const n = daysBetween(iso, today);
   if (n === 0) {
-    return 'Today';
+    return { key: 'relative.today' };
   }
   if (n === 1) {
-    return 'Yesterday';
+    return { key: 'relative.yesterday' };
   }
   if (n === -1) {
-    return 'Tomorrow';
+    return { key: 'relative.tomorrow' };
   }
-  return n > 0 ? `${n} days ago` : `in ${-n} days`;
+  return n > 0 ? { key: 'relative.daysAgo', params: { count: n } } : { key: 'relative.inDays', params: { count: -n } };
 }
 
 /** First character of each name, uppercased ("MT"). */

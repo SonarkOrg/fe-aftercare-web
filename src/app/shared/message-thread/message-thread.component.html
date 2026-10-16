@@ -1,22 +1,22 @@
 <section class="card thread-card">
   <div class="card__head">
     <h2 class="card__title--sm">
-      <ng-container *ngIf="variant === 'page'; else plainTitle"><a class="thread-who" [routerLink]="['/patients', patientId]" [queryParams]="{ tab: 'messages' }">{{ name || 'Patient' }}</a></ng-container>
-      <ng-template #plainTitle>Messages</ng-template>
+      <ng-container *ngIf="variant === 'page'; else plainTitle"><a class="thread-who" [routerLink]="['/patients', patientId]" [queryParams]="{ tab: 'messages' }">{{ name || ('common.patient' | t) }}</a></ng-container>
+      <ng-template #plainTitle>{{ 'messages.title' | t }}</ng-template>
     </h2>
     <app-status-chip size="sm" [spec]="chip"></app-status-chip>
   </div>
 
-  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>Could not load messages. <button type="button" class="btn btn--ghost btn--sm thread-retry" (click)="load()">Retry</button></span></div>
+  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ 'thread.loadError' | t }} <button type="button" class="btn btn--ghost btn--sm thread-retry" (click)="load()">{{ 'common.retry' | t }}</button></span></div>
 
-  <div class="thread" #log role="log" aria-live="polite" aria-label="Messages" [attr.aria-busy]="loading">
-    <button type="button" class="btn btn--ghost btn--sm thread-earlier" *ngIf="hasMore" (click)="loadEarlier()">Load earlier</button>
-    <p class="muted empty-line" *ngIf="!loading && !loadError && items.length === 0">No messages yet.</p>
+  <div class="thread" #log role="log" aria-live="polite" [attr.aria-label]="'messages.title' | t" [attr.aria-busy]="loading">
+    <button type="button" class="btn btn--ghost btn--sm thread-earlier" *ngIf="hasMore" (click)="loadEarlier()">{{ 'thread.loadEarlier' | t }}</button>
+    <p class="muted empty-line" *ngIf="!loading && !loadError && items.length === 0">{{ 'thread.empty' | t }}</p>
     <ng-container *ngFor="let g of groups">
       <h3 class="label-day">{{ g.label }}</h3>
       <div class="msg" [class.msg--me]="m.sender === 'STAFF'" *ngFor="let m of g.items">
         <p class="msg__body">{{ m.body }}</p>
-        <p class="msg__meta">{{ time(m) }} · {{ who(m) }}<ng-container *ngIf="m.sender === 'STAFF' && m.readByPatientAt"> · Seen</ng-container></p>
+        <p class="msg__meta">{{ time(m) }} · {{ who(m) }}<ng-container *ngIf="m.sender === 'STAFF' && m.readByPatientAt"> · {{ 'thread.seen' | t }}</ng-container></p>
       </div>
     </ng-container>
   </div>
@@ -25,13 +25,13 @@
     <div class="banner banner--info" role="status" *ngIf="!open"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ closedText }}</span></div>
     <div class="banner banner--error" role="alert" *ngIf="sendError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ sendError }}</span></div>
     <div class="form-group">
-      <label [attr.for]="'msg-body-' + patientId + variant">Message to patient</label>
+      <label [attr.for]="'msg-body-' + patientId + variant">{{ 'thread.composer.label' | t }}</label>
       <textarea [id]="'msg-body-' + patientId + variant" rows="3" maxlength="2000" [disabled]="!open" [(ngModel)]="draft" (keydown)="onKey($event)" aria-describedby="msg-hint"></textarea>
       <span class="composer__row">
-        <span id="msg-hint" class="helper-line composer__hint">Plain text. The patient sees your name. Ctrl+Enter sends.</span>
+        <span id="msg-hint" class="helper-line composer__hint">{{ 'thread.composer.hint' | t }}</span>
         <span class="muted composer__count" aria-live="off">{{ draft.length }} / {{ max }}</span>
       </span>
     </div>
-    <button type="button" class="btn btn--accent msg-send" [disabled]="!canSend" (click)="send()"><app-icon name="send" [size]="16"></app-icon><span>{{ sending ? 'Sending…' : 'Send' }}</span></button>
+    <button type="button" class="btn btn--accent msg-send" [disabled]="!canSend" (click)="send()"><app-icon name="send" [size]="16"></app-icon><span>{{ (sending ? 'thread.sending' : 'thread.send') | t }}</span></button>
   </div>
 </section>
