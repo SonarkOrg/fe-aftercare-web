@@ -1,37 +1,38 @@
 :root {
   /* surfaces (measured from the reference frames, see visual spec v2) */
-  --canvas: #eaeaea;
-  --card: #fbfbfb;
-  --card-warm: #f7f7f5;
-  --tile: #f1f1f1;
+  --canvas: #e8ecf3;
+  --card: #fbfcfe;
+  --card-warm: #f6f8fb;
+  --tile: #f0f2f7;
   --surface: #ffffff;
-  --surface-raised: #fcfcfc;
+  --surface-raised: #fcfdfe;
   /* text */
-  --ink: #0a1e03;
-  --ink-2: #54624f;
-  --muted: #5c6857;
+  --ink: #0b1a33;
+  --ink-2: #4a5872;
+  --muted: #526079;
   /* lines */
-  --line: #e5e7e2;
-  --line-soft: #ebedeb;
-  --field-border: #858f81;
-  /* sage scale */
-  --sage-50: #f3f6f2;
-  --sage-100: #eef2e6;
-  --sage-150: #f6f8f1;
-  --sage-200: #cdd7b9;
-  --sage-400: #85a764;
-  --sage-500: #739553;
-  --sage-600: #5f7c46;
-  --sage-700: #57713f;
-  --brand-1: #8aa571;
-  --brand-2: #6f8957;
-  --ring-track: #d9d9d9;
-  --hatch-a: #dfe0de;
-  --hatch-b: #f1f1f1;
+  --line: #e0e5ee;
+  --line-soft: #e9edf3;
+  --field-border: #7a869c;
+  /* brand scale — names kept from v2 for stability; values are Bleu Québec */
+  --sage-50: #eef3fb;
+  --sage-100: #e5ecf8;
+  --sage-150: #f3f6fc;
+  --sage-200: #c3d3ef;
+  --sage-400: #9db6e3;
+  --sage-500: #2f63bf;
+  --sage-600: #1f4fa0;
+  --sage-700: #1a4388;
+  --accent-grad: linear-gradient(180deg, #1f4fa0 0%, #1a4388 100%);
+  --brand-1: #2f63bf;
+  --brand-2: #1f4fa0;
+  --ring-track: #d5dbe6;
+  --hatch-a: #dde2ea;
+  --hatch-b: #f0f2f7;
   --bell-dot: #f84d36;
   /* status tones: bg / fg (text) / dot (glyph). Status is ALWAYS glyph + word. */
   --critical-bg: #fde9e5; --critical-fg: #a12a17; --critical-dot: #e0432c;
-  --serious-bg: #eceffa;  --serious-fg: #4b54a0;  --serious-dot: #6f79c0;
+  --serious-bg: #f5ecf8;  --serious-fg: #74358a;  --serious-dot: #9a55b3;
   --warning-bg: #faf0d2;  --warning-fg: #7a5600;  --warning-dot: #b07d00;
   --good-bg: #ebf3df;     --good-fg: #3f5f28;     --good-dot: #5f8443;
   --info-bg: #e5f6fd;     --info-fg: #1b5d7a;     --info-dot: #2a8bb6;
@@ -41,7 +42,7 @@
   --critical-bar-1: #f4cfc6;
   --critical-bar-2: #fae2dc;
   /* v1 aliases so existing class names keep working */
-  --critical: var(--critical-strong); --serious: #6f79c0; --warning: #b07d00; --good: #5f8443; --info: #2a8bb6; --neutral: #7d8579;
+  --critical: var(--critical-strong); --serious: #9a55b3; --warning: #b07d00; --good: #5f8443; --info: #2a8bb6; --neutral: #7d8579;
   --color-primary: var(--sage-600);
   --color-primary-hover: var(--sage-700);
   --color-primary-subtle: var(--sage-50);
@@ -59,8 +60,8 @@
   --r-card: 24px; --r-ctl: 16px; --r-active: 14px; --r-select: 12px; --r-sm: 8px; --r-bar: 12px; --r-pill: 999px;
   --radius-sm: 6px; --radius-md: 12px; --radius-lg: 24px; --radius-pill: 999px;
   /* elevation: none on cards. Floating things only. */
-  --shadow-pin: 0 2px 6px rgba(10, 30, 3, .10);
-  --shadow-3: 0 12px 32px rgba(10, 30, 3, .18);
+  --shadow-pin: 0 2px 6px rgba(11, 26, 51, .10);
+  --shadow-3: 0 12px 32px rgba(11, 26, 51, .18);
   /* type (faces are bundled locally via @fontsource-variable) */
   --font-display: 'Urbanist Variable', Urbanist, system-ui, sans-serif;
   --font-text: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;

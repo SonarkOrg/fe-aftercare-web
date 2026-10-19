@@ -36,7 +36,7 @@
 .prow--head { background: transparent; min-height: 0; padding: 0 12px 8px 14px; font: 500 13px/1.2 var(--font-display); color: var(--muted); }
 .prow--head .prow__meta > span { min-width: 0; }
 .prow.is-clickable { cursor: pointer; }
-.prow.is-clickable:hover { background: #f8faf6; }
+.prow.is-clickable:hover { background: #f6f8fc; }
 .prow__person { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .prow__id { min-width: 0; }
 .prow__name { display: block; font: 600 14px/1.3 var(--font-text); color: var(--ink); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -128,8 +128,8 @@ a.appt-row__when { color: var(--ink); text-decoration: none; }
 .week__hour:first-child { transform: none; top: 2px !important; }
 .week-day { position: relative; box-shadow: inset 1px 0 0 var(--line); min-width: 0;
   background-image: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent 96px),
-    repeating-linear-gradient(to bottom, transparent 0, transparent 47px, #eef0ec 47px, #eef0ec 48px, transparent 48px, transparent 96px); }
-.week-day.is-today { background-color: #f6f8f3; }
+    repeating-linear-gradient(to bottom, transparent 0, transparent 47px, #eceff4 47px, #eceff4 48px, transparent 48px, transparent 96px); }
+.week-day.is-today { background-color: #f3f6fc; }
 .week-block { position: absolute; box-sizing: border-box; overflow: hidden; border-radius: 10px; padding: 4px 8px; text-decoration: none; background: var(--neutral-bg); color: var(--neutral-fg); line-height: 1.25; display: flex; flex-direction: column; justify-content: center; }
 .week-block:hover { filter: brightness(.97); }
 .week-block__line { display: flex; align-items: center; gap: 5px; min-width: 0; font: 600 12px/1.25 var(--font-display); white-space: nowrap; }

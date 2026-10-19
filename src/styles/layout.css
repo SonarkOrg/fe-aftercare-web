@@ -91,13 +91,13 @@
 .top-nav__item { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: var(--r-active); color: var(--ink-2);
   font: 400 15.5px/1 var(--font-display); text-decoration: none; white-space: nowrap; }
 .top-nav__item:hover { background: var(--sage-50); color: var(--ink); }
-.top-nav__item[aria-current=page] { background: linear-gradient(180deg, #607d47 0%, #57713f 100%); color: #fff; }
+.top-nav__item[aria-current=page] { background: var(--accent-grad); color: #fff; }
 .top-nav__count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
   background: var(--critical-bg); color: var(--critical-fg); font: 600 12px/1 var(--font-display); }
 .icon-btn { position: relative; flex: 0 0 48px; width: 48px; height: 48px; border-radius: 16px; background: #fff; border: 0; padding: 0; min-height: 0;
   display: grid; place-items: center; color: var(--ink); cursor: pointer; text-decoration: none; font: inherit; }
 .icon-btn:hover { background: var(--sage-50); color: var(--ink); }
-.icon-btn[aria-current=page] { background: linear-gradient(180deg, #607d47 0%, #57713f 100%); color: #fff; }
+.icon-btn[aria-current=page] { background: var(--accent-grad); color: #fff; }
 .icon-btn[aria-current=page]:hover { color: #fff; }
 .icon-btn__dot { position: absolute; top: 13px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--bell-dot); box-shadow: 0 0 0 2px #fff; }
 .menu-pop { position: absolute; right: max(24px, calc((100% - var(--content-max)) / 2 + 24px)); top: 84px; z-index: 30; min-width: 240px; max-width: calc(100vw - 32px); padding: 8px; border-radius: 16px; background: #fff;
@@ -109,7 +109,7 @@
 .menu-nav { display: none; flex-direction: column; gap: 4px; }
 .menu-nav__item { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 16px; border-radius: var(--r-active); color: var(--ink-2);
   font: 400 16px/1 var(--font-display); text-decoration: none; }
-.menu-nav__item[aria-current=page] { background: linear-gradient(180deg, #607d47 0%, #57713f 100%); color: #fff; }
+.menu-nav__item[aria-current=page] { background: var(--accent-grad); color: #fff; }
 .menu-dev { padding: 4px 12px; }
 /* the seven top-bar items need the room: the user pill collapses to its initials below 1280 px, and the dev chip
    shows in the pill only from 1600 px (below that it is in the menu), so the staff name is never truncated */
