@@ -107,7 +107,7 @@
                         <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.review' | t }}</a>
                       </ng-container>
                       <ng-container *ngSwitchCase="'missing'">
-                        <button type="button" role="menuitem" class="row-menu__item btn-newlink" *ngIf="canRegenerate(it.appt!)" (click)="newLink(it.appt!)">{{ 'dashboard.menu.newLink' | t }}</button>
+                        <ng-container *appCan="'CLINICAL_READ'"><button type="button" role="menuitem" class="row-menu__item btn-newlink" *ngIf="canRegenerate(it.appt!)" (click)="newLink(it.appt!)">{{ 'dashboard.menu.newLink' | t }}</button></ng-container>
                         <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.open' | t }}</a>
                       </ng-container>
                       <ng-container *ngSwitchCase="'missed'">

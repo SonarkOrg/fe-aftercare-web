@@ -5,11 +5,9 @@ import { environment } from '../../../../environments/environment';
 import { ArrivalRow, Arrivals } from '../../../models/arrival.model';
 import * as F from '../../../testing/fixtures';
 import { PageHarness } from '../../../testing/page-harness';
-import { ArrivalBoxComponent } from '../arrival-box/arrival-box.component';
-import { ArrivalRowComponent } from '../arrival-row/arrival-row.component';
 import { FD_IDLE_MS } from '../fd-idle';
-import { FixPanelComponent } from '../fix-panel/fix-panel.component';
-import { TOAST_MS, UndoToastComponent } from '../undo-toast/undo-toast.component';
+import { FRONT_DESK_DECLARATIONS } from '../front-desk.testing';
+import { TOAST_MS } from '../undo-toast/undo-toast.component';
 import { ArrivalsComponent, POLL_MS } from './arrivals.component';
 
 const API = environment.apiUrl;
@@ -35,7 +33,7 @@ describe('ArrivalsComponent', () => {
   let http: HttpTestingController;
 
   function setup(rows: ArrivalRow[] = [marie, jean, sophie, done], role: 'ADMIN' | 'NURSE' | 'PHYSICIAN' | 'RECEPTION' = 'RECEPTION', over: Partial<Arrivals> = {}, lang: 'en' | 'fr' = 'en') {
-    const f: ComponentFixture<ArrivalsComponent> = h.create(lang, ArrivalsComponent, [ArrivalBoxComponent, ArrivalRowComponent, FixPanelComponent, UndoToastComponent], false, {}, role);
+    const f: ComponentFixture<ArrivalsComponent> = h.create(lang, ArrivalsComponent, FRONT_DESK_DECLARATIONS, false, {}, role);
     http = h.http;
     document.body.appendChild(f.nativeElement); // the focus rules need the page in the document
     f.detectChanges();
@@ -85,10 +83,10 @@ describe('ArrivalsComponent', () => {
   });
 
   describe('layout', () => {
-    it('shows the title, three KPIs, three groups with the closed one collapsed, and the first row highlighted', () => {
+    it('shows the title, four KPIs, three groups with the closed one collapsed, and the first row highlighted', () => {
       const f = setup();
       expect(el(f).querySelector('h1')!.textContent).toBe('Arrivals');
-      expect(Array.from(el(f).querySelectorAll('.fd-kpis .kpi')).map(k => k.querySelector('.kpi__value')!.textContent)).toEqual(['3', '2', '0']);
+      expect(Array.from(el(f).querySelectorAll('.fd-kpis .kpi')).map(k => k.querySelector('.kpi__value')!.textContent)).toEqual(['3', '2', '0', '0']);
       expect(names(f, 'expected')).toEqual(['Marie Tremblay', 'Jean-François Gagnon', 'Sophie Roy']);
       expect(names(f, 'closed')).toEqual(['Paul Closed']);
       expect(el(f).querySelector('details[data-group=closed]')!.hasAttribute('open')).toBeFalse();
@@ -127,11 +125,11 @@ describe('ArrivalsComponent', () => {
     });
 
     it('first-load failure shows an error with a retry that works', () => {
-      const f: ComponentFixture<ArrivalsComponent> = h.create('en', ArrivalsComponent, [ArrivalBoxComponent, ArrivalRowComponent, FixPanelComponent, UndoToastComponent], false, {}, 'RECEPTION');
+      const f: ComponentFixture<ArrivalsComponent> = h.create('en', ArrivalsComponent, FRONT_DESK_DECLARATIONS, false, {}, 'RECEPTION');
       http = h.http;
       document.body.appendChild(f.nativeElement);
       f.detectChanges();
-      expect(el(f).querySelectorAll('.skeleton--kpi').length).toBe(3);
+      expect(el(f).querySelectorAll('.skeleton--kpi').length).toBe(4);
       expect(el(f).querySelectorAll('.skeleton--row').length).toBe(5);
       lists()[0].flush({}, { status: 500, statusText: 'x' });
       f.detectChanges();
@@ -232,7 +230,7 @@ describe('ArrivalsComponent', () => {
       expect(el(f).querySelector('#fd-live')!.textContent).toBe('Arrival of Marie Tremblay recorded');
       expect(box(f).value).toBe('');
       expect(document.activeElement).toBe(box(f));
-      expect(Array.from(el(f).querySelectorAll('.fd-kpis .kpi__value')).map(k => k.textContent)).toEqual(['2', '2', '1']);
+      expect(Array.from(el(f).querySelectorAll('.fd-kpis .kpi__value')).map(k => k.textContent)).toEqual(['2', '2', '1', '0']);
       answerList(day([here(marie), jean, sophie, done])); // the refresh after the action
       http.verify();
     });
@@ -454,19 +452,24 @@ describe('ArrivalsComponent', () => {
   });
 
   describe('a card number', () => {
-    it('is dropped from the box at once, sends no request, shows the hint and leaves no trace anywhere', () => {
+    it('is dropped from the box at once, waits for Enter, then goes in a POST body only and leaves no trace anywhere', () => {
       const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map(m => spyOn(console, m));
       const f = setup();
       const href = location.href;
       type(f, NAM);
       expect(box(f).value).toBe('');
+      expect(box(f).placeholder).toBe('Card read');
+      http.expectNone(r => r.method === 'POST'); // nothing is sent before Enter
       key(f, 'Enter');
+      const req = http.expectOne(r => r.method === 'POST' && r.url === `${API}/patients/search`);
+      expect(req.request.body).toEqual({ healthNumber: NAM });
+      expect(req.request.url).not.toContain('ROYS');
       expect(box(f).value).toBe('');
-      expect(el(f).querySelector('.fd-hint')!.textContent).toBe('Card reading arrives in the next step. Type the name.');
-      http.verify();
       expect(location.href).toBe(href);
       expect(location.href).not.toContain('ROYS');
       expect(document.title).not.toContain('ROYS');
+      req.flush({ mode: 'HEALTH_NUMBER', matches: [], candidates: [], warnings: [] });
+      f.detectChanges();
       expect(el(f).textContent).not.toContain(NAM);
       for (const store of [localStorage, sessionStorage]) {
         for (let i = 0; i < store.length; i++) {
@@ -492,7 +495,7 @@ describe('ArrivalsComponent', () => {
       for (const v of ['TREM 68 54 12 12', 'TREM.6854.1212']) {
         type(f, v);
         expect(box(f).value).withContext(v).toBe('');
-        expect(el(f).querySelector('.fd-hint')).withContext(v).not.toBeNull();
+        expect(el(f).querySelector('.fd-hint--card')).withContext(v).not.toBeNull();
       }
       type(f, 'TREM 68 13 12 12'); // month 13: not a valid structure, still a card number
       expect(el(f).querySelector('.fd-nomatch a')).toBeNull();
@@ -502,9 +505,11 @@ describe('ArrivalsComponent', () => {
       http.expectNone(r => r.method === 'POST');
     });
 
-    it('the hint goes away on the next ordinary typing', () => {
+    it('the typo hint goes away on the next ordinary typing', () => {
       const f = setup();
-      type(f, NAM);
+      type(f, 'TREM 68 13 12 12');
+      key(f, 'Enter');
+      expect(el(f).querySelector('.fd-hint')!.textContent).toContain('does not look like a valid card number');
       type(f, 'tr');
       expect(el(f).querySelector('.fd-hint')).toBeNull();
     });

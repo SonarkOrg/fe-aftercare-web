@@ -1,0 +1,114 @@
+<div class="drawer-backdrop" (click)="cancelled.emit()"></div>
+<div class="drawer fd-drawer" role="dialog" aria-modal="true" aria-labelledby="fd-quick-title" fdDrawer (fdClose)="cancelled.emit()">
+  <form (ngSubmit)="submit()" novalidate autocomplete="off" fdScanGuard>
+    <div class="drawer__header">
+      <h2 id="fd-quick-title">{{ 'fd.quick.title' | t }}</h2>
+      <button type="button" class="btn btn--ghost btn--icon" [attr.aria-label]="'common.close' | t" (click)="cancelled.emit()"><app-icon name="close"></app-icon></button>
+    </div>
+    <div class="drawer__body fd-quick">
+      <div class="banner banner--error error-message" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ error }}</span></div>
+
+      <section class="banner banner--warning fd-quick__dups" role="alert" *ngIf="conflict">
+        <span class="banner__glyph" aria-hidden="true">●</span>
+        <div>
+          <p class="fd-quick__dups-title"><strong>{{ (conflict === 'POSSIBLE_DUPLICATE' ? 'patients.duplicate.title' : 'fd.card.inUse') | t }}</strong></p>
+          <ul class="fd-quick__cands">
+            <li *ngFor="let m of candidates; trackBy: trackMatch">
+              <span class="fd-quick__cand-name">{{ m.patient.firstName }} {{ m.patient.lastName }}</span>
+              <span class="fd-quick__cand-sub">{{ m.patient.dateOfBirth ? ('fd.result.born' | t:{ date: (m.patient.dateOfBirth | tzDate:'date') }) : ('fd.result.dobUnknown' | t) }}</span>
+              <button type="button" class="btn btn--primary fd-use-file" #useBtn (click)="useMatch.emit(m)">{{ 'fd.card.useFile' | t }}</button>
+            </li>
+          </ul>
+          <div class="btn-row" *ngIf="conflict === 'POSSIBLE_DUPLICATE'">
+            <button type="button" class="btn btn--secondary fd-create-anyway" [disabled]="saving" (click)="createAnyway()">{{ 'patients.duplicate.createAnyway' | t }}</button>
+          </div>
+          <div class="btn-row" *ngIf="conflict === 'HEALTH_NUMBER_IN_USE'">
+            <button type="button" class="btn btn--secondary fd-reason-infant" *ngIf="underOne" [disabled]="saving" (click)="pickReason('PARENT_CARD_CHILD_UNDER_1')">{{ 'fd.card.reasonInfant' | t }}</button>
+            <button type="button" class="btn btn--secondary fd-reason-other" *ngIf="clinical" [disabled]="saving" (click)="pickReason('OTHER')">{{ 'fd.card.reasonOther' | t }}</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="btn-row fd-quick__sibling" *ngIf="siblingOffered">
+        <button type="button" class="btn btn--secondary fd-same-parent" (click)="copyFromRecent()">{{ 'fd.quick.sameParent' | t }}</button>
+      </div>
+      <p class="fd-panel__note fd-quick__copied" *ngIf="copyFrom">{{ 'fd.quick.copied' | t:{ name: copyFrom.name } }}</p>
+
+      <div class="fd-quick__names">
+        <div class="form-group">
+          <label for="fd-q-first">{{ 'fd.quick.firstName' | t }} *</label>
+          <input type="text" id="fd-q-first" name="firstName" data-fd-first fdScanGuard [(ngModel)]="firstName" autocomplete="off" [attr.aria-invalid]="fieldErrors['firstName'] ? 'true' : null">
+          <span class="field-error" *ngIf="fieldErrors['firstName']">{{ fieldErrors['firstName'] }}</span>
+        </div>
+        <div class="form-group fd-quick__last">
+          <label for="fd-q-last">{{ 'fd.quick.lastName' | t }} *</label>
+          <input type="text" id="fd-q-last" name="lastName" fdScanGuard [(ngModel)]="lastName" autocomplete="off" [attr.aria-invalid]="fieldErrors['lastName'] ? 'true' : null">
+          <span class="field-error" *ngIf="fieldErrors['lastName']">{{ fieldErrors['lastName'] }}</span>
+        </div>
+        <!-- after Nom in the DOM so Tab goes Prénom → Nom (§11.8 step 9); the grid still draws it between the two -->
+        <button type="button" class="btn btn--ghost btn--icon fd-swap" [attr.aria-label]="'fd.quick.swap' | t" (click)="swap()"><span aria-hidden="true">⇄</span></button>
+      </div>
+
+      <div class="form-group">
+        <label for="fd-q-dob">{{ 'fd.quick.dob' | t }} *</label>
+        <input type="text" id="fd-q-dob" name="dateOfBirth" inputmode="numeric" fdScanGuard [(ngModel)]="dob" (ngModelChange)="dobFromCard = false" autocomplete="off" [placeholder]="'fd.quick.dobPlaceholder' | t" [attr.aria-invalid]="fieldErrors['dateOfBirth'] ? 'true' : null">
+        <span class="fd-quick__note" *ngIf="dobFromCard">{{ 'fd.quick.dobFromCard' | t }}</span>
+        <span class="field-error" *ngIf="fieldErrors['dateOfBirth']">{{ fieldErrors['dateOfBirth'] }}</span>
+      </div>
+
+      <div class="form-group">
+        <label for="fd-q-phone">{{ 'fd.quick.phone' | t }}</label>
+        <input type="tel" id="fd-q-phone" name="phone" fdScanGuard [(ngModel)]="phone" autocomplete="off" [attr.aria-invalid]="fieldErrors['phone'] ? 'true' : null">
+        <span class="field-error" *ngIf="fieldErrors['phone']">{{ fieldErrors['phone'] }}</span>
+      </div>
+
+      <div class="form-group fd-quick__consent" *ngIf="hasContact">
+        <span class="fd-panel__q" id="fd-q-consent">{{ 'fd.quick.consent' | t }}</span>
+        <div class="pill-group fd-seg" role="group" aria-labelledby="fd-q-consent">
+          <button type="button" class="pill-group__item fd-consent-yes" [attr.aria-pressed]="consent === 'GRANTED'" (click)="pickConsent('GRANTED')" (keydown.enter)="$event.preventDefault(); enterOnConsent('GRANTED')">{{ 'common.yes' | t }}</button>
+          <button type="button" class="pill-group__item fd-consent-no" [attr.aria-pressed]="consent === 'WITHDRAWN'" (click)="pickConsent('WITHDRAWN')" (keydown.enter)="$event.preventDefault(); enterOnConsent('WITHDRAWN')">{{ 'common.no' | t }}</button>
+        </div>
+      </div>
+
+      <div class="fd-quick__card">
+        <ng-container *ngIf="cardNam; else cardField_">
+          <span class="fd-quick__cardread"><span aria-hidden="true">✓</span> {{ 'fd.card.read' | t }}</span>
+          <button type="button" class="btn btn--ghost fd-card-remove" (click)="cardRemoved.emit()">{{ 'fd.card.remove' | t }}</button>
+        </ng-container>
+        <ng-template #cardField_>
+          <div class="form-group" *ngIf="canCapture">
+            <label for="fd-q-card">{{ 'fd.quick.cardNumber' | t }} <span class="fd-quick__opt">({{ 'common.optional' | t }})</span></label>
+            <input type="text" id="fd-q-card" name="healthNumber" class="mono" maxlength="14" autocomplete="off" autocapitalize="characters" spellcheck="false" fdScanGuard [(ngModel)]="cardField" [attr.aria-invalid]="fieldErrors['healthNumber'] ? 'true' : null">
+            <span class="field-error" *ngIf="fieldErrors['healthNumber']">{{ fieldErrors['healthNumber'] }}</span>
+          </div>
+        </ng-template>
+      </div>
+
+      <details class="fd-quick__more">
+        <summary class="btn btn--ghost">{{ 'fd.quick.more' | t }}</summary>
+        <div class="form-group">
+          <label for="fd-q-email">{{ 'fd.quick.email' | t }}</label>
+          <input type="email" id="fd-q-email" name="email" fdScanGuard [(ngModel)]="email" autocomplete="off" [attr.aria-invalid]="fieldErrors['email'] ? 'true' : null">
+          <span class="field-error" *ngIf="fieldErrors['email']">{{ fieldErrors['email'] }}</span>
+        </div>
+        <div class="form-group">
+          <label for="fd-q-lang">{{ 'fd.quick.language' | t }}</label>
+          <select id="fd-q-lang" name="language" fdScanGuard [(ngModel)]="language">
+            <option value="">{{ 'fd.quick.languageUnset' | t }}</option>
+            <option value="FR">{{ 'FR' | enumLabel:'language' }}</option>
+            <option value="EN">{{ 'EN' | enumLabel:'language' }}</option>
+          </select>
+        </div>
+        <div class="form-group" *ngIf="canCapture">
+          <label for="fd-q-expiry">{{ 'fd.quick.cardExpiry' | t }}</label>
+          <input type="text" id="fd-q-expiry" name="cardExpiry" fdScanGuard [(ngModel)]="cardExpiry" autocomplete="off" [attr.aria-invalid]="fieldErrors['cardExpiry'] ? 'true' : null">
+          <span class="field-error" *ngIf="fieldErrors['cardExpiry']">{{ fieldErrors['cardExpiry'] }}</span>
+        </div>
+      </details>
+    </div>
+    <div class="drawer__footer">
+      <button type="button" class="btn btn--secondary" (click)="cancelled.emit()">{{ 'common.cancel' | t }}</button>
+      <button type="submit" class="btn btn--primary fd-quick-submit" [disabled]="saving">{{ 'fd.quick.submit' | t }}</button>
+    </div>
+  </form>
+</div>

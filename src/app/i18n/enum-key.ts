@@ -5,7 +5,7 @@ export type EnumGroup = 'accessRole' | 'staffRole' | 'appointmentType' | 'appoin
   | 'alertType' | 'patientStatus' | 'allergySeverity' | 'documentCategory' | 'specialty' | 'followUpDisplayStatus'
   | 'questionnairePurpose' | 'questionnaireStatus' | 'actorType' | 'timelineCategory' | 'auditAction' | 'auditResource'
   | 'notificationChannel' | 'notificationTemplate' | 'notificationStatus' | 'notificationError' | 'contactConsent'
-  | 'arrivalSource' | 'retentionMode' | 'retentionTrigger' | 'retentionRunStatus' | 'emailProvider' | 'smsProvider' | 'language';
+  | 'arrivalSource' | 'cardNote' | 'sharedCardReason' | 'retentionMode' | 'retentionTrigger' | 'retentionRunStatus' | 'emailProvider' | 'smsProvider' | 'language';
 
 /** The key for an enum value. Dynamic, so the dictionary test (not the compiler) checks that every value has one. */
 export function enumKey(group: EnumGroup, value: string): TKey {

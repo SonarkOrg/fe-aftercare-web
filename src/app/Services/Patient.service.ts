@@ -13,8 +13,12 @@ export class PatientService {
 
   constructor(private http: HttpClient) {}
 
-  addPatient(patient: Patient): Observable<Patient> {
-    return this.http.post<Patient>(`${this.API_URL}/register`, patient);
+  /**
+   * Creates a patient. A possible duplicate answers 409 POSSIBLE_DUPLICATE (with `details.candidates`) before any write
+   * unless `confirmNew` is true, which sends `?confirmNew=true`.
+   */
+  addPatient(patient: Patient, confirmNew?: boolean): Observable<Patient> {
+    return this.http.post<Patient>(`${this.API_URL}/register`, patient, confirmNew ? { params: { confirmNew: 'true' } } : {});
   }
 
   getPatientList(): Observable<Patient[]> {

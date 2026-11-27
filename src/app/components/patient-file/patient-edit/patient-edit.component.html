@@ -32,6 +32,7 @@
           <div class="form-group">
             <label for="edit-gender">{{ 'patients.form.gender' | t }}</label>
             <select id="edit-gender" name="gender" [(ngModel)]="form.gender" (ngModelChange)="touch('gender')" [attr.aria-invalid]="error('gender') ? 'true' : null" [attr.aria-describedby]="error('gender') ? 'edit-gender-err' : null">
+              <option value="">{{ 'patients.form.noGender' | t }}</option>
               <option value="male">{{ 'patients.form.male' | t }}</option>
               <option value="female">{{ 'patients.form.female' | t }}</option>
             </select>

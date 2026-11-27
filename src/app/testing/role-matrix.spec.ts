@@ -23,6 +23,7 @@ const GRID: Record<Permission, [boolean, boolean, boolean, boolean]> = {
   CLINICAL_READ: [true, true, true, false],
   CLINICAL_WRITE: [true, true, true, false],
   HEALTH_NUMBER_REVEAL: [true, true, true, false],
+  HEALTH_CARD_CAPTURE: [true, true, true, true],
   APPOINTMENT_READ: [true, true, true, true],
   APPOINTMENT_WRITE: [true, true, true, true],
   FORMS_READ: [true, true, true, true],

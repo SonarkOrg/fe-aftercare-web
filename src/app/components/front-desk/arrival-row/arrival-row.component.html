@@ -1,5 +1,5 @@
 <article class="row row--expand arow fd-row" [class.is-active]="active" [class.is-arrived]="row.desk.state === 'ARRIVED'" [attr.aria-current]="active ? 'true' : null"
-         [attr.data-appt]="row.appointmentId" [attr.data-state]="row.desk.state">
+         [attr.data-appt]="row.appointmentId" [attr.data-state]="row.desk.state" fdScanGuard>
   <div class="arow__time"><span class="appt__time">{{ time }}</span></div>
   <div class="row__main arow__main fd-row__main">
     <div class="fd-row__who">
@@ -11,6 +11,9 @@
     <div class="row__sub fd-row__dob" *ngIf="active && !expanded && row.patient.dateOfBirth">{{ 'fd.row.born' | t:{ date: (row.patient.dateOfBirth | tzDate:'date') } }}</div>
     <div class="fd-row__chips">
       <app-status-chip [spec]="desk" size="sm"></app-status-chip>
+      <app-status-chip *ngIf="walkInChip as w" [spec]="w" size="sm" class="fd-walkin-tag"></app-status-chip>
+      <app-status-chip *ngIf="noQuestionnaireChip as nq" [spec]="nq" size="sm" class="fd-noq-chip"></app-status-chip>
+      <app-status-chip *ngIf="noteChip as n" [spec]="n" size="sm" class="fd-note-chip"></app-status-chip>
       <app-status-chip *ngFor="let c of reasons; trackBy: trackChip" [spec]="c" size="sm"></app-status-chip>
       <app-status-chip *ngFor="let c of notices; trackBy: trackChip" [spec]="c" size="sm"></app-status-chip>
       <span class="count-pill" *ngIf="more > 0"><span aria-hidden="true">+{{ more }}</span><span class="sr-only">{{ 'fd.row.moreNotices' | t:{ count: more } }}</span></span>
@@ -25,7 +28,7 @@
     <ng-container *ngIf="row.desk.state === 'ARRIVED' && row.arrival as a">
       <span class="fd-row__since">{{ 'appts.arrivedSince' | t:{ time: (a.arrivedAt | tzDate:'time') } }}</span>
       <ng-container *ngIf="!readOnly">
-        <button type="button" class="btn btn--ghost fd-undo" *appCan="'APPOINTMENT_WRITE'" [disabled]="busy" (click)="undo.emit(row)"><app-icon name="undo" [size]="16"></app-icon>{{ 'appts.undoArrival' | t }}</button>
+        <button type="button" class="btn btn--ghost fd-undo" *appCan="'APPOINTMENT_WRITE'" [disabled]="busy" (click)="undo.emit(row)"><app-icon name="undo" [size]="16"></app-icon>{{ (row.walkIn ? 'appts.removeVisit' : 'appts.undoArrival') | t }}</button>
       </ng-container>
     </ng-container>
     <button type="button" class="btn btn--icon btn--ghost fd-toggle" [attr.aria-expanded]="expanded" [attr.aria-controls]="expanded ? 'fd-panel-' + row.appointmentId : null"
@@ -34,6 +37,6 @@
     </button>
   </div>
   <div class="fd-row__panel" [id]="'fd-panel-' + row.appointmentId" *ngIf="expanded">
-    <app-fix-panel [row]="row" [readOnly]="readOnly" (consentSaved)="consentSaved.emit({ row: row, value: $event })"></app-fix-panel>
+    <app-fix-panel [row]="row" [readOnly]="readOnly" (consentSaved)="consentSaved.emit({ row: row, value: $event })" (expirySaved)="expirySaved.emit()" (rowChanged)="rowChanged.emit($event)"></app-fix-panel>
   </div>
 </article>

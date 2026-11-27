@@ -7,6 +7,7 @@ import { AppointmentService } from '../../Services/Appointment.service';
 import { FollowUpService } from '../../Services/FollowUp.service';
 import { MessageService } from '../../Services/Message.service';
 import { PatientService } from '../../Services/Patient.service';
+import { PatientDeskService } from '../../Services/PatientDesk.service';
 import { PatientFileService } from '../../Services/PatientFile.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { Permissions } from '../../auth/permissions.service';
@@ -25,6 +26,7 @@ import { alertAnswer, alertDay, isMissed } from '../../shared/alert.util';
 import { Appointment } from '../../models/appointment.model';
 import { CheckIn, FollowUp, FollowUpWithCode } from '../../models/follow-up.model';
 import { CareTeamMember, PatientMedical } from '../../models/medical.model';
+import { DuplicateFlag } from '../../models/arrival.model';
 import { Patient } from '../../models/patient.model';
 import { PatientEditResult } from '../patient-file/patient-edit/patient-edit.component';
 import { QuestionnaireDefinitionDetail } from '../../models/questionnaire-definition.model';
@@ -34,7 +36,7 @@ import { businessNow, businessToday, relativeDay } from '../../shared/link.util'
 import {
   PAIN_LINK, TEMPERATURE_LINK, alertThreshold, buildSeries, chartTodayDay, computeStatus, followUpDay
 } from '../../shared/patient-status';
-import { ChipSpec, appointmentChip, patientStatusChip, severityChip, staffActiveChip } from '../../shared/status';
+import { ChipSpec, appointmentChip, patientStatusChip, reasonChip, severityChip, staffActiveChip } from '../../shared/status';
 import { ThresholdState } from '../../shared/trend-chart/trend-chart.component';
 import { PageTitleService } from '../../shell/page-title.service';
 
@@ -83,6 +85,11 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   editPatient: Patient | null = null;
   editTrigger: HTMLElement | null = null;
   editNotice: string | null = null;
+  /** `?edit=1` (from the Arrivals fix panel): open the drawer once the file is loaded, then drop the parameter. */
+  private editRequested = false;
+  /** The OPEN duplicate flag naming this patient, if any (GET /patients/{id}/duplicate-flags). */
+  duplicateFlag: DuplicateFlag | null = null;
+  readonly duplicateChip: ChipSpec = reasonChip('POSSIBLE_DUPLICATE')!;
   private editNoticeTimer?: ReturnType<typeof setTimeout>;
   question = (a: Alert) => alertQuestion(a, this.i18n.lang, k => this.i18n.t(k));
   answer = (a: Alert) => alertAnswer(a, this.i18n.lang, k => this.i18n.t(k));
@@ -110,6 +117,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     private appointmentService: AppointmentService,
     private definitions: QuestionnaireDefinitionService,
     private files: PatientFileService,
+    private desk: PatientDeskService,
     private messages: MessageService,
     private router: Router,
     private titles: PageTitleService,
@@ -123,8 +131,8 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     return this.i18n.lang === 'en' ? 'en' : 'fr';
   }
 
-  genderLabel(g: string): string {
-    return g === 'male' ? this.i18n.t('patients.form.male') : g === 'female' ? this.i18n.t('patients.form.female') : g;
+  genderLabel(g: string | null): string {
+    return g === 'male' ? this.i18n.t('patients.form.male') : g === 'female' ? this.i18n.t('patients.form.female') : (g ?? '');
   }
 
   /** The tabs this member may open (hidden, not disabled). */
@@ -145,7 +153,12 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
       this.visited.add(t);
     }
     // "Open Contacts" links change ?tab= while this page is already shown
+    this.editRequested = this.route.snapshot.queryParamMap?.get('edit') === '1';
     this.querySub = this.route.queryParamMap?.subscribe(q => {
+      if (q.get('edit') === '1') {
+        this.editRequested = true;
+        this.openRequestedEdit();
+      }
       const next = q.get('tab') as ProfileTab | null;
       if (next && next !== this.tab && this.visibleTabs.includes(next)) {
         this.tab = next;
@@ -171,6 +184,18 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     this.editPatient = { ...this.patient, dateOfBirth: this.patient.dateOfBirth ?? this.medical?.dateOfBirth ?? null };
   }
 
+  /** Opens the drawer once for `?edit=1` (when the member may edit), then removes the parameter so a reload does not reopen it. */
+  private openRequestedEdit(): void {
+    if (!this.editRequested || !this.patient) {
+      return;
+    }
+    this.editRequested = false;
+    if (this.permissions.can('PATIENT_WRITE')) {
+      this.openEdit(null);
+    }
+    this.router.navigate([], { relativeTo: this.route, queryParams: { edit: null }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
   closeEdit(): void {
     this.editPatient = null;
   }
@@ -193,6 +218,47 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     this.editNoticeTimer = setTimeout(() => (this.editNotice = null), 8000);
   }
 
+  clearDuplicateFlag(): void {
+    const flag = this.duplicateFlag;
+    if (!flag) {
+      return;
+    }
+    this.actionError = null;
+    this.desk.clearDuplicateFlag(this.patientId, flag.id).subscribe({
+      next: () => (this.duplicateFlag = null),
+      error: err => (this.actionError = this.errors.text(err, 'pd.error.clearDuplicate'))
+    });
+  }
+
+  /* ---------- null-safe contact lines (a patient may have only a first and a last name) ---------- */
+
+  /** « city, state » with whichever part exists. */
+  get cityLine(): string {
+    const a = this.patient?.address;
+    return [a?.city, a?.state].filter(Boolean).join(', ');
+  }
+
+  /** « city, state zip » for the contact card, « — » when there is no address at all. */
+  get addressLine(): string {
+    const a = this.patient?.address;
+    const line = [this.cityLine, a?.zip].filter(Boolean).join(' ');
+    return line || '—';
+  }
+
+  /** The text part of the hero line (gender, age, place); phone and e-mail are links, added after it by the template. */
+  get heroText(): string {
+    const parts: string[] = [];
+    const g = this.genderLabel(this.patient?.gender ?? null);
+    const dob = this.dob;
+    if (g || (this.age !== null && dob)) {
+      parts.push(g + (this.age !== null && dob ? `${g ? ' · ' : ''}${this.i18n.t('pd.hero.age', { age: this.age, date: this.dobLabel(dob) })}` : ''));
+    }
+    if (this.cityLine) {
+      parts.push(this.cityLine);
+    }
+    return parts.join(' · ');
+  }
+
   /** A link was queued from the follow-up card: refresh any open notification history. */
   onLinkSent(): void {
     this.notifications.notifySent(this.patientId);
@@ -208,6 +274,13 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
       });
     } else if (this.permissions.can('PATIENT_READ')) {
       this.notifications.preferences(this.patientId).subscribe({ next: p => (this.prefs = p), error: () => { /* the summary line just stays out */ } });
+    }
+    if (this.permissions.can('PATIENT_READ')) {
+      const id = this.patientId;
+      this.desk.duplicateFlagsOf(id).subscribe({
+        next: flags => (this.duplicateFlag = flags.find(f => f.a.id === id || f.b.id === id) ?? null),
+        error: () => { /* no chip */ }
+      });
     }
     this.files.careTeam(this.patientId).subscribe({ next: c => (this.careTeam = c), error: () => { /* the card shows its empty state */ } });
     // the inbox carries the unread count: opening the thread here would write a "messages viewed" audit row
@@ -426,6 +499,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
         this.titles.setText(`${r.patient.firstName} ${r.patient.lastName}`);
         this.recomputeCharts();
         this.loadDefinition();
+        this.openRequestedEdit();
       },
       error: err => {
         this.loading = false;

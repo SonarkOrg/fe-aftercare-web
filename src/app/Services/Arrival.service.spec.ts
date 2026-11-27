@@ -47,4 +47,35 @@ describe('ArrivalService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(arrivalRow());
   });
+
+  it('walkIn POSTs the body to /appointments/walk-in', () => {
+    const body = { patientId: 12, type: 'GENERAL_CONSULT' as const, specialty: 'ORTHOPEDIC_SURGERY' as const, durationMinutes: 30 };
+    service.walkIn(body).subscribe();
+    const req = http.expectOne(`${api}/appointments/walk-in`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(body);
+    req.flush(arrivalRow({ walkIn: true }));
+  });
+
+  it('undoWalkIn POSTs an empty body to /appointments/{id}/walk-in/undo and returns the result', () => {
+    let got: unknown;
+    service.undoWalkIn(90).subscribe(v => (got = v));
+    const req = http.expectOne(`${api}/appointments/90/walk-in/undo`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    req.flush({ result: 'REMOVED' });
+    expect(got).toEqual({ result: 'REMOVED' });
+  });
+
+  it('setCardNote PUTs { note } and null clears it', () => {
+    service.setCardNote(77, 'NO_CARD').subscribe();
+    let req = http.expectOne(`${api}/appointments/77/card-note`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ note: 'NO_CARD' });
+    req.flush(arrivalRow());
+    service.setCardNote(77, null).subscribe();
+    req = http.expectOne(`${api}/appointments/77/card-note`);
+    expect(req.request.body).toEqual({ note: null });
+    req.flush(arrivalRow());
+  });
 });

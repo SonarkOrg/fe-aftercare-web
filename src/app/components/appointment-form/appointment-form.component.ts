@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { switchMap, tap } from 'rxjs';
 import { AppointmentService } from '../../Services/Appointment.service';
 import { PatientDeskService } from '../../Services/PatientDesk.service';
+import { NotificationService } from '../../Services/Notification.service';
 import { PatientService } from '../../Services/Patient.service';
 import { ApiErrorsService } from '../../i18n/api-errors';
 import { I18nService } from '../../i18n/i18n.service';
@@ -47,6 +48,7 @@ export class AppointmentFormComponent implements OnInit {
     private appointments: AppointmentService,
     private patientService: PatientService,
     private desk: PatientDeskService,
+    private notifications: NotificationService,
     private i18n: I18nService,
     private errors: ApiErrorsService
   ) {}
@@ -151,6 +153,10 @@ export class AppointmentFormComponent implements OnInit {
         error: err => this.fail(err)
       });
     }
+  }
+
+  onLinkSent(patientId: number): void {
+    this.notifications.notifySent(patientId);
   }
 
   /** Shown with a create error when the consent answer was already saved. */

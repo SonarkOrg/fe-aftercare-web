@@ -249,7 +249,7 @@ export class DashboardComponent implements OnInit {
     for (const r of this.missedRows) {
       out.push({
         key: 'x' + r.patient.id, kind: 'missed', name: r.name, initials: r.initials, patientId: r.patient.id!,
-        link: ['/patients', r.patient.id], sub: this.i18n.t('dashboard.noCheckIn', { date: this.shortDate(this.yesterday) }), chip: this.missedChip, phone: r.patient.phone
+        link: ['/patients', r.patient.id], sub: this.i18n.t('dashboard.noCheckIn', { date: this.shortDate(this.yesterday) }), chip: this.missedChip, phone: r.patient.phone ?? undefined
       });
     }
     return out;
@@ -404,7 +404,9 @@ export class DashboardComponent implements OnInit {
     this.appointments.regenerateCode(a.id).subscribe({
       next: res => {
         this.menuKey = null;
-        this.codes = { ...this.codes, [a.id]: res.accessCode };
+        if (res.accessCode) {
+          this.codes = { ...this.codes, [a.id]: res.accessCode };
+        }
       },
       error: err => this.failed(err, 'appointment')
     });

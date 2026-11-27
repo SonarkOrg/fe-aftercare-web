@@ -9,7 +9,7 @@
   <p class="sr-only" aria-live="polite" id="fd-selection">{{ selectionText }}</p>
   <p class="sr-only" aria-live="polite" id="fd-live">{{ live }}</p>
 
-  <div class="kpis fd-kpis" *ngIf="loading && !data" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--kpi" *ngFor="let i of [1, 2, 3]"></div></div>
+  <div class="kpis fd-kpis" *ngIf="loading && !data" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--kpi" *ngFor="let i of [1, 2, 3, 4]"></div></div>
   <div class="kpis fd-kpis" *ngIf="data" [attr.aria-hidden]="locked ? 'true' : null">
     <div class="kpi" id="kpi-expected">
       <span class="kpi__icon"><app-icon name="clock" [size]="22" [stroke]="1.6"></app-icon></span>
@@ -23,10 +23,14 @@
       <span class="kpi__icon"><app-icon name="check-circle" [size]="22" [stroke]="1.6"></app-icon></span>
       <span class="kpi__body"><span class="kpi__label">{{ 'fd.kpi.here' | t }}</span><span class="kpi__value">{{ counts.arrived }}</span></span>
     </div>
+    <div class="kpi" id="kpi-walkins">
+      <span class="kpi__icon"><app-icon name="user-plus" [size]="22" [stroke]="1.6"></app-icon></span>
+      <span class="kpi__body"><span class="kpi__label">{{ 'fd.kpi.walkIns' | t }}</span><span class="kpi__value">{{ counts.walkIns }}</span></span>
+    </div>
   </div>
 
   <div class="toolbar fd-toolbar">
-    <app-arrival-box [value]="query" (valueChange)="onQuery($event)" (key)="onKey($event)" (undoKey)="onUndoKey($event)"></app-arrival-box>
+    <app-arrival-box [value]="query" [placeholder]="boxPlaceholder" [captureTab]="!!walkInFor" (valueChange)="onQuery($event)" (key)="onKey($event)" (undoKey)="onUndoKey($event)"></app-arrival-box>
     <nav class="pill-group fd-views" [attr.aria-label]="'appts.view' | t">
       <a id="view-day" class="pill-group__item" routerLink="/appointments" [queryParams]="{ view: 'day' }">{{ 'appts.day' | t }}</a>
       <a id="view-week" class="pill-group__item" routerLink="/appointments" [queryParams]="{ view: 'week' }">{{ 'weekBars.week' | t }}</a>
@@ -47,7 +51,17 @@
     </div>
   </div>
 
-  <p class="fd-hint" role="status" *ngIf="cardHint">{{ 'fd.box.cardLater' | t }}</p>
+  <p class="fd-hint" role="status" *ngIf="cardHint">{{ 'fd.card.badNumber' | t }}</p>
+  <p class="fd-hint" role="status" *ngIf="noCardRole">{{ 'fd.card.notAllowed' | t }}</p>
+  <p class="fd-hint fd-hint--limit" role="status" *ngIf="rateText">{{ rateText }}</p>
+  <p class="fd-search-all-line" *ngIf="data && filtering && safeQuery && visibleCount > 0 && !showResults && !readOnly && !locked">
+    <button type="button" class="btn btn--ghost fd-search-all" (click)="searchAll()">{{ 'fd.empty.searchAll' | t }}</button>
+  </p>
+  <p class="fd-hint fd-hint--walkin" *ngIf="walkInFor && !locked">{{ 'fd.box.walkInTabHint' | t }}</p>
+  <p class="fd-hint fd-hint--card" role="status" *ngIf="cardReadShown"><span aria-hidden="true">✓</span> {{ 'fd.card.read' | t }}</p>
+
+  <app-walk-in *ngIf="walkInFor && !locked" [name]="walkInFor.firstName + ' ' + walkInFor.lastName" [choice]="walkInChoice" [options]="data?.walkInOptions" [busy]="walkBusy"
+               (choiceChange)="onWalkInChoice($event)" (create)="createWalkIn()" (cancelled)="cancelWalkIn()"></app-walk-in>
 
   <div class="banner banner--info" role="status" *ngIf="data && readOnly"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ 'fd.hero.pastDay' | t }}</span></div>
   <div class="banner banner--warning" role="status" *ngIf="stale"><span class="banner__glyph" aria-hidden="true">●</span><span>{{ 'fd.error.stale' | t:{ time: updated } }}</span></div>
@@ -65,12 +79,43 @@
     <p class="empty__title">{{ (readOnly ? 'fd.empty.noneDate' : 'fd.empty.none') | t }}</p>
   </div>
 
-  <div class="card empty fd-nomatch" *ngIf="data && rows.length > 0 && filtering && visibleCount === 0">
+  <div class="card empty fd-nomatch" *ngIf="data && rows.length > 0 && filtering && visibleCount === 0 && !showResults && !expiryAnswerPending">
     <span class="empty__glyph" aria-hidden="true">—</span>
     <p class="empty__title" *ngIf="safeQuery">{{ 'fd.empty.noMatch' | t:{ text: query.trim() } }}</p>
     <p class="empty__title" *ngIf="!safeQuery">{{ 'fd.empty.noMatchAny' | t }}</p>
+    <p class="fd-panel__note fd-nomatch__enter" *ngIf="safeQuery && !readOnly">{{ 'fd.search.enterHint' | t }}</p>
     <a class="btn btn--secondary" *ngIf="safeQuery" routerLink="/patients" [queryParams]="{ q: query.trim() }">{{ 'fd.empty.searchAll' | t }}</a>
   </div>
+
+  <section class="card card--list fd-results" *ngIf="data && showResults && !locked" aria-live="polite">
+    <app-card-banner *ngIf="cardBanner" [state]="cardBanner" [warnings]="cardWarnings" [clinical]="clinical" [busy]="attaching"
+                     (flagDuplicates)="flagChoices()" (noteWithout)="noteWithoutCard()" (reason)="onReason($event)"></app-card-banner>
+    <div class="card__head"><h2 class="card__title--sm">{{ 'fd.search.title' | t }} <span class="badge">{{ results.length }}</span></h2></div>
+    <p class="fd-hint" role="status" *ngIf="searching">{{ 'fd.search.searching' | t }}</p>
+    <p class="fd-hint" role="status" *ngIf="!searching && searchKind === 'text' && results.length === 0">{{ 'fd.search.none' | t }}</p>
+    <ul class="rows fd-found">
+      <li class="fd-found__item" *ngFor="let m of results; trackBy: trackMatch" [class.is-active]="activeOther === 'm:' + m.patient.id" [attr.data-patient]="m.patient.id"
+          [attr.aria-current]="activeOther === 'm:' + m.patient.id ? 'true' : null">
+        <div class="fd-found__main">
+          <div class="fd-row__who"><span class="row__name fd-found__name">{{ m.patient.firstName }} {{ m.patient.lastName }}</span>
+            <span class="fd-row__age" *ngIf="m.patient.ageYears !== null">{{ 'fd.row.age' | t:{ years: m.patient.ageYears } }}</span></div>
+          <div class="row__sub">{{ m.patient.dateOfBirth ? ('fd.result.born' | t:{ date: (m.patient.dateOfBirth | tzDate:'date') }) : ('fd.result.dobUnknown' | t) }} ·
+            <ng-container *ngIf="appointmentOf(m) as a; else noAppt">{{ 'fd.search.today' | t:{ time: a.time } }}</ng-container>
+            <ng-template #noAppt>{{ (alreadyHere(m) ? 'fd.box.alreadyHere' : 'fd.search.noToday') | t }}</ng-template></div>
+          <div class="fd-row__chips" *ngIf="m.patient.possibleDuplicate"><app-status-chip [spec]="dupChip" size="sm"></app-status-chip></div>
+        </div>
+        <div class="fd-found__end">
+          <button type="button" class="btn btn--secondary fd-use-result" *ngIf="cardBanner?.kind === 'inUse'" (click)="useResult(m)">{{ 'fd.card.useFile' | t }}</button>
+          <app-row-menu *ngIf="menus.get(m.patient.id)?.length" [items]="menus.get(m.patient.id)!" [label]="'fd.result.menu' | t:{ name: m.patient.firstName + ' ' + m.patient.lastName }" (selected)="onMenu(m, $event)"></app-row-menu>
+        </div>
+        <app-result-panel *ngIf="panel && panel.patient.id === m.patient.id" class="fd-found__panel" [match]="panel" [readOnly]="readOnly" (walkIn)="openWalkIn($event)"></app-result-panel>
+      </li>
+      <li class="fd-found__item fd-found__new" *ngIf="canCreatePatient" [class.is-active]="activeOther === 'new'">
+        <button type="button" class="btn btn--secondary fd-new-patient" (click)="openQuick()"><app-icon name="user-plus" [size]="18"></app-icon>{{ 'fd.search.new' | t }}</button>
+        <span class="row__sub">{{ 'fd.search.newHelp' | t }}</span>
+      </li>
+    </ul>
+  </section>
 
   <div class="fd-idle" role="status" *ngIf="locked"><span>{{ 'fd.idle.masked' | t }}</span></div>
 
@@ -104,7 +149,11 @@
   <app-undo-toast [toast]="toast" (undo)="undoLast()" (dismissed)="onToastDone()"></app-undo-toast>
 </div>
 
+<app-quick-patient *ngIf="drawerOpen && !locked" [prefill]="prefill" [card]="pendingCard" [recent]="recent"
+                   (created)="onCreated($event)" (cancelled)="closeQuick()" (useMatch)="onUseMatch($event)" (cardRemoved)="onCardRemoved()"></app-quick-patient>
+
 <ng-template #rowTpl let-r>
   <app-arrival-row [row]="r" [active]="r.appointmentId === activeId" [expanded]="expandedId === r.appointmentId" [readOnly]="readOnly" [busy]="busy.has(r.appointmentId)"
-                   (arrive)="arrive($event)" (undo)="undoRow($event)" (toggle)="toggle($event)" (consentSaved)="onConsent($event)"></app-arrival-row>
+                   (arrive)="arrive($event)" (undo)="undoRow($event)" (toggle)="toggle($event)" (consentSaved)="onConsent($event)"
+                   (expirySaved)="onExpirySaved()" (rowChanged)="onRowChanged($event)"></app-arrival-row>
 </ng-template>

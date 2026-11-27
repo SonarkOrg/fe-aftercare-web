@@ -112,6 +112,7 @@ export const PATIENT_FILE_EN = {
   'pd.notif.lang.EN': 'English',
   'pd.error.load': 'Could not load patient.',
   'pd.error.regenerate': 'Could not regenerate the link.',
+  'pd.error.clearDuplicate': 'Could not remove the flag.',
   'pd.error.close': 'Could not close the follow-up.',
   'pd.confirmClose': 'Close this follow-up? The patient link will stop working.',
   // rest
@@ -210,6 +211,14 @@ export const PATIENT_FILE_EN = {
   'pf.edit.err.email': 'Enter a valid email address.',
   'pf.edit.err.dobFuture': 'Must be a date in the past.',
   'pf.edit.err.dobOld': 'Must not be before 1900-01-01.',
+  'pf.medical.card': 'Card',
+  'pf.medical.cardExpires': 'expires {date}',
+  'pf.medical.cardNoDate': 'no date',
+  'pf.medical.cardSeen': 'Card seen on {date}',
+  'pf.medical.cardEdit': 'Edit card expiry',
+  'pf.medical.cardExpiryLabel': 'Expiry (MM-YYYY):',
+  'pf.medical.cardExpiryInvalid': 'Enter month and year (e.g. 03-2027). Check the year.',
+  'pf.medical.error.saveCard': 'Could not save the expiry.',
 } as const;
 
 export type PatientFileKey = keyof typeof PATIENT_FILE_EN;

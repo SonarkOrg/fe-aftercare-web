@@ -34,6 +34,30 @@ describe('PatientService', () => {
     req.flush({ ...patient, id: 1 });
   });
 
+  it('addPatient without confirmNew sends no query parameter', () => {
+    service.addPatient(patient).subscribe();
+    const req = httpMock.expectOne(r => r.url === `${base}/register`);
+    expect(req.request.params.keys().length).toBe(0);
+    req.flush({ ...patient, id: 1 });
+  });
+
+  it('addPatient with confirmNew sends ?confirmNew=true', () => {
+    service.addPatient(patient, true).subscribe();
+    const req = httpMock.expectOne(r => r.url === `${base}/register`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.params.get('confirmNew')).toBe('true');
+    expect(req.request.urlWithParams).toBe(`${base}/register?confirmNew=true`);
+    req.flush({ ...patient, id: 1 });
+  });
+
+  it('addPatient accepts a patient with only first and last name', () => {
+    const minimal: Patient = { firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, address: null };
+    service.addPatient(minimal).subscribe();
+    const req = httpMock.expectOne(`${base}/register`);
+    expect(req.request.body).toEqual(minimal);
+    req.flush({ ...minimal, id: 2 });
+  });
+
   it('getPatientList should GET /patients', () => {
     service.getPatientList().subscribe(list => expect(list.length).toBe(1));
     const req = httpMock.expectOne(base);

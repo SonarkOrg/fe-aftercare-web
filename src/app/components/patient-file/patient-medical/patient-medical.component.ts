@@ -1,4 +1,5 @@
 import { Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { PatientDeskService } from '../../../Services/PatientDesk.service';
 import { PatientFileService } from '../../../Services/PatientFile.service';
 import { StaffService } from '../../../Services/Staff.service';
 import { ApiErrorsService } from '../../../i18n/api-errors';
@@ -7,13 +8,14 @@ import { fmtDate, fmtNum } from '../../../i18n/format';
 import { I18nService } from '../../../i18n/i18n.service';
 import { TKey } from '../../../i18n/i18n.types';
 import { ApiError, apiErrorOf } from '../../../models/api-error.model';
+import { CardStatus } from '../../../models/arrival.model';
 import { AllergySeverity, MedicalList, PatientMedical } from '../../../models/medical.model';
 import { Patient } from '../../../models/patient.model';
 import { Staff } from '../../../models/staff.model';
 import { ageOn } from '../../../shared/age.util';
 import { addDays, businessToday } from '../../../shared/link.util';
-import { formatRamq, isValidRamq } from '../../../shared/ramq.util';
-import { ChipSpec, allergyChip } from '../../../shared/status';
+import { formatCardExpiry, formatRamq, isValidRamq, parseCardExpiry } from '../../../shared/ramq.util';
+import { ChipSpec, allergyChip, cardChip } from '../../../shared/status';
 
 export const REVEAL_MS = 30_000;
 
@@ -95,6 +97,12 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
   hnError: string | null = null;
   removeHn = false;
 
+  /* card expiry (phase 1B): « expire 03-2027 », the chip and « Carte vue le … » come with the medical summary */
+  editCard = false;
+  cardValue = '';
+  cardBusy = false;
+  cardError: string | null = null;
+
   /* date of birth */
   editDob = false;
   dobValue = '';
@@ -109,7 +117,7 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
   surgeonOther = false;
   private staffLoaded = false;
 
-  constructor(private files: PatientFileService, private staffService: StaffService, private host: ElementRef<HTMLElement>, public i18n: I18nService, private errors: ApiErrorsService) {}
+  constructor(private files: PatientFileService, private desk: PatientDeskService, private staffService: StaffService, private host: ElementRef<HTMLElement>, public i18n: I18nService, private errors: ApiErrorsService) {}
 
   fmt(iso: string | null | undefined, preset: 'date' | 'dayShortYear'): string {
     return fmtDate(iso, preset, this.i18n.lang);
@@ -219,6 +227,63 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
     setTimeout(() => (document.getElementById('hn-input') as HTMLElement | null)?.focus());
   }
 
+  /* ---------- health card expiry ---------- */
+
+  /** The status as the server computed it; an older answer without it is read from the mask. */
+  get cardStatus(): CardStatus {
+    return this.medical.cardStatus ?? (this.medical.healthNumberMasked ? 'UNKNOWN' : 'NONE');
+  }
+
+  get cardChipSpec(): ChipSpec {
+    return cardChip({ status: this.cardStatus });
+  }
+
+  /** « expire 03-2027 », « aucune date », or null when there is no card on file. */
+  get cardExpiryText(): string | null {
+    if (this.cardStatus === 'NONE') {
+      return null;
+    }
+    const ym = this.medical.cardExpiry;
+    return ym ? this.i18n.t('pf.medical.cardExpires', { date: formatCardExpiry(ym) }) : this.i18n.t('pf.medical.cardNoDate');
+  }
+
+  get cardSeenText(): string | null {
+    const at = this.medical.cardSeenAt;
+    return at ? this.i18n.t('pf.medical.cardSeen', { date: fmtDate(at, 'date', this.i18n.lang) }) : null;
+  }
+
+  openEditCard(): void {
+    this.editCard = true;
+    this.cardError = null;
+    this.cardValue = this.medical.cardExpiry ? formatCardExpiry(this.medical.cardExpiry) : '';
+    setTimeout(() => (document.getElementById('card-expiry-input') as HTMLElement | null)?.focus());
+  }
+
+  saveCard(): void {
+    if (this.cardBusy) {
+      return;
+    }
+    const ym = parseCardExpiry(this.cardValue, this.today);
+    if (!ym) {
+      this.cardError = this.i18n.t('pf.medical.cardExpiryInvalid');
+      return;
+    }
+    this.cardBusy = true;
+    this.cardError = null;
+    this.desk.setHealthCard(this.medical.patientId, { cardExpiry: ym }).subscribe({
+      next: r => {
+        this.cardBusy = false;
+        this.editCard = false;
+        this.medicalChange.emit({ ...this.medical, cardExpiry: r.card.expiry, cardStatus: r.card.status, cardSeenAt: r.card.seenAt });
+      },
+      error: err => {
+        this.cardBusy = false;
+        const msg = apiErrorOf(err)?.fieldErrors['cardExpiry'];
+        this.cardError = msg ? this.errors.fieldText('cardExpiry', msg) : this.errors.text(err, 'pf.medical.error.saveCard');
+      }
+    });
+  }
+
   saveHn(): void {
     if (!this.hnValid || this.hnBusy) {
       return;
@@ -230,7 +295,9 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
         this.hnBusy = false;
         this.editHn = false;
         this.hnValue = '';
-        this.medicalChange.emit({ ...this.medical, healthNumberMasked: r.healthNumberMasked });
+        // a number with no card state yet is a card on file with an unknown expiry
+        const status = this.medical.cardStatus && this.medical.cardStatus !== 'NONE' ? this.medical.cardStatus : 'UNKNOWN';
+        this.medicalChange.emit({ ...this.medical, healthNumberMasked: r.healthNumberMasked, cardStatus: status });
       },
       error: err => {
         this.hnBusy = false;
@@ -247,7 +314,7 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
         this.hnBusy = false;
         this.removeHn = false;
         this.hideRevealed();
-        this.medicalChange.emit({ ...this.medical, healthNumberMasked: null });
+        this.medicalChange.emit({ ...this.medical, healthNumberMasked: null, cardStatus: 'NONE', cardExpiry: null, cardSeenAt: null });
       },
       error: err => {
         this.hnBusy = false;

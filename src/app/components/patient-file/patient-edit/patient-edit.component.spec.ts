@@ -90,7 +90,7 @@ describe('PatientEditComponent', () => {
     put.flush({ ...put.request.body });
     http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs());
     expect(saved.length).toBe(1);
-    expect(saved[0].patient.address.city).toBe('Montréal');
+    expect(saved[0].patient.address!.city).toBe('Montréal');
     expect(saved[0].contactChanged).toBeFalse();
     expect(saved[0].prefs).not.toBeNull();
     expect(closed).toBe(1);
@@ -120,6 +120,63 @@ describe('PatientEditComponent', () => {
     expect(el.textContent).toContain('Must not be before 1900-01-01.');
     expect(input('edit-firstName').getAttribute('aria-invalid')).toBe('true');
     expect(document.activeElement).toBe(input('edit-firstName'));
+  });
+
+  describe('a patient with only a first and a last name', () => {
+    const MINIMAL: Patient = { id: 5, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, address: null, dateOfBirth: null };
+
+    it('opens with empty fields and an empty gender choice, never the word null', async () => {
+      fixture.componentInstance.patient = MINIMAL;
+      await open();
+      for (const id of ['edit-email', 'edit-phone', 'edit-dob', 'edit-city', 'edit-state', 'edit-zip']) {
+        expect(input(id).value).withContext(id).toBe('');
+      }
+      expect((el.querySelector('#edit-gender') as HTMLSelectElement).value).toBe('');
+      expect(Array.from(el.querySelectorAll<HTMLOptionElement>('#edit-gender option')).map(o => o.value)).toEqual(['', 'male', 'female']);
+    });
+
+    it('saves with only the two names: blanks go as null, no address object, and nothing is flagged as required', async () => {
+      fixture.componentInstance.patient = MINIMAL;
+      await open();
+      submit();
+      expect(el.querySelector('.field-error')).toBeNull();
+      const put = http.expectOne(`${api}/patients/5`);
+      expect(put.request.body).toEqual({ id: 5, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, dateOfBirth: null, address: null });
+      put.flush(put.request.body);
+      http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs());
+      expect(saved[0].contactChanged).toBeFalse(); // null before, empty after: not a contact change
+    });
+
+    it('still requires the names and still checks an e-mail that was typed', async () => {
+      fixture.componentInstance.patient = MINIMAL;
+      await open();
+      type('edit-lastName', '');
+      type('edit-email', 'nope');
+      submit();
+      http.expectNone(`${api}/patients/5`);
+      expect(el.textContent).toContain('This field is required.');
+      expect(el.textContent).toContain('Enter a valid email address.');
+      expect(el.querySelectorAll('.field-error').length).toBe(2);
+    });
+
+    it('keeps a partial address: only the typed parts are sent', async () => {
+      fixture.componentInstance.patient = MINIMAL;
+      await open();
+      type('edit-city', 'Laval');
+      submit();
+      const put = http.expectOne(`${api}/patients/5`);
+      expect(put.request.body.address).toEqual({ city: 'Laval', state: null, zip: null });
+      put.flush(put.request.body);
+      http.expectOne(`${api}/patients/5/contact-preferences`).flush(contactPrefs());
+    });
+
+    it('typing a phone is a contact change', async () => {
+      fixture.componentInstance.patient = MINIMAL;
+      await open('GRANTED');
+      expect(el.querySelector('.consent-notice')).toBeNull();
+      type('edit-phone', '514-555-0142');
+      expect(el.querySelector('.consent-notice')).not.toBeNull();
+    });
   });
 
   it('shows the server field errors under their fields, including the address ones', async () => {

@@ -1,6 +1,6 @@
 import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
 
-export type BoxKey = 'up' | 'down' | 'enter' | 'shiftEnter';
+export type BoxKey = 'up' | 'down' | 'enter' | 'shiftEnter' | 'tab';
 
 /**
  * The one input of the Arrivals page. Its text lives only in this field and in the parent's `query`: never in the URL,
@@ -12,6 +12,10 @@ export type BoxKey = 'up' | 'down' | 'enter' | 'shiftEnter';
 })
 export class ArrivalBoxComponent {
   @Input() value = '';
+  /** Translated placeholder; empty means the default one. */
+  @Input() placeholder = '';
+  /** While the walk-in panel is open, Tab changes the visit type instead of moving the focus. */
+  @Input() captureTab = false;
   @Output() valueChange = new EventEmitter<string>();
   @Output() key = new EventEmitter<BoxKey>();
   /** Ctrl+Z / ⌘Z: the page decides whether to call `preventDefault()` (only with an empty box and a visible toast). */
@@ -50,6 +54,12 @@ export class ArrivalBoxComponent {
       case 'ArrowDown': e.preventDefault(); this.key.emit('down'); break;
       case 'ArrowUp': e.preventDefault(); this.key.emit('up'); break;
       case 'Enter': e.preventDefault(); this.key.emit(e.shiftKey ? 'shiftEnter' : 'enter'); break;
+      case 'Tab':
+        if (this.captureTab && !e.shiftKey) {
+          e.preventDefault();
+          this.key.emit('tab');
+        }
+        break;
       default: break;
     }
   }

@@ -1,6 +1,32 @@
-<div class="fd-panel" [attr.data-appt]="row.appointmentId">
+<div class="fd-panel" [attr.data-appt]="row.appointmentId" fdScanGuard>
   <p class="fd-panel__facts" *ngIf="row.patient.dateOfBirth">{{ 'fd.row.born' | t:{ date: (row.patient.dateOfBirth | tzDate:'date') } }}<ng-container *ngIf="row.location"> · {{ row.location }}</ng-container></p>
   <div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ error }}</span></div>
+
+  <div class="fd-panel__block fd-panel__card" *ngIf="hasCardInfo">
+    <p class="fd-panel__note">{{ expiryFact }}</p>
+    <p class="fd-panel__note" *ngIf="notOnFile">{{ 'fd.fix.cardHint' | t }}</p>
+    <div class="fd-panel__expiry" *ngIf="canCapture && !readOnly">
+      <div class="form-group">
+        <label [attr.for]="'fd-expiry-' + row.appointmentId">{{ 'fd.fix.expiryLabel' | t }}</label>
+        <input type="text" class="fd-expiry" [id]="'fd-expiry-' + row.appointmentId" fdScanGuard autocomplete="off" [(ngModel)]="expiryText" name="expiry"
+               (keydown.enter)="$event.preventDefault(); saveExpiry()" [attr.aria-invalid]="expiryError ? 'true' : null">
+        <span class="field-error" *ngIf="expiryError">{{ expiryError }}</span>
+      </div>
+      <button type="button" class="btn btn--secondary fd-expiry-save" [disabled]="busy || !expiryText.trim()" (click)="saveExpiry()">{{ 'fd.fix.save' | t }}</button>
+    </div>
+  </div>
+  <div class="fd-panel__block fd-panel__notes" *ngIf="!readOnly">
+    <div class="btn-row" *ngIf="canNote">
+      <ng-container *appCan="'APPOINTMENT_WRITE'">
+        <button type="button" class="btn btn--secondary fd-note-invalid" [disabled]="busy" (click)="setNote('NOT_VALID_TODAY')">{{ 'fd.fix.noteInvalid' | t }}</button>
+        <button type="button" class="btn btn--secondary fd-note-none" [disabled]="busy" (click)="setNote('NO_CARD')">{{ 'fd.fix.noteNone' | t }}</button>
+      </ng-container>
+    </div>
+    <div class="btn-row" *ngIf="row.cardNote as n">
+      <span class="fd-panel__note">{{ (n.note === 'NO_CARD' ? 'fd.fix.noteNone' : 'fd.fix.noteInvalid') | t }}</span>
+      <button type="button" class="btn btn--ghost fd-note-remove" *appCan="'APPOINTMENT_WRITE'" [disabled]="busy" (click)="setNote(null)">{{ 'fd.fix.noteRemove' | t }}</button>
+    </div>
+  </div>
 
   <ng-container *ngIf="questionnaireMissing && !readOnly">
     <div class="fd-panel__block" *ngIf="askConsent">
@@ -20,6 +46,10 @@
     <app-access-link *ngIf="code" [code]="code"></app-access-link>
   </ng-container>
 
+  <div class="btn-row fd-panel__links fd-walkin-link" *ngIf="walkInLink && !readOnly">
+    <app-send-link *appCan="'APPOINTMENT_WRITE'" kind="appointment" [targetId]="row.appointmentId" [patientId]="row.patient.id"></app-send-link>
+  </div>
+
   <div class="fd-panel__block" *ngIf="!questionnaireMissing && askConsent && !readOnly">
     <p class="fd-panel__q" id="fd-consent-q-{{ row.appointmentId }}">{{ 'fd.fix.consentAskPatient' | t }}</p>
     <div class="btn-row" role="group" *appCan="'PATIENT_WRITE'" [attr.aria-labelledby]="'fd-consent-q-' + row.appointmentId">
@@ -30,5 +60,6 @@
 
   <p class="fd-panel__note" *ngIf="contactMissing && !questionnaireMissing">{{ 'fd.fix.contactMissingHelp' | t }}</p>
   <p class="fd-panel__note" *ngIf="dobMissing">{{ 'fd.fix.dobMissingHelp' | t }}</p>
+  <p class="fd-panel__open" *ngIf="needsCompletion && !readOnly"><a class="btn btn--secondary fd-complete" *appCan="'PATIENT_WRITE'" [routerLink]="['/patients', row.patient.id]" [queryParams]="{ edit: 1 }">{{ 'fd.fix.complete' | t }}</a></p>
   <p class="fd-panel__open"><a class="btn btn--ghost fd-open-file" [routerLink]="['/patients', row.patient.id]">{{ 'fd.row.openFile' | t }}</a></p>
 </div>

@@ -16,7 +16,7 @@ describe('PatientMedicalComponent', () => {
   let http: HttpTestingController;
   let el: HTMLElement;
   const base = `${environment.apiUrl}/patients/5`;
-  const MASKED = 'TREM •••• ••12';
+  const MASKED = '•••• •••• ••12';
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -57,6 +57,126 @@ describe('PatientMedicalComponent', () => {
     q<HTMLElement>(sel).click();
     await settle();
   };
+
+  describe('health card', () => {
+    const withCard = (over: Parameters<typeof medical>[0] = {}) => {
+      component.medical = medical({ cardExpiry: '2027-03', cardStatus: 'OK', cardSeenAt: '2026-10-14T13:00:00Z', ...over });
+      fixture.detectChanges();
+    };
+    const chipText = () => q('.card-row app-status-chip').textContent!.replace(/\s+/g, ' ').trim();
+
+    it('shows « expires 03-2027 », the chip with its glyph and the word, and « Card seen on … »', () => {
+      withCard();
+      const row = q('.card-row');
+      expect(row.textContent).toContain('expires 03-2027');
+      expect(chipText()).toContain('Card on file');
+      expect(row.querySelector('.chip--good')).not.toBeNull();
+      expect(row.textContent).toContain('Card seen on 14 Oct 2026');
+      expect(q('.ramq-value').textContent).toBe(MASKED); // the mask is shown exactly as returned
+    });
+
+    for (const [status, tone, word] of [['EXPIRING', 'warning', 'Card expiring soon'], ['EXPIRED', 'critical', 'Card expired'], ['UNKNOWN', 'info', 'Card expiry unknown']] as const) {
+      it(`${status} is a ${tone} chip with the word « ${word} »`, () => {
+        withCard({ cardStatus: status });
+        expect(q('.card-row').querySelector('.chip--' + tone)).withContext(status).not.toBeNull();
+        expect(chipText()).toContain(word);
+      });
+    }
+
+    it('says « no date » when the card has no expiry yet', () => {
+      withCard({ cardExpiry: null, cardStatus: 'UNKNOWN', cardSeenAt: null });
+      expect(q('.card-row').textContent).toContain('no date');
+      expect(el.querySelector('.card-seen')).toBeNull();
+    });
+
+    it('shows no expiry text and the neutral « No card on file » chip when there is no number', () => {
+      withCard({ healthNumberMasked: null, cardExpiry: null, cardStatus: 'NONE', cardSeenAt: null });
+      expect(q('.card-row').querySelector('.chip--neutral')).not.toBeNull();
+      expect(el.querySelector('.card-expiry')).toBeNull();
+      expect(el.querySelector('.edit-card')).toBeNull();
+    });
+
+    it('stays out of an answer that has no card members and no number', () => {
+      component.medical = medical({ healthNumberMasked: null });
+      fixture.detectChanges();
+      expect(el.querySelector('.card-row')).toBeNull();
+    });
+
+    it('reads an older answer without cardStatus as « expiry unknown » when a number is on file', () => {
+      component.medical = medical({ cardStatus: undefined });
+      fixture.detectChanges();
+      // no card members at all: the row is shown from the mask, as « unknown »
+      component.medical = medical({ cardStatus: undefined, cardExpiry: null });
+      expect(component.cardStatus).toBe('UNKNOWN');
+    });
+
+    it('edits the expiry with PUT health-card {cardExpiry} and shows the answer', async () => {
+      withCard({ cardStatus: 'EXPIRED', cardExpiry: '2025-03' });
+      await click('.edit-card');
+      expect(q<HTMLInputElement>('#card-expiry-input').value).toBe('03-2025');
+      await type('#card-expiry-input', '03/27');
+      await click('.save-card');
+      const put = http.expectOne(`${base}/health-card`);
+      expect(put.request.method).toBe('PUT');
+      expect(put.request.body).toEqual({ cardExpiry: '2027-03' });
+      put.flush({ card: { onFile: true, expiry: '2027-03', status: 'OK', seenAt: '2026-10-14T13:00:00Z', expirySource: 'STAFF' }, warnings: [] });
+      await settle();
+      expect(el.querySelector('#card-expiry-input')).toBeNull();
+      expect(q('.card-row').textContent).toContain('expires 03-2027');
+      expect(chipText()).toContain('Card on file');
+    });
+
+    it('refuses an expiry it cannot read, with the year hint, and sends nothing', async () => {
+      withCard();
+      await click('.edit-card');
+      await type('#card-expiry-input', '1103');
+      await click('.save-card');
+      http.expectNone(`${base}/health-card`);
+      expect(q('#card-err').textContent).toContain('Check the year');
+      expect(q('#card-expiry-input').getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('shows the error and keeps the form open when the save fails', async () => {
+      withCard();
+      await click('.edit-card');
+      await type('#card-expiry-input', '03-2027');
+      await click('.save-card');
+      http.expectOne(`${base}/health-card`).flush({ status: 500, error: 'X', message: 'x', fieldErrors: {} }, { status: 500, statusText: 'Server Error' });
+      await settle();
+      expect(q('#card-err').textContent).toContain('Server error');
+      expect(q('#card-expiry-input')).not.toBeNull(); // the form stays open so the value is not lost
+      expect(component.medical.cardExpiry).toBe('2027-03');
+    });
+
+    it('never puts the expiry in the page when the form is cancelled', async () => {
+      withCard();
+      await click('.edit-card');
+      await type('#card-expiry-input', '09-2030');
+      const cancel = Array.from(el.querySelectorAll<HTMLButtonElement>('.card-form button')).find(b => b.textContent!.includes('Cancel'))!;
+      cancel.click();
+      await settle();
+      expect(q('.card-row').textContent).toContain('expires 03-2027');
+      http.expectNone(`${base}/health-card`);
+    });
+
+    it('removing the number resets the card row to « no card », adding one makes it « expiry unknown »', async () => {
+      withCard();
+      await click('.remove-hn');
+      await click('.confirm-inline__ok');
+      http.expectOne(`${base}/health-number`).flush(null);
+      await settle();
+      expect(component.medical.cardStatus).toBe('NONE');
+      expect(component.medical.cardExpiry).toBeNull();
+      expect(component.medical.cardSeenAt).toBeNull();
+      await click('.edit-hn');
+      await type('#hn-input', 'TREM68541212');
+      await click('.save-hn');
+      http.expectOne(`${base}/health-number`).flush({ healthNumberMasked: MASKED });
+      await settle();
+      expect(component.medical.cardStatus).toBe('UNKNOWN');
+      expect(chipText()).toContain('Card expiry unknown');
+    });
+  });
 
   describe('identity', () => {
     it('shows the masked health number, the date of birth and the age', async () => {

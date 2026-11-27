@@ -1,5 +1,5 @@
 import { testT } from '../testing/i18n-testing.module';
-import { ChipSpec, appointmentChip, arrivalChip, deskChip, reasonChip, alertStatusChip, allergyChip, linkedChip, messagingChip, patientStatusChip, ruleOutcomeChip, severityChip, staffActiveChip, timelineTone } from './status';
+import { ChipSpec, appointmentChip, arrivalChip, cardChip, cardNoteChip, deskChip, reasonChip, alertStatusChip, allergyChip, linkedChip, messagingChip, patientStatusChip, ruleOutcomeChip, severityChip, staffActiveChip, timelineTone } from './status';
 
 const t = testT('en');
 /** The chip with its message keys turned into English text. */
@@ -100,5 +100,23 @@ describe('status chip mappings', () => {
     for (const status of ['COMPLETED', 'CANCELLED', 'NO_SHOW'] as const) {
       expect(arrivalChip({ arrivedAt: '2026-10-14T13:02:00Z', status })).withContext(status).toBeNull();
     }
+  });
+  it('card reasons and notices (phase 1B)', () => {
+    expect(text(reasonChip('CARD_EXPIRED')!)).toEqual({ tone: 'critical', glyph: '▲', label: 'Card expired' });
+    expect(text(reasonChip('CARD_EXPIRING')!)).toEqual({ tone: 'warning', glyph: '●', label: 'Card expiring soon' });
+    expect(text(reasonChip('CARD_NOT_ON_FILE')!)).toEqual({ tone: 'neutral', glyph: '—', label: 'No card on file' });
+    expect(text(reasonChip('CARD_EXPIRY_UNKNOWN')!)).toEqual({ tone: 'info', glyph: 'ℹ', label: 'Card expiry unknown' });
+    expect(text(reasonChip('POSSIBLE_DUPLICATE')!)).toEqual({ tone: 'neutral', glyph: '—', label: 'Possible duplicate flagged' });
+  });
+  it('card chip per status', () => {
+    expect(text(cardChip({ status: 'OK' }))).toEqual({ tone: 'good', glyph: '✓', label: 'Card on file' });
+    expect(text(cardChip({ status: 'EXPIRING' }))).toEqual({ tone: 'warning', glyph: '●', label: 'Card expiring soon' });
+    expect(text(cardChip({ status: 'EXPIRED' }))).toEqual({ tone: 'critical', glyph: '▲', label: 'Card expired' });
+    expect(text(cardChip({ status: 'UNKNOWN' }))).toEqual({ tone: 'info', glyph: 'ℹ', label: 'Card expiry unknown' });
+    expect(text(cardChip({ status: 'NONE' }))).toEqual({ tone: 'neutral', glyph: '—', label: 'No card on file' });
+  });
+  it('card note chip is neutral', () => {
+    expect(text(cardNoteChip('NO_CARD'))).toEqual({ tone: 'neutral', glyph: '—', label: 'No card' });
+    expect(text(cardNoteChip('NOT_VALID_TODAY'))).toEqual({ tone: 'neutral', glyph: '—', label: 'Card not valid today' });
   });
 });

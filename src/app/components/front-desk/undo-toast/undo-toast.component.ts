@@ -1,6 +1,12 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output } from '@angular/core';
 
-export interface ToastState { id: number; message: string; undoable: boolean }
+export interface ToastState {
+  id: number; message: string; undoable: boolean;
+  /** Extra lines under the message (expiry question, family arrivals). */
+  lines?: string[];
+  /** How long it stays; the default is 6 seconds, a toast that asks something stays longer. */
+  ms?: number;
+}
 
 /** How long the toast stays (spec: 6 seconds). */
 export const TOAST_MS = 6000;
@@ -23,7 +29,7 @@ export class UndoToastComponent implements OnChanges, OnDestroy {
       this.timer = setTimeout(() => {
         this.timer = null;
         this.dismissed.emit();
-      }, TOAST_MS);
+      }, this.toast.ms ?? TOAST_MS);
     }
   }
 

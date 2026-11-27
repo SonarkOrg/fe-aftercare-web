@@ -229,17 +229,14 @@ describe('French Arrivals page (P1A-FE-A)', () => {
 
   it('title, KPIs, groups, chips, buttons and the hero line, with Quebec typography', async () => {
     const { ArrivalsComponent } = await import('../components/front-desk/arrivals/arrivals.component');
-    const { ArrivalBoxComponent } = await import('../components/front-desk/arrival-box/arrival-box.component');
-    const { ArrivalRowComponent } = await import('../components/front-desk/arrival-row/arrival-row.component');
-    const { FixPanelComponent } = await import('../components/front-desk/fix-panel/fix-panel.component');
-    const { UndoToastComponent } = await import('../components/front-desk/undo-toast/undo-toast.component');
-    const f = h.create('fr', ArrivalsComponent, [ArrivalBoxComponent, ArrivalRowComponent, FixPanelComponent, UndoToastComponent], false, {}, 'RECEPTION');
+    const { FRONT_DESK_DECLARATIONS } = await import('../components/front-desk/front-desk.testing');
+    const f = h.create('fr', ArrivalsComponent, FRONT_DESK_DECLARATIONS, false, {}, 'RECEPTION');
     await h.settle(f);
     const el = f.nativeElement as HTMLElement;
     const c = f.componentInstance;
     expect(el.querySelector('h1')!.textContent).toBe('Arrivées');
     expect(el.querySelector('.hero__sub')!.textContent).toBe(`mercredi 14 octobre 2026 · mis à jour à 9${NBSP}h${NBSP}41`);
-    expect(Array.from(el.querySelectorAll('.kpi__label')).map(k => k.textContent)).toEqual(['Attendus', 'À vérifier', 'Sur place']);
+    expect(Array.from(el.querySelectorAll('.kpi__label')).map(k => k.textContent)).toEqual(['Attendus', 'À vérifier', 'Sur place', 'Sans rendez-vous']);
     expect(Array.from(el.querySelectorAll('.card__title--sm')).map(t => t.textContent!.trim().replace(/\s*\d+$/, ''))).toEqual(['Attendus', 'Sur place']);
     expect(el.querySelector('#arrive-77')!.textContent!.trim()).toBe('Marquer l\'arrivée');
     expect(el.querySelector('.fd-row__since')!.textContent).toBe(`Sur place depuis 9${NBSP}h${NBSP}02`);
@@ -259,7 +256,7 @@ describe('French Arrivals page (P1A-FE-A)', () => {
     c.keysOpen = false;
     c.cardHint = true;
     f.detectChanges();
-    expect(el.querySelector('.fd-hint')!.textContent).toBe('La lecture de carte arrive à la prochaine étape. Tapez le nom.');
+    expect(el.querySelector('.fd-hint')!.textContent).toBe('Ce numéro ne ressemble pas à un numéro de carte valide. Tapez plutôt le nom.');
     c.cardHint = false;
     c.onQuery('zzzq');
     f.detectChanges();
@@ -273,5 +270,27 @@ describe('French Arrivals page (P1A-FE-A)', () => {
     (c as unknown as { lock(): void }).lock();
     f.detectChanges();
     expect(el.querySelector('.fd-idle')!.textContent).toBe('Écran masqué — appuyez sur une touche pour continuer');
+  });
+
+  it('phase 1B: card banner, results, walk-in and quick-patient texts, with Quebec typography', async () => {
+    const { ArrivalsComponent } = await import('../components/front-desk/arrivals/arrivals.component');
+    const { FRONT_DESK_DECLARATIONS } = await import('../components/front-desk/front-desk.testing');
+    const f = h.create('fr', ArrivalsComponent, FRONT_DESK_DECLARATIONS, false, {}, 'RECEPTION');
+    await h.settle(f);
+    const el = f.nativeElement as HTMLElement;
+    const c = f.componentInstance as unknown as Record<string, unknown> & { openQuick(): void };
+    c['searchKind'] = 'card';
+    c['cardBanner'] = { kind: 'multi', count: 2 };
+    c['found'] = [];
+    f.detectChanges();
+    expect(el.querySelector('.fd-card-banner')!.textContent).toContain(`Même carte sur 2 dossiers — vérifiez la date de naissance`);
+    expect(el.querySelector('.fd-flag-dups')!.textContent).toBe('Signaler comme doublons');
+    expect(el.querySelector('.fd-new-patient')!.textContent).toContain('Nouveau patient');
+    c.openQuick();
+    f.detectChanges();
+    expect(el.querySelector('#fd-quick-title')!.textContent).toBe('Nouveau patient');
+    expect(el.querySelector('label[for=fd-q-dob]')!.textContent).toContain('Date de naissance');
+    expect(el.querySelector('.fd-swap')!.getAttribute('aria-label')).toBe('Inverser le prénom et le nom');
+    expect(el.querySelector('.fd-quick-submit')!.textContent).toBe('Créer le dossier');
   });
 });

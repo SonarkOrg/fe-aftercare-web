@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { permissionGuard } from '../../auth/permission.guard';
+import { SendLinkComponent } from '../../shared/send-link/send-link.component';
 import { SharedModule } from '../../shared/shared.module';
 import { AppointmentFormComponent } from '../appointment-form/appointment-form.component';
 import { AppointmentsComponent } from './appointments.component';
@@ -17,6 +18,6 @@ export const APPOINTMENTS_ROUTES: Routes = [
 /** The appointment schedule and form: lazy-loaded so the initial bundle stays under budget. */
 @NgModule({
   declarations: [AppointmentsComponent, AppointmentFormComponent],
-  imports: [SharedModule, RouterModule.forChild(APPOINTMENTS_ROUTES)]
+  imports: [SharedModule, SendLinkComponent, RouterModule.forChild(APPOINTMENTS_ROUTES)]
 })
 export class AppointmentsPagesModule {}

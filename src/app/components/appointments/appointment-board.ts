@@ -9,7 +9,7 @@ export const MINUTES_SAVED_PER_INTAKE = 5;
 export const HOUR_PX = 96;
 export const MIN_BLOCK_PX = 44;
 
-export type BoardKey = 'review' | 'missing' | 'awaiting' | 'ready' | 'closed';
+export type BoardKey = 'review' | 'missing' | 'awaiting' | 'noForm' | 'ready' | 'closed';
 
 export interface BoardGroup {
   key: BoardKey;
@@ -21,6 +21,9 @@ export interface BoardGroup {
 const byTime = (a: Appointment, b: Appointment) => a.scheduledAt.localeCompare(b.scheduledAt) || a.id - b.id;
 /** Open groups list the people who are already here first (arrival is a timestamp, not a status or a group). */
 const byArrivalThenTime = (a: Appointment, b: Appointment) => Number(!!b.arrivedAt) - Number(!!a.arrivedAt) || byTime(a, b);
+
+/** Strictly null: absent members (older payloads) mean "has a questionnaire". */
+export const hasNoQuestionnaire = (a: Pick<Appointment, 'questionnaireDefinitionId'>): boolean => a.questionnaireDefinitionId === null;
 
 const OPEN_STATUSES = ['SCHEDULED', 'READY', 'NEEDS_REVIEW'];
 
@@ -34,7 +37,9 @@ export function groupForBoard(appts: Appointment[]): BoardGroup[] {
   const defs: { key: BoardKey; title: TKey; collapsed: boolean; test: (a: Appointment) => boolean }[] = [
     { key: 'review', title: 'enum.appointmentStatus.NEEDS_REVIEW', collapsed: false, test: a => a.status === 'NEEDS_REVIEW' },
     { key: 'missing', title: 'chip.appt.questionnaireMissing', collapsed: false, test: a => a.status === 'SCHEDULED' && a.questionnaireMissing },
-    { key: 'awaiting', title: 'appts.group.awaiting', collapsed: false, test: a => a.status === 'SCHEDULED' && !a.questionnaireMissing },
+    { key: 'awaiting', title: 'appts.group.awaiting', collapsed: false, test: a => a.status === 'SCHEDULED' && !a.questionnaireMissing && !hasNoQuestionnaire(a) },
+    // A walk-in created without a questionnaire never waits for one (phase 1B): its own group, no warning, no link action.
+    { key: 'noForm', title: 'appts.noQuestionnaire', collapsed: false, test: a => a.status === 'SCHEDULED' && hasNoQuestionnaire(a) },
     { key: 'ready', title: 'enum.appointmentStatus.READY', collapsed: false, test: a => a.status === 'READY' },
     { key: 'closed', title: 'appts.group.closed', collapsed: true, test: a => ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status) }
   ];

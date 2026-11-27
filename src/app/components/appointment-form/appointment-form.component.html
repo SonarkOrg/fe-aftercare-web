@@ -5,7 +5,10 @@
   </section>
   <section *ngIf="created as c" class="card created">
     <p>{{ 'apptForm.created' | t }}</p>
-    <app-access-link [code]="c.accessCode"></app-access-link>
+    <app-access-link *ngIf="c.accessCode" [code]="c.accessCode"></app-access-link>
+    <!-- no plaintext code without CLINICAL_READ (A-44): reception sends the link instead of copying it -->
+    <app-send-link *ngIf="!c.accessCode && c.appointment.questionnaireDefinitionId !== null" id="created-send-link" kind="appointment"
+                   [targetId]="c.appointment.id" [patientId]="c.appointment.patientId" (sent)="onLinkSent(c.appointment.patientId)"></app-send-link>
     <div class="btn-row"><a class="btn btn--primary" id="go-to-appointment" [routerLink]="['/appointments', c.appointment.id]">{{ 'apptForm.goTo' | t }}</a></div>
   </section>
 

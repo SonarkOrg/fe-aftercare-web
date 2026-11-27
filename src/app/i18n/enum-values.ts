@@ -1,6 +1,6 @@
 import type { AlertSeverity, AlertStatus, AlertType } from '../models/alert.model';
 import type { AppointmentStatus, AppointmentType } from '../models/appointment.model';
-import type { ArrivalSource } from '../models/arrival.model';
+import type { ArrivalSource, CardNote, SharedCardReason } from '../models/arrival.model';
 import type { AuditAction, AuditResource } from '../models/audit.model';
 import type { DocumentCategory } from '../models/document.model';
 import type { FollowUpStatus, Specialty } from '../models/follow-up.model';
@@ -21,6 +21,8 @@ const keys = <T extends string>(r: Record<T, true>): string[] => Object.keys(r);
 
 export const ENUM_VALUES: Record<EnumGroup, string[]> = {
   arrivalSource: keys<ArrivalSource>({ DESK: true, LINK: true, PORTAL: true }),
+  cardNote: keys<CardNote>({ NOT_VALID_TODAY: true, NO_CARD: true }),
+  sharedCardReason: keys<SharedCardReason>({ PARENT_CARD_CHILD_UNDER_1: true, OTHER: true }),
   accessRole: keys<AccessRole>({ ADMIN: true, PHYSICIAN: true, NURSE: true, RECEPTION: true }),
   staffRole: keys<StaffRole>({
     NURSE: true, NURSE_PRACTITIONER: true, PHYSICIAN: true, SURGEON: true, ANESTHESIOLOGIST: true, PHYSIOTHERAPIST: true, PHARMACIST: true,
@@ -48,7 +50,9 @@ export const ENUM_VALUES: Record<EnumGroup, string[]> = {
     STAFF_CREATED: true, STAFF_UPDATED: true, STAFF_DEACTIVATED: true, STAFF_REACTIVATED: true, CLINIC_SETTINGS_UPDATED: true,
     STAFF_ROLE_CHANGED: true, STAFF_BOOTSTRAPPED: true, ACCESS_DENIED: true, CONTACT_PREFERENCES_UPDATED: true, NOTIFICATION_REQUESTED: true,
     NOTIFICATION_SETTINGS_UPDATED: true, RETENTION_SETTINGS_UPDATED: true, RETENTION_DRY_RUN: true, RETENTION_PURGE: true,
-    APPOINTMENT_VIEWED: true, APPOINTMENT_LIST_VIEWED: true, APPOINTMENT_ARRIVED: true, APPOINTMENT_ARRIVAL_UNDONE: true, ACCESS_LINK_ISSUED: true
+    APPOINTMENT_VIEWED: true, APPOINTMENT_LIST_VIEWED: true, APPOINTMENT_ARRIVED: true, APPOINTMENT_ARRIVAL_UNDONE: true, ACCESS_LINK_ISSUED: true,
+    PATIENT_CREATED: true, PATIENT_SEARCHED: true, HEALTH_CARD_UPDATED: true, DUPLICATE_OVERRIDDEN: true, DUPLICATE_FLAGGED: true,
+    DUPLICATE_FLAG_CLEARED: true, SEARCH_LIMIT_REACHED: true, APPOINTMENT_CARD_NOTED: true
   }),
   auditResource: keys<AuditResource>({
     PATIENT: true, HEALTH_NUMBER: true, ALLERGY: true, MEDICATION: true, PROCEDURE: true, DIAGNOSIS: true, EMERGENCY_CONTACT: true, CARE_TEAM: true,

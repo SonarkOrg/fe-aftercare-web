@@ -1,5 +1,5 @@
 import { FhirQuestionnaireResponse } from '../fhir/fhir.model';
-import type { ArrivalSource } from './arrival.model';
+import type { ArrivalSource, CardNote } from './arrival.model';
 import { Specialty } from './follow-up.model';
 
 export type AppointmentType = 'PRE_OP_CONSULT' | 'SURGERY' | 'POST_OP_FOLLOWUP' | 'GENERAL_CONSULT';
@@ -13,9 +13,10 @@ export interface Appointment {
   type: AppointmentType;
   /** Null when redacted for the caller (RECEPTION). */
   specialty: Specialty | null;
-  questionnaireDefinitionId: number;
-  questionnaireUrl: string;
-  questionnaireVersion: string;
+  /** The three questionnaire members are null only for a walk-in without a questionnaire (phase 1B). */
+  questionnaireDefinitionId: number | null;
+  questionnaireUrl: string | null;
+  questionnaireVersion: string | null;
   scheduledAt: string;
   durationMinutes: number;
   location: string | null;
@@ -33,11 +34,14 @@ export interface Appointment {
   arrivedAt: string | null;
   arrivalSource: ArrivalSource | null;
   walkIn: boolean;
+  /** Phase 1B: a marker for whoever bills; absent on older payloads. */
+  cardNote?: CardNote | null;
 }
 
 export interface AppointmentWithCode {
   appointment: Appointment;
-  accessCode: string;
+  /** Null for callers without CLINICAL_READ (A-44: reception sends the link, never sees the code). */
+  accessCode: string | null;
 }
 
 export interface ReadinessFlagView {

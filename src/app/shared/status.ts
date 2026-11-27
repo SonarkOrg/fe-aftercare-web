@@ -1,6 +1,6 @@
 import { AlertSeverity, AlertStatus } from '../models/alert.model';
 import { AppointmentStatus } from '../models/appointment.model';
-import type { DeskState } from '../models/arrival.model';
+import type { CardNote, CardStatus, DeskState } from '../models/arrival.model';
 import { AllergySeverity } from '../models/medical.model';
 import { TimelineItem } from '../models/timeline.model';
 import { PatientStatus } from './care.model';
@@ -70,6 +70,11 @@ export function reasonChip(code: string): ChipSpec | null {
     case 'CONTACT_MISSING': return chip('warning', 'chip.reason.CONTACT_MISSING');
     case 'DOB_MISSING': return chip('warning', 'chip.reason.DOB_MISSING');
     case 'CONSENT_UNKNOWN': return chip('info', 'chip.reason.CONSENT_UNKNOWN');
+    case 'CARD_EXPIRED': return chip('critical', 'chip.reason.CARD_EXPIRED');
+    case 'CARD_EXPIRING': return chip('warning', 'chip.reason.CARD_EXPIRING');
+    case 'CARD_NOT_ON_FILE': return chip('neutral', 'chip.reason.CARD_NOT_ON_FILE');
+    case 'CARD_EXPIRY_UNKNOWN': return chip('info', 'chip.reason.CARD_EXPIRY_UNKNOWN');
+    case 'POSSIBLE_DUPLICATE': return chip('neutral', 'chip.reason.POSSIBLE_DUPLICATE');
     default: return null;
   }
 }
@@ -81,6 +86,36 @@ export function reasonChip(code: string): ChipSpec | null {
 export function arrivalChip(a: { arrivedAt: string | null; status: AppointmentStatus }): ChipSpec | null {
   const open = a.status === 'SCHEDULED' || a.status === 'READY' || a.status === 'NEEDS_REVIEW';
   return a.arrivedAt && open ? chip('good', 'chip.desk.ARRIVED') : null;
+}
+
+/** The state of a health card on a file (never « valide »: we have no access to the RAMQ eligibility service). */
+export function cardChip(card: { status: CardStatus; onFile?: boolean }): ChipSpec {
+  if (card.onFile === false && card.status !== 'NONE') {
+    // an expiry was noted but no number is on file: never « Carte au dossier » (review p1b)
+    return chip('info', 'chip.card.EXPIRY_ONLY');
+  }
+  switch (card.status) {
+    case 'OK': return chip('good', 'chip.card.OK');
+    case 'EXPIRING': return chip('warning', 'chip.card.EXPIRING');
+    case 'EXPIRED': return chip('critical', 'chip.card.EXPIRED');
+    case 'UNKNOWN': return chip('info', 'chip.card.UNKNOWN');
+    default: return chip('neutral', 'chip.card.NONE');
+  }
+}
+
+/** The tag of a visit created at the desk without an appointment. */
+export function walkInChip(): ChipSpec {
+  return chip('neutral', 'appts.walkInTag');
+}
+
+/** A walk-in without a questionnaire (no link exists): neutral, so the desk can tell it apart. */
+export function noQuestionnaireChip(): ChipSpec {
+  return chip('neutral', 'appts.noQuestionnaire');
+}
+
+/** The marker the desk puts on an arrived row for whoever bills; neutral, it blocks nothing. */
+export function cardNoteChip(note: CardNote): ChipSpec {
+  return chip('neutral', note === 'NO_CARD' ? 'chip.cardNote.NO_CARD' : 'chip.cardNote.NOT_VALID_TODAY');
 }
 
 export function allergyChip(s: AllergySeverity): ChipSpec {

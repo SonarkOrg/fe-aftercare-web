@@ -28,12 +28,25 @@ export const AUDIT = { id: 1, occurredAt: '2026-10-14T15:00:00Z', actorName: 'De
 
 export function respond(url: string, method: string): unknown {
   const path = url.replace(/^https?:\/\/[^/]+\/api/, '').split('?')[0];
+  if (method === 'POST' && path === '/patients/search') {
+    return F.searchResult();
+  }
+  if (method === 'POST' && path === '/patients/quick') {
+    return { patient: F.deskPatient({ id: 40, firstName: 'Zzz-Test', lastName: 'Arrivee' }), warnings: [] };
+  }
+  if ((method === 'PUT' || method === 'DELETE') && /^\/patients\/\d+\/health-card$/.test(path)) {
+    return { card: F.card(), warnings: [] };
+  }
+  if (method === 'POST' && path === '/appointments/walk-in') {
+    return F.arrivalRow({ appointmentId: 90, walkIn: true, questionnaire: 'NONE' });
+  }
   if (method !== 'GET') {
     return {};
   }
   const routes: [RegExp, unknown][] = [
     [/^\/me$/, F.me('ADMIN')],
     [/^\/patients$/, [F.JANE, { ...F.JANE, id: 6, firstName: 'Luc', lastName: 'Roy', activeFollowUp: null }]],
+    [/^\/patients\/duplicate-flags$/, [{ id: 1, a: F.deskPatient(), b: F.deskPatient({ id: 15, firstName: 'Marie-Ève' }), flaggedAt: '2026-10-14T13:00:00Z', flaggedByName: 'Dev Reception' }]],
     [/^\/patients\/\d+$/, F.JANE],
     [/^\/patients\/\d+\/medical$/, F.medical()],
     [/^\/patients\/\d+\/follow-ups$/, [F.followUp()]],
@@ -44,7 +57,8 @@ export function respond(url: string, method: string): unknown {
     [/^\/appointments\/metrics$/, METRICS],
     [/^\/appointments\/arrivals$/, F.arrivals({
       counts: { expected: 2, toCheck: 1, arrived: 1, walkIns: 0, closed: 0 },
-      rows: [F.arrivalRow(), F.arrivalRow({ appointmentId: 78, scheduledAt: '2026-10-14T14:30:00', status: 'SCHEDULED', questionnaire: 'MISSING', patient: F.deskPatient({ id: 13, firstName: 'Jean', lastName: 'Gagnon', contactConsent: 'UNKNOWN' }),
+      walkInOptions: [{ type: 'GENERAL_CONSULT', specialty: 'ORTHOPEDIC_SURGERY' }],
+      rows: [F.arrivalRow({ patient: F.deskPatient({ card: F.card(), possibleDuplicate: false }) }), F.arrivalRow({ appointmentId: 78, scheduledAt: '2026-10-14T14:30:00', status: 'SCHEDULED', questionnaire: 'MISSING', patient: F.deskPatient({ id: 13, firstName: 'Jean', lastName: 'Gagnon', contactConsent: 'UNKNOWN' }),
         desk: { state: 'CHECK', reasons: ['QUESTIONNAIRE_MISSING'], notices: ['CONSENT_UNKNOWN'] } }),
         F.arrivalRow({ appointmentId: 79, scheduledAt: '2026-10-14T09:00:00', patient: F.deskPatient({ id: 14, firstName: 'Sophie', lastName: 'Roy' }),
         arrival: { arrivedAt: '2026-10-14T13:02:00Z', source: 'DESK', byName: 'Dev Reception' }, desk: { state: 'ARRIVED', reasons: [], notices: [] } })]

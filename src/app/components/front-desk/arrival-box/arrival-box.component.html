@@ -1,6 +1,6 @@
 <div class="search-pill fd-box">
   <app-icon name="search" [size]="18"></app-icon>
   <input #input id="arrival-box" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text"
-         [value]="value" [attr.aria-label]="'fd.box.label' | t" [placeholder]="'fd.box.placeholder' | t"
+         [value]="value" [attr.aria-label]="'fd.box.labelCard' | t" [placeholder]="placeholder || ('fd.box.placeholder' | t)"
          (input)="onInput($any($event.target).value)" (keydown)="onKeydown($event)">
 </div>

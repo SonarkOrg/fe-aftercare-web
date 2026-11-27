@@ -12,7 +12,7 @@ import { environment } from '../../../environments/environment';
 import { AccessRole } from '../../models/me.model';
 import { Patient } from '../../models/patient.model';
 import { addDays, businessToday } from '../../shared/link.util';
-import { SEED_RULES, alertDto, appointment, checkInDto, followUp, providePermissions } from '../../testing/fixtures';
+import { SEED_RULES, alertDto, appointment, checkInDto, deskPatient, followUp, patientMatch, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { PatientsComponent } from './patients.component';
 import { I18nTestingModule } from '../../testing/i18n-testing.module';
@@ -242,14 +242,189 @@ describe('PatientsComponent', () => {
     expect(el.textContent).toContain('This patient has records and cannot be deleted.');
   });
 
-  describe('add-patient drawer', () => {
-    it('opens, focuses first name, traps nothing outside and closes on Esc returning focus', async () => {
+  describe('a health card number in the search box', () => {
+    const NAM = 'TREM68541212';
+    /** The ?q= write is debounced (a scan must not leave its letters in the URL). */
+    const urlWritten = async () => {
+      await new Promise(r => setTimeout(r, PatientsComponent.URL_DEBOUNCE_MS + 50));
+      await fixture.whenStable();
+    };
+
+    it('is not written to ?q=, empties the box and shows the hint', async () => {
+      init();
+      const input = el.querySelector<HTMLInputElement>('#patient-search')!;
+      input.value = NAM;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(router.url).not.toContain('q=');
+      expect(router.url).not.toContain('TREM');
+      expect(input.value).toBe('');
+      expect(component.query).toBe('');
+      expect(el.querySelector('.card-hint')!.textContent).toContain('This looks like a health card number');
+      expect(el.textContent).not.toContain(NAM);
+    });
+
+    for (const typed of ['TREM 6854 1212', 'trem-6854-1212', 'TREM 68 54 12 12', 'TREM.6854.1212']) {
+      it(`also catches « ${typed} »`, async () => {
+        init();
+        component.setQuery(typed);
+        await fixture.whenStable();
+        expect(router.url).not.toContain('q=');
+        expect(component.cardHint).toBeTrue();
+      });
+    }
+
+    it('strips a number that arrives in the address bar and keeps the list unfiltered', async () => {
+      await router.navigateByUrl('/?q=TREM68541212');
+      init();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(router.url).not.toContain('TREM');
+      expect(component.query).toBe('');
+      expect(rows().length).toBe(3);
+      expect(el.querySelector('.card-hint')).not.toBeNull();
+    });
+
+    it('a name still goes to ?q= and removes the hint', async () => {
+      init();
+      component.setQuery(NAM);
+      component.setQuery('tremblay');
+      await urlWritten();
+      expect(router.url).toBe('/?q=tremblay');
+      expect(component.cardHint).toBeFalse();
+    });
+
+    it('a scan typed one character at a time never puts a letter or digit of it in ?q=', async () => {
+      init();
+      for (let i = 1; i <= NAM.length; i++) {
+        component.setQuery(NAM.slice(0, i));
+      }
+      await fixture.whenStable();
+      expect(router.url).not.toContain('q=');
+    });
+
+    for (const partial of ['TREM6', 'TREM 6854', 'trem.68.54.12']) {
+      it(`keeps the start of a number « ${partial} » out of the URL`, async () => {
+        init();
+        component.setQuery(partial);
+        await fixture.whenStable();
+        expect(router.url).not.toContain('q=');
+      });
+    }
+
+    it('a partial number that is not yet card-shaped is still a name filter', async () => {
+      init();
+      component.setQuery('trem');
+      await urlWritten();
+      expect(router.url).toBe('/?q=trem');
+    });
+  });
+
+  describe('flagged duplicates', () => {
+    const FLAGS = `${base}/duplicate-flags`;
+    /** The pairs view is a lazily imported component: wait for its chunk, which asks for the flags when it starts. */
+    const viewReady = async () => {
+      for (let i = 0; i < 100 && !el.querySelector('app-duplicate-pairs'); i++) {
+        await new Promise(r => setTimeout(r, 5));
+      }
+      fixture.detectChanges();
+    };
+    const pair = { id: 1, a: deskPatient({ id: 4, firstName: 'Zzz-Test', lastName: 'Arrivee', dateOfBirth: '1990-01-15' }),
+      b: deskPatient({ id: 15, firstName: 'Zzz-Test Cadet', lastName: 'Arrivee', dateOfBirth: null }), flaggedAt: '2026-10-14T13:00:00Z', flaggedByName: 'Dev Reception' };
+
+    it('lists the pairs of GET duplicate-flags?status=OPEN with an « Open » link on each file', async () => {
+      init();
+      el.querySelector<HTMLButtonElement>('#filter-duplicates')!.click();
+      await fixture.whenStable();
+      await viewReady();
+      const req = http.expectOne(r => r.url === FLAGS);
+      expect(req.request.params.get('status')).toBe('OPEN');
+      req.flush([pair]);
+      fixture.detectChanges();
+      expect(router.url).toBe('/?duplicates=1');
+      const li = el.querySelector('.dup-pair')!;
+      expect(li.textContent).toContain('Zzz-Test Arrivee');
+      expect(li.textContent).toContain('Zzz-Test Cadet Arrivee');
+      expect(li.textContent).toContain('Born');
+      expect(li.textContent).toContain('Date of birth unknown');
+      expect(li.textContent).toContain('Flagged on');
+      expect(li.textContent).toContain('Dev Reception');
+      const hrefs = Array.from(li.querySelectorAll('a.btn')).map(a => a.getAttribute('href'));
+      expect(hrefs).toEqual(['/patients/4', '/patients/15']);
+      expect(li.getAttribute('aria-label')).toContain('Zzz-Test Arrivee');
+      expect(el.querySelector('#filter-duplicates')!.getAttribute('aria-pressed')).toBe('true');
+      expect(rows().length).toBe(0); // the patient list is replaced, not stacked
+    });
+
+    it('opens from ?duplicates=1, and the pill toggles it off again', async () => {
+      await router.navigateByUrl('/?duplicates=1');
+      init();
+      await viewReady();
+      http.expectOne(r => r.url === FLAGS).flush([pair]);
+      fixture.detectChanges();
+      expect(component.duplicatesView).toBeTrue();
+      el.querySelector<HTMLButtonElement>('#filter-duplicates')!.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(component.duplicatesView).toBeFalse();
+      expect(el.querySelector('app-duplicate-pairs')).toBeNull();
+      expect(router.url).toBe('/');
+      expect(rows().length).toBe(3);
+      expect(http.match(r => r.url === FLAGS).length).toBe(0);
+    });
+
+    it('says so when no pair is flagged', async () => {
+      await router.navigateByUrl('/?duplicates=1');
+      init();
+      await viewReady();
+      http.expectOne(r => r.url === FLAGS).flush([]);
+      fixture.detectChanges();
+      expect(el.querySelector('.dup-pairs')!.textContent).toContain('No duplicates flagged.');
+    });
+
+    it('shows an error with Retry when the list cannot be loaded', async () => {
+      spyOn(console, 'error');
+      await router.navigateByUrl('/?duplicates=1');
+      init();
+      await viewReady();
+      http.expectOne(r => r.url === FLAGS).flush('x', { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+      expect(el.querySelector('.dup-pairs .error-message')!.textContent).toContain('Could not load the flagged duplicates.');
+      el.querySelector<HTMLButtonElement>('.dup-pairs .error-message button')!.click();
+      http.expectOne(r => r.url === FLAGS).flush([pair]);
+      fixture.detectChanges();
+      expect(el.querySelectorAll('.dup-pair').length).toBe(1);
+    });
+  });
+
+  describe('a patient with no e-mail, phone, gender or address', () => {
+    it('is listed with « — » instead of a blank or the word null', () => {
+      init([{ id: 8, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, address: null, activeFollowUp: null }]);
+      const row = rows()[0];
+      expect(row.textContent).toContain('Zzz-Test Seul');
+      expect(row.querySelector('.row__sub')!.textContent!.trim()).toBe('—');
+      expect(row.textContent).not.toContain('null');
+      expect(row.textContent).not.toContain('undefined');
+    });
+  });
+
+  describe('add-patient drawer (created on first use)', () => {
+    /** The drawer is a lazily imported component: wait for its chunk. */
+    const drawerReady = async () => {
+      for (let i = 0; i < 100 && !el.querySelector('.drawer'); i++) {
+        await new Promise(r => setTimeout(r, 5));
+      }
+      fixture.detectChanges();
+    };
+
+    it('opens, focuses first name, and closes on Esc returning focus', async () => {
       init();
       const trigger = el.querySelector('#open-add-patient') as HTMLButtonElement;
       document.body.appendChild(el);
       trigger.focus();
       trigger.click();
-      fixture.detectChanges();
+      await drawerReady();
       expect(el.querySelector('.drawer')!.getAttribute('role')).toBe('dialog');
       expect(document.body.classList).toContain('drawer-open');
       await new Promise(r => setTimeout(r));
@@ -262,93 +437,68 @@ describe('PatientsComponent', () => {
       el.remove();
     });
 
-    it('Tab cycles inside the drawer: from the last control to the first, Shift+Tab from the first to the last', async () => {
-      init();
-      document.body.appendChild(el);
-      component.openDrawer(null);
-      fixture.detectChanges();
-      await new Promise(r => setTimeout(r));
-      const drawer = el.querySelector('.drawer') as HTMLElement;
-      const focusables = Array.from(drawer.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]'));
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      expect(first.getAttribute('aria-label')).toBe('Close');
-      expect(last.textContent).toContain('Cancel'); // the submit button is disabled until the form is valid
-      const press = (shiftKey: boolean) => {
-        const ev = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, cancelable: true, bubbles: true });
-        document.dispatchEvent(ev);
-        return ev;
-      };
-      last.focus();
-      expect(press(false).defaultPrevented).toBeTrue();
-      expect(document.activeElement).toBe(first);
-      expect(press(true).defaultPrevented).toBeTrue();
-      expect(document.activeElement).toBe(last);
-      // in the middle the browser's own Tab order is left alone
-      focusables[2].focus();
-      expect(press(false).defaultPrevented).toBeFalse();
-      expect(drawer.contains(document.activeElement)).toBeTrue();
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-      el.remove();
-    });
-
-    it('?add=1 opens it', async () => {
+    it('?add=1 opens it, and closing removes the parameter', async () => {
       await router.navigateByUrl('/?add=1');
       init();
+      await drawerReady();
       expect(el.querySelector('.drawer')).not.toBeNull();
+      component.closeDrawer();
+      await fixture.whenStable();
+      expect(router.url).toBe('/');
+      component.ngOnDestroy();
     });
 
-    it('sends the optional date of birth, null when left empty', () => {
+    it('a patient created in the drawer closes it, reloads the list and shows the notice', async () => {
       init([]);
       component.openDrawer(null);
+      await drawerReady();
+      const type = (id: string, v: string) => {
+        const i = el.querySelector<HTMLInputElement>('#' + id)!;
+        i.value = v;
+        i.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      type('new-firstName', 'Zzz-Test');
+      type('new-lastName', 'Seul');
       fixture.detectChanges();
-      expect(el.querySelector<HTMLInputElement>('#new-dob')!.max).toBe(addDays(businessToday(), -1));
-      component.patient = { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', phone: '555-0111', gender: 'female', dateOfBirth: '', address: { city: 'Austin', state: 'TX', zip: '73301' } };
-      component.addPatient();
-      const post = http.expectOne(`${base}/register`);
-      expect(post.request.body.dateOfBirth).toBeNull();
-      post.flush({ ...post.request.body, id: 9 });
-      http.match(() => true).forEach(r => r.flush([]));
-    });
-
-    it('POSTs a new patient without id, closes, reloads and shows a notice', () => {
-      init([]);
-      component.openDrawer(null);
+      (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+      http.expectOne(`${base}/register`).flush({ id: 9, firstName: 'Zzz-Test', lastName: 'Seul' });
       fixture.detectChanges();
-      component.patient = { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', phone: '555-0111', gender: 'female', address: { city: 'Austin', state: 'TX', zip: '73301' } };
-      expect(component.isFormValid()).toBeTrue();
-      component.addPatient();
-      expect(component.saving).toBeTrue();
-      const post = http.expectOne(`${base}/register`);
-      expect(post.request.method).toBe('POST');
-      expect('id' in post.request.body).toBeFalse();
-      post.flush({ ...post.request.body, id: 9 });
-      expect(component.saving).toBeFalse();
-      expect(component.patient.firstName).toBe('');
       expect(component.drawerOpen).toBeFalse();
+      expect(el.querySelector('.drawer')).toBeNull();
       flushFeeds([sophie]);
       expect(el.textContent).toContain('Patient added.');
       component.ngOnDestroy();
     });
 
-    it('shows each server field message under its own input on VALIDATION_FAILED', () => {
-      spyOn(console, 'error');
+    it('says so when only the messages answer could not be saved, and still closes', async () => {
       init([]);
       component.openDrawer(null);
-      fixture.detectChanges();
-      component.patient = { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', phone: '555-0111', gender: 'female', address: { city: 'Austin', state: 'TX', zip: '73301' } };
-      component.addPatient();
-      http.expectOne(`${base}/register`).flush(
-        { status: 400, error: 'VALIDATION_FAILED', message: 'x', fieldErrors: { phone: 'must be a valid phone number', 'address.zip': 'must be a valid postal code' } },
-        { status: 400, statusText: 'Bad Request' });
-      fixture.detectChanges();
-      const under = (id: string) => el.querySelector(`#${id}`)!.parentElement!.querySelector('.field-error')?.textContent?.trim();
-      expect(under('new-phone')).toBe('Invalid phone number.');
-      expect(under('new-zip')).toBe('Invalid postal code.');
-      expect(under('new-email')).toBeUndefined();
+      await drawerReady();
+      const drawer = (component as any).drawerRef.instance;
+      drawer.patient = { ...drawer.patient, firstName: 'Zzz-Test', lastName: 'Parent', phone: '514-555-0142' };
+      drawer.consent = 'GRANTED';
+      drawer.addPatient();
+      http.expectOne(`${base}/register`).flush({ id: 9 });
+      http.expectOne(`${base}/9/contact-consent`).flush({ status: 500, error: 'X', message: 'x', fieldErrors: {} }, { status: 500, statusText: 'Server Error' });
+      expect(component.drawerOpen).toBeFalse();
+      expect(component.notice).toContain('Patient created, but the answer about messages was not saved');
+      flushFeeds([sophie]);
+      component.ngOnDestroy();
     });
 
-    it('clears a stale delete error once a patient is added', () => {
+    it('« Use this file » closes the drawer and opens that file, creating nothing', async () => {
+      init([]);
+      component.openDrawer(null);
+      await drawerReady();
+      const nav = spyOn(router, 'navigate').and.resolveTo(true);
+      (component as any).drawerRef.instance.useExisting.emit(31);
+      expect(nav).toHaveBeenCalledWith(['/patients', 31]);
+      expect(component.drawerOpen).toBeFalse();
+      expect(http.match(r => r.url === `${base}/register`).length).toBe(0);
+      component.ngOnDestroy();
+    });
+
+    it('clears a stale delete error once a patient is added', async () => {
       spyOn(console, 'error');
       init([marie]);
       spyOn(window, 'confirm').and.returnValue(true);
@@ -356,11 +506,14 @@ describe('PatientsComponent', () => {
       http.expectOne(`${base}/1`).flush({ status: 409, error: 'PATIENT_HAS_RECORDS', message: 'x', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
       expect(component.actionError).not.toBeNull();
       component.openDrawer(null);
-      component.patient = { firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', phone: '555-0111', gender: 'female', address: { city: 'Austin', state: 'TX', zip: '73301' } };
-      component.addPatient();
+      await drawerReady();
+      const drawer = (component as any).drawerRef.instance;
+      drawer.patient = { ...drawer.patient, firstName: 'Ann', lastName: 'Lee' };
+      drawer.addPatient();
       http.expectOne(`${base}/register`).flush({ id: 9 });
       expect(component.actionError).toBeNull();
       http.match(() => true).forEach(r => r.flush([]));
+      component.ngOnDestroy();
     });
   });
 });
@@ -466,7 +619,7 @@ describe('PatientsComponent by access role', () => {
 
     it('hides the status, follow-up, last check-in and pain columns, the status filters and the alert sort', () => {
       expect(Array.from(el.querySelectorAll('.prow--head > span')).map(s => s.textContent!.trim().replace(/\s+/g, ' ')).filter(Boolean)).toEqual(['Patient', 'Next appointment']);
-      for (const sel of ['.prow__status', '.c-fu', '.c-last', '.c-pain', 'app-status-chip', '.pill-group', 'app-trend-chart']) {
+      for (const sel of ['.prow__status', '.c-fu', '.c-last', '.c-pain', 'app-status-chip', '[data-filter]', 'app-trend-chart']) {
         expect(el.querySelector(sel)).withContext(sel).toBeNull();
       }
       expect(Array.from(el.querySelectorAll<HTMLOptionElement>('#sort-key option')).map(o => o.textContent!.trim())).toEqual(['Name', 'Next appointment']);

@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Component, ElementRef, HostListener, Inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ComponentRef, Inject, OnDestroy, OnInit, ViewChild, ViewContainerRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { CareDataService } from '../../Services/CareData.service';
@@ -39,8 +39,21 @@ export function normalizeText(s: string): string {
   return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 }
 
-function emptyPatient(): Patient {
-  return { firstName: '', lastName: '', email: '', phone: '', gender: 'male', dateOfBirth: null, address: { city: '', state: '', zip: '' } };
+/**
+ * Text that holds a complete health insurance number (4 letters then 8 digits, whatever separators in between: spaces, dots,
+ * hyphens, pairs of digits). It is never written to the URL and never kept in the page. A looser twin of `looksLikeNam`
+ * (shared/ramq.util), kept local so the eager Patients chunk does not pull that module in.
+ */
+function isCardText(text: string): boolean {
+  return /[a-z]{4}\d{8}/i.test(text.replace(/[^a-z0-9]/gi, ''));
+}
+
+/**
+ * Text that could be the START of a health number (4 letters then a digit, separators ignored): it stays in the box and
+ * filters, but is never written to `?q=` (a keyboard-wedge scan types the number one character at a time, spec 3.1.8).
+ */
+function mayBeCardText(text: string): boolean {
+  return /[a-z]{4}\d/i.test(text.replace(/[^a-z0-9]/gi, ''));
 }
 
 @Component({
@@ -48,20 +61,17 @@ function emptyPatient(): Patient {
   templateUrl: './patients.component.html'
 })
 export class PatientsComponent implements OnInit, OnDestroy {
-  patient: Patient = emptyPatient();
   rows: PatientRow[] = [];
   today = '';
-  /** Latest selectable date of birth: yesterday in the clinic's time zone. */
-  readonly dobMax = addDays(businessToday(), -1);
   loading = true;
   errorMessage: string | null = null;
   actionError: string | null = null;
   notice: string | null = null;
-  saving = false;
-  addError: string | null = null;
-  /** Per-field messages of a VALIDATION_FAILED answer to the add-patient form, by field name ("address.city"). */
-  fieldErrors: Record<string, string> = {};
   drawerOpen = false;
+  /** The search box held a health card number: it was emptied and the hint is shown. */
+  cardHint = false;
+  /** "Flagged duplicates" view: the pairs of GET /patients/duplicate-flags instead of the list. */
+  duplicatesView = false;
 
   /** Status, follow-up and alert data exist only with CLINICAL_READ (the server sends them as null otherwise). */
   clinical = false;
@@ -75,7 +85,10 @@ export class PatientsComponent implements OnInit, OnDestroy {
   relativeDay = relativeDay;
   chipOf = patientStatusChip;
 
-  @ViewChild('drawerEl') drawerEl?: ElementRef<HTMLElement>;
+  @ViewChild('drawerHost', { read: ViewContainerRef, static: true }) drawerHost!: ViewContainerRef;
+  private drawerRef?: ComponentRef<unknown>;
+  @ViewChild('dupHost', { read: ViewContainerRef, static: true }) dupHost!: ViewContainerRef;
+  private dupRef?: ComponentRef<unknown>;
   private trigger: HTMLElement | null = null;
   private sub = new Subscription();
   private noticeTimer?: ReturnType<typeof setTimeout>;
@@ -100,7 +113,16 @@ export class PatientsComponent implements OnInit, OnDestroy {
     this.sub.add(this.route.queryParamMap.subscribe(q => {
       const status = q.get('status') as StatusFilter | null;
       this.statusFilter = this.clinical && FILTERS.some(f => f.key === status) ? status! : 'all';
-      this.query = q.get('q') ?? '';
+      const raw = q.get('q') ?? '';
+      if (mayBeCardText(raw)) {
+        // a number (or its start) typed or pasted into the address bar: drop it from the URL at once and keep it out of the page
+        this.query = '';
+        this.cardHint = isCardText(raw);
+        this.router.navigate([], { relativeTo: this.route, queryParams: { q: null }, queryParamsHandling: 'merge', replaceUrl: true });
+      } else {
+        this.query = raw;
+      }
+      this.setDuplicatesView(q.get('duplicates') === '1' && this.permissions.can('PATIENT_READ'));
       if (q.get('add') === '1' && !this.drawerOpen) {
         this.openDrawer(null);
       }
@@ -110,7 +132,10 @@ export class PatientsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.sub.unsubscribe();
+    this.dupRef?.destroy();
+    this.drawerRef?.destroy();
     clearTimeout(this.noticeTimer);
+    clearTimeout(this.urlTimer);
     this.doc.body.classList.remove('drawer-open');
   }
 
@@ -211,14 +236,115 @@ export class PatientsComponent implements OnInit, OnDestroy {
     this.router.navigate([], { relativeTo: this.route, queryParams: { status: key === 'all' ? null : key }, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
+  /** Input handler of the search box: a health card number empties the box, the rest filters by name. */
+  onSearchInput(e: Event): void {
+    const el = e.target as HTMLInputElement;
+    this.setQuery(el.value);
+    if (this.cardHint) {
+      el.value = '';
+    }
+  }
+
   setQuery(q: string): void {
+    if (isCardText(q)) {
+      this.query = '';
+      this.cardHint = true;
+      this.router.navigate([], { relativeTo: this.route, queryParams: { q: null }, queryParamsHandling: 'merge', replaceUrl: true });
+      return;
+    }
+    this.cardHint = false;
     this.query = q;
-    this.router.navigate([], { relativeTo: this.route, queryParams: { q: q.trim() ? q : null }, queryParamsHandling: 'merge', replaceUrl: true });
+    if (mayBeCardText(q)) {
+      // possibly a number being scanned or typed: filter, but leave the URL as it was (navigating would also re-read ?q=
+      // into the box and empty it mid-scan, sending the remaining digits to the URL)
+      return;
+    }
+    // debounced: a keyboard-wedge scan types its letters before its digits, and its letters must not reach the URL either
+    clearTimeout(this.urlTimer);
+    this.urlTimer = setTimeout(() => {
+      if (this.query !== q || mayBeCardText(q)) {
+        return;
+      }
+      this.router.navigate([], { relativeTo: this.route, queryParams: { q: q.trim() ? q : null }, queryParamsHandling: 'merge', replaceUrl: true });
+    }, PatientsComponent.URL_DEBOUNCE_MS);
+  }
+
+  private urlTimer: ReturnType<typeof setTimeout> | undefined;
+  static readonly URL_DEBOUNCE_MS = 400;
+
+  /* ---------- add patient drawer (a standalone component, created on first use) ---------- */
+
+  openDrawer(trigger: HTMLElement | null): void {
+    this.trigger = trigger ?? (this.doc.activeElement as HTMLElement | null);
+    this.drawerOpen = true;
+    this.doc.body.classList.add('drawer-open');
+    import('./add-patient-drawer/add-patient-drawer.component').then(m => {
+      if (!this.drawerOpen || this.drawerRef) {
+        return;
+      }
+      const ref = this.drawerHost.createComponent(m.AddPatientDrawerComponent);
+      ref.instance.closed.subscribe(() => this.closeDrawer());
+      ref.instance.created.subscribe(r => this.onCreated(r.consentSaved));
+      ref.instance.useExisting.subscribe(id => {
+        this.closeDrawer();
+        this.router.navigate(['/patients', id]);
+      });
+      this.drawerRef = ref;
+      ref.changeDetectorRef.detectChanges();
+    });
+  }
+
+  closeDrawer(): void {
+    if (!this.drawerOpen) {
+      return;
+    }
+    this.drawerOpen = false;
+    this.drawerRef?.destroy();
+    this.drawerRef = undefined;
+    this.doc.body.classList.remove('drawer-open');
+    if (this.route.snapshot.queryParamMap.get('add')) {
+      this.router.navigate([], { relativeTo: this.route, queryParams: { add: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    }
+    this.trigger?.focus();
+  }
+
+  private onCreated(consentSaved: boolean): void {
+    this.actionError = null; // a failed delete from before is no longer relevant
+    this.closeDrawer();
+    this.load();
+    this.notice = this.i18n.t(consentSaved ? 'patients.added' : 'patients.error.consent');
+    clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => (this.notice = null), consentSaved ? 4000 : 8000);
+  }
+
+  /* ---------- flagged duplicates ---------- */
+
+  toggleDuplicates(): void {
+    this.router.navigate([], { relativeTo: this.route, queryParams: { duplicates: this.duplicatesView ? null : 1 }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
+  /** The pairs view is its own standalone component, fetched only when the filter is first used (the page is in the initial bundle). */
+  private setDuplicatesView(on: boolean): void {
+    if (on === this.duplicatesView) {
+      return;
+    }
+    this.duplicatesView = on;
+    this.dupRef?.destroy();
+    this.dupRef = undefined;
+    if (on) {
+      import('./duplicate-pairs/duplicate-pairs.component').then(m => {
+        if (this.duplicatesView && !this.dupRef) {
+          this.dupRef = this.dupHost.createComponent(m.DuplicatePairsComponent);
+          this.dupRef.changeDetectorRef.detectChanges();
+        }
+      });
+    }
   }
 
   clearFilters(): void {
     this.statusFilter = 'all';
     this.query = '';
+    this.cardHint = false;
     this.router.navigate([], { relativeTo: this.route, queryParams: { status: null, q: null }, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
@@ -280,79 +406,6 @@ export class PatientsComponent implements OnInit, OnDestroy {
     return r.lastPain !== null && r.painThreshold !== null && r.lastPain >= r.painThreshold;
   }
 
-  /* ---------- add patient drawer ---------- */
-
-  openDrawer(trigger: HTMLElement | null): void {
-    this.trigger = trigger ?? (this.doc.activeElement as HTMLElement | null);
-    this.drawerOpen = true;
-    this.doc.body.classList.add('drawer-open');
-    setTimeout(() => (this.doc.getElementById('new-firstName') as HTMLElement | null)?.focus());
-  }
-
-  closeDrawer(): void {
-    if (!this.drawerOpen) {
-      return;
-    }
-    this.drawerOpen = false;
-    this.addError = null;
-    this.fieldErrors = {};
-    this.doc.body.classList.remove('drawer-open');
-    if (this.route.snapshot.queryParamMap.get('add')) {
-      this.router.navigate([], { relativeTo: this.route, queryParams: { add: null }, queryParamsHandling: 'merge', replaceUrl: true });
-    }
-    this.trigger?.focus();
-  }
-
-  @HostListener('document:keydown', ['$event'])
-  onKeydown(e: KeyboardEvent): void {
-    if (!this.drawerOpen) {
-      return;
-    }
-    if (e.key === 'Escape') {
-      this.closeDrawer();
-    } else if (e.key === 'Tab' && this.drawerEl) {
-      const els = Array.from(this.drawerEl.nativeElement.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'));
-      if (!els.length) {
-        return;
-      }
-      const first = els[0];
-      const last = els[els.length - 1];
-      const active = this.doc.activeElement;
-      if (e.shiftKey && active === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  }
-
-  addPatient(): void {
-    this.addError = null;
-    this.fieldErrors = {};
-    this.saving = true;
-    this.patientService.addPatient({ ...this.patient, dateOfBirth: this.patient.dateOfBirth || null }).subscribe({
-      next: () => {
-        this.saving = false;
-        this.actionError = null; // a failed delete from before is no longer relevant
-        this.resetForm();
-        this.closeDrawer();
-        this.load();
-        this.notice = this.i18n.t('patients.added');
-        clearTimeout(this.noticeTimer);
-        this.noticeTimer = setTimeout(() => (this.notice = null), 4000);
-      },
-      error: error => {
-        this.saving = false;
-        this.addError = this.errors.text(error, 'patients.error.add');
-        this.fieldErrors = this.errors.fieldTexts(error);
-        console.error('Add patient error', error?.status);
-      }
-    });
-  }
-
   deletePatient(p: Patient): void {
     if (!window.confirm(this.i18n.t('patients.confirmDelete', { name: `${p.firstName} ${p.lastName}` }))) {
       return;
@@ -365,21 +418,5 @@ export class PatientsComponent implements OnInit, OnDestroy {
         console.error('Delete patient error', error?.status);
       }
     });
-  }
-
-  private resetForm(): void {
-    this.patient = emptyPatient();
-  }
-
-  isFormValid(): boolean {
-    return (
-      this.patient.firstName.trim() !== '' &&
-      this.patient.lastName.trim() !== '' &&
-      this.patient.email.trim() !== '' &&
-      this.patient.phone.trim() !== '' &&
-      this.patient.address.city.trim() !== '' &&
-      this.patient.address.state.trim() !== '' &&
-      this.patient.address.zip.trim() !== ''
-    );
   }
 }

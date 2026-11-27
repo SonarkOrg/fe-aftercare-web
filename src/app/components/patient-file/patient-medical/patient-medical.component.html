@@ -69,6 +69,25 @@
               <app-confirm-inline *ngIf="removeHn" [question]="'pf.medical.removeHn' | t" [busy]="hnBusy" (confirmed)="confirmRemoveHn()" (cancelled)="removeHn = false"></app-confirm-inline>
             </dd>
           </div>
+          <div class="span-all card-row" *ngIf="medical.healthNumberMasked || medical.cardStatus">
+            <dt>{{ 'pf.medical.card' | t }}</dt>
+            <dd>
+              <ng-container *ngIf="!editCard">
+                <app-status-chip [spec]="cardChipSpec"></app-status-chip>
+                <span class="card-expiry" *ngIf="cardExpiryText as txt">{{ txt }}</span>
+                <span class="helper-line card-seen" *ngIf="cardSeenText as seen">{{ seen }}</span>
+                <ng-container *appCan="'HEALTH_CARD_CAPTURE'"><button type="button" class="btn btn--ghost btn--sm edit-card" *ngIf="medical.healthNumberMasked" [attr.aria-label]="'pf.medical.cardEdit' | t" (click)="openEditCard()"><app-icon name="edit" [size]="14"></app-icon><span>{{ 'common.edit' | t }}</span></button></ng-container>
+              </ng-container>
+              <form class="inline-form card-form" *ngIf="editCard" (ngSubmit)="saveCard()">
+                <label class="sr-only" for="card-expiry-input">{{ 'pf.medical.cardExpiryLabel' | t }}</label>
+                <input id="card-expiry-input" name="cardExpiry" type="text" class="mono" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="7"
+                       [placeholder]="'pf.medical.cardExpiryLabel' | t" [(ngModel)]="cardValue" [attr.aria-invalid]="cardError ? 'true' : null" aria-describedby="card-err">
+                <button type="submit" class="btn btn--accent btn--sm save-card" [disabled]="cardBusy">{{ 'common.save' | t }}</button>
+                <button type="button" class="btn btn--secondary btn--sm" (click)="editCard = false">{{ 'common.cancel' | t }}</button>
+              </form>
+              <div class="field-error" id="card-err" role="alert" *ngIf="cardError">{{ cardError }}</div>
+            </dd>
+          </div>
         </dl>
       </div>
     </section>

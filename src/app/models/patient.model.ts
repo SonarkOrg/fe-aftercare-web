@@ -5,11 +5,11 @@ export interface Patient {
   id?: number; // Optional: not present when adding a new patient
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
-  gender: string;
+  email: string | null;
+  phone: string | null;
+  gender: string | null;
   dateOfBirth?: string | null; // optional on the add form
-  address: Address;
+  address: Address | null;
   activeFollowUp?: FollowUp | null;
   /** Null when the caller lacks CLINICAL_READ. */
   unresolvedAlertCount?: number | null;
@@ -18,7 +18,7 @@ export interface Patient {
 }
 
 export interface Address {
-  city: string;
-  state: string;
-  zip: string;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
 }

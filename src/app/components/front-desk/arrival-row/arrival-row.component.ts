@@ -3,7 +3,7 @@ import { fmtClock } from '../../../i18n/format';
 import { I18nService } from '../../../i18n/i18n.service';
 import { ArrivalRow } from '../../../models/arrival.model';
 import { initials } from '../../../shared/link.util';
-import { ChipSpec, deskChip, reasonChip } from '../../../shared/status';
+import { ChipSpec, cardNoteChip, deskChip, noQuestionnaireChip, reasonChip, walkInChip } from '../../../shared/status';
 
 /** At most this many notices are shown as chips; the rest become a "+n" pill. */
 const MAX_NOTICES = 2;
@@ -24,11 +24,16 @@ export class ArrivalRowComponent implements OnChanges {
   @Output() undo = new EventEmitter<ArrivalRow>();
   @Output() toggle = new EventEmitter<ArrivalRow>();
   @Output() consentSaved = new EventEmitter<{ row: ArrivalRow; value: 'GRANTED' | 'WITHDRAWN' }>();
+  @Output() expirySaved = new EventEmitter<void>();
+  @Output() rowChanged = new EventEmitter<ArrivalRow>();
 
   desk!: ChipSpec;
   reasons: ChipSpec[] = [];
   notices: ChipSpec[] = [];
   more = 0;
+  noteChip: ChipSpec | null = null;
+  walkInChip: ChipSpec | null = null;
+  noQuestionnaireChip: ChipSpec | null = null;
   name = '';
   initials = '';
   time = '';
@@ -42,6 +47,9 @@ export class ArrivalRowComponent implements OnChanges {
     const notices = r.desk.notices.map(reasonChip).filter((c): c is ChipSpec => c !== null);
     this.notices = notices.slice(0, MAX_NOTICES);
     this.more = Math.max(0, notices.length - MAX_NOTICES);
+    this.noteChip = r.cardNote ? cardNoteChip(r.cardNote.note) : null;
+    this.walkInChip = r.walkIn ? walkInChip() : null;
+    this.noQuestionnaireChip = r.questionnaire === 'NONE' ? noQuestionnaireChip() : null;
     this.name = `${r.patient.firstName} ${r.patient.lastName}`;
     this.initials = initials(r.patient.firstName, r.patient.lastName);
     this.time = fmtClock(r.scheduledAt.substring(11, 16), this.i18n.lang);

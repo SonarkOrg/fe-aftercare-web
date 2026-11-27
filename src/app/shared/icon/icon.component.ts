@@ -4,7 +4,7 @@ export type IconName = 'dashboard' | 'users' | 'calendar' | 'bell' | 'file' | 's
   | 'chevron-left' | 'chevron-right' | 'plus' | 'phone' | 'copy' | 'check' | 'link' | 'thermometer' | 'activity'
   | 'building' | 'grid-dots' | 'chevron-down' | 'clock' | 'alert-triangle' | 'slash-circle' | 'more-horizontal' | 'heart-pulse'
   | 'check-circle' | 'clipboard' | 'x-circle' | 'arrow-up' | 'arrow-down' | 'trash'
-  | 'settings' | 'message' | 'send' | 'upload' | 'download' | 'eye' | 'eye-off' | 'edit' | 'shield' | 'lock' | 'pill' | 'bar-chart' | 'undo';
+  | 'settings' | 'message' | 'send' | 'upload' | 'download' | 'eye' | 'eye-off' | 'edit' | 'shield' | 'lock' | 'pill' | 'bar-chart' | 'undo' | 'id-card' | 'user-plus';
 
 @Component({
   selector: 'app-icon',
@@ -54,6 +54,8 @@ export type IconName = 'dashboard' | 'users' | 'calendar' | 'bell' | 'file' | 's
     <ng-container *ngSwitchCase="'lock'"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></ng-container>
     <ng-container *ngSwitchCase="'pill'"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7z"/><path d="m8.5 8.5 7 7"/></ng-container>
     <ng-container *ngSwitchCase="'bar-chart'"><path d="M4 21V10M10 21V4M16 21v-8M22 21H2"/></ng-container>
+    <ng-container *ngSwitchCase="'id-card'"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M5.5 16c.6-1.6 1.9-2.5 3.5-2.5s2.9.9 3.5 2.5"/><path d="M15 10h3"/><path d="M15 14h3"/></ng-container>
+    <ng-container *ngSwitchCase="'user-plus'"><circle cx="10" cy="8" r="4"/><path d="M2.5 20c.8-3.6 3.6-5.5 7.5-5.5 1.3 0 2.5.2 3.5.6"/><path d="M19 8v6"/><path d="M16 11h6"/></ng-container>
     <ng-container *ngSwitchCase="'undo'"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.7 3L3 13"/></ng-container>
   </svg>`
 })

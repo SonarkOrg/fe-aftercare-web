@@ -13,11 +13,12 @@
       <app-avatar [id]="patient.id" [initials]="patient.firstName.charAt(0) + patient.lastName.charAt(0)" size="xl"></app-avatar>
       <div class="profile-hero__main">
         <h1>{{ patient.firstName }} {{ patient.lastName }}</h1>
-        <p class="profile-hero__meta">{{ genderLabel(patient.gender) }}<ng-container *ngIf="age !== null && dob"> · {{ 'pd.hero.age' | t:{ age: age, date: dobLabel(dob) } }}</ng-container> · {{ patient.address.city }}, {{ patient.address.state }} · <a [attr.href]="'tel:' + patient.phone">{{ patient.phone }}</a> · <a [attr.href]="'mailto:' + patient.email">{{ patient.email }}</a></p>
+        <p class="profile-hero__meta">{{ heroText }}<ng-container *ngIf="patient.phone"><ng-container *ngIf="heroText"> · </ng-container><a [attr.href]="'tel:' + patient.phone">{{ patient.phone }}</a></ng-container><ng-container *ngIf="patient.email"><ng-container *ngIf="heroText || patient.phone"> · </ng-container><a [attr.href]="'mailto:' + patient.email">{{ patient.email }}</a></ng-container></p>
         <div class="profile-hero__chips">
           <app-status-chip *ngIf="clinical" [spec]="statusChip"></app-status-chip>
           <span class="chip chip--neutral" *ngIf="clinical && current as f"><span class="chip__label">{{ f.specialty | enumLabel:'specialty' }}</span></span>
           <span class="badge" *ngIf="clinical && current && day as d">{{ 'common.dayOf' | t:{ day: d.day, total: d.total } }}</span>
+          <span class="dup-flag" role="group" [attr.aria-label]="'patients.duplicate.flag' | t" *ngIf="duplicateFlag"><app-status-chip [spec]="duplicateChip"></app-status-chip><button type="button" id="clear-duplicate-flag" class="btn btn--ghost btn--sm" *appCan="'PATIENT_WRITE'" (click)="clearDuplicateFlag()">{{ 'patients.duplicate.clearFlag' | t }}</button></span>
           <span class="allergy-chip" *ngIf="allergyChip as a" [attr.title]="a.title"><app-status-chip [spec]="a.spec"></app-status-chip></span>
         </div>
       </div>
@@ -132,10 +133,10 @@
           <section class="card card--warm demographics">
             <div class="card__header"><h2 class="card__title--sm">{{ 'pd.contact' | t }}</h2><button type="button" class="card__link edit-details-card" *appCan="'PATIENT_WRITE'" #editCardBtn (click)="openEdit(editCardBtn)">{{ 'pf.edit.action' | t }}</button></div>
             <dl class="kv">
-              <dt>{{ 'pd.email' | t }}</dt><dd>{{ patient.email }}</dd>
-              <dt>{{ 'pd.phone' | t }}</dt><dd>{{ patient.phone }}</dd>
-              <dt>{{ 'pd.gender' | t }}</dt><dd>{{ genderLabel(patient.gender) }}</dd>
-              <dt>{{ 'pd.city' | t }}</dt><dd>{{ patient.address.city }}, {{ patient.address.state }} {{ patient.address.zip }}</dd>
+              <dt>{{ 'pd.email' | t }}</dt><dd>{{ patient.email || '—' }}</dd>
+              <dt>{{ 'pd.phone' | t }}</dt><dd>{{ patient.phone || '—' }}</dd>
+              <dt>{{ 'pd.gender' | t }}</dt><dd>{{ genderLabel(patient.gender) || '—' }}</dd>
+              <dt>{{ 'pd.city' | t }}</dt><dd>{{ addressLine }}</dd>
             </dl>
           </section>
 

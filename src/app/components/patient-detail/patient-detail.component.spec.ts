@@ -4,7 +4,7 @@ import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
@@ -12,7 +12,7 @@ import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questi
 import { CheckIn } from '../../models/follow-up.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { addDays, businessToday } from '../../shared/link.util';
-import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, contactPrefs, followUp, medical, conversation, missedAlert, providePermissions } from '../../testing/fixtures';
+import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, contactPrefs, deskPatient, followUp, medical, conversation, missedAlert, providePermissions } from '../../testing/fixtures';
 import { AccessRole } from '../../models/me.model';
 import { MessageThreadComponent } from '../../shared/message-thread/message-thread.component';
 import { PatientAuditComponent } from '../patient-file/patient-audit/patient-audit.component';
@@ -67,14 +67,19 @@ describe('PatientDetailComponent', () => {
 
   afterEach(() => http.verify());
 
-  function flushAll(data: { followUps?: any[]; checkIns?: any[]; alerts?: any[]; appointments?: any[]; rules?: any[]; medical?: any; careTeam?: any[]; inbox?: any[] } = {}, file = true) {
+  /** The file asks only for ITS flags (GET /patients/{id}/duplicate-flags), never the clinic-wide list. */
+  const isFlags = (url: string) => /\/patients\/\d+\/duplicate-flags$/.test(url);
+  const flagPair = (id: number) => ({ id: 3, a: deskPatient({ id }), b: deskPatient({ id: 15, firstName: 'Marie-Ève' }), flaggedAt: '2026-10-14T13:00:00Z', flaggedByName: 'Dev Reception' });
+
+  function flushAll(data: { followUps?: any[]; checkIns?: any[]; alerts?: any[]; appointments?: any[]; rules?: any[]; medical?: any; careTeam?: any[]; inbox?: any[]; patient?: any; flags?: any[] } = {}, file = true) {
     if (file) {
+      http.expectOne(r => isFlags(r.url)).flush(data.flags ?? []);
       // the patient file loads once per visit (the medical call writes the "file viewed" audit row)
       http.expectOne(`${api}/patients/5/medical`).flush(data.medical ?? medical());
       http.expectOne(`${api}/patients/5/care-team`).flush(data.careTeam ?? []);
       http.expectOne(`${api}/messages/inbox`).flush(data.inbox ?? []);
     }
-    http.expectOne(`${api}/patients/5`).flush(JANE);
+    http.expectOne(`${api}/patients/5`).flush(data.patient ?? JANE);
     http.expectOne(`${api}/patients/5/follow-ups`).flush(data.followUps ?? []);
     http.expectOne(`${api}/patients/5/check-ins`).flush(data.checkIns ?? []);
     http.expectOne(`${api}/patients/5/alerts`).flush(data.alerts ?? []);
@@ -89,9 +94,109 @@ describe('PatientDetailComponent', () => {
     flushAll(data);
   }
 
-  it('makes the five page calls plus the three file calls on init', () => {
+  it('makes the five page calls plus the three file calls and the duplicate-flag lookup on init', () => {
     fixture.detectChanges();
-    expect(http.match(() => true).length).toBe(8);
+    expect(http.match(() => true).length).toBe(9);
+  });
+
+  describe('a patient with only a first and a last name', () => {
+    const MINIMAL = { id: 5, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, address: null, activeFollowUp: null, unresolvedAlertCount: 0 };
+
+    it('renders the hero, the contact card and the tabs without an error, with « — » for what is missing', () => {
+      init({ patient: MINIMAL, medical: medical({ dateOfBirth: null }) });
+      expect(el.querySelector('.profile-hero h1')!.textContent).toContain('Zzz-Test Seul');
+      const meta = el.querySelector('.profile-hero__meta')!;
+      expect(meta.textContent!.trim()).toBe('');
+      expect(meta.querySelector('a')).toBeNull();
+      const values = Array.from(el.querySelectorAll('.demographics dd')).map(d => d.textContent!.trim());
+      expect(values).toEqual(['—', '—', '—', '—']);
+      expect(el.textContent).not.toContain('null');
+      expect(el.textContent).not.toContain('undefined');
+    });
+
+    it('shows a hero line without stray separators when only the e-mail exists', () => {
+      init({ patient: { ...MINIMAL, email: 'zzz@example.com' }, medical: medical({ dateOfBirth: null }) });
+      const meta = el.querySelector('.profile-hero__meta')!;
+      expect(meta.textContent!.trim()).toBe('zzz@example.com');
+      expect(meta.querySelector('a')!.getAttribute('href')).toBe('mailto:zzz@example.com');
+    });
+
+    it('shows only the city when there is no province, and the postal code after it', () => {
+      init({ patient: { ...MINIMAL, address: { city: 'Laval', state: null, zip: 'H7A 1A1' } } });
+      expect(el.querySelector('.profile-hero__meta')!.textContent).toContain('Laval');
+      expect(el.querySelector('.profile-hero__meta')!.textContent).not.toContain(',');
+      expect(Array.from(el.querySelectorAll('.demographics dd')).map(d => d.textContent!.trim())[3]).toBe('Laval H7A 1A1');
+    });
+  });
+
+  describe('?edit=1', () => {
+    it('opens the edit drawer once the file has loaded, then removes the parameter with replaceUrl', () => {
+      query = { edit: '1' };
+      const router = TestBed.inject(Router);
+      const nav = spyOn(router, 'navigate').and.resolveTo(true);
+      fixture.detectChanges();
+      expect(el.querySelector('app-patient-edit')).toBeNull(); // not before the patient is there
+      flushAll();
+      expect(el.querySelector('app-patient-edit')).not.toBeNull();
+      expect(nav).toHaveBeenCalledTimes(1);
+      const [, extras] = nav.calls.mostRecent().args as [unknown[], { queryParams: Record<string, unknown>; replaceUrl: boolean; queryParamsHandling: string }];
+      expect(extras.queryParams).toEqual({ edit: null });
+      expect(extras.replaceUrl).toBeTrue();
+      expect(extras.queryParamsHandling).toBe('merge');
+      http.match(r => r.url.endsWith('/contact-preferences')).forEach(r => r.flush(contactPrefs()));
+    });
+
+    it('does not open the drawer without the parameter', () => {
+      const nav = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      init();
+      expect(el.querySelector('app-patient-edit')).toBeNull();
+      expect(nav).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('duplicate flag', () => {
+    it('shows « Possible duplicate flagged » when an open flag names the patient, and removes it with one click', () => {
+      init({ flags: [flagPair(5)] });
+      const chip = el.querySelector('.dup-flag')!;
+      expect(chip.textContent).toContain('Possible duplicate flagged');
+      expect(chip.querySelector('app-status-chip')).not.toBeNull();
+      (chip.querySelector('#clear-duplicate-flag') as HTMLButtonElement).click();
+      const post = http.expectOne(`${api}/patients/5/duplicate-flags/3/clear`);
+      expect(post.request.method).toBe('POST');
+      post.flush({});
+      fixture.detectChanges();
+      expect(el.querySelector('.dup-flag')).toBeNull();
+    });
+
+    it('shows nothing when the open flag is about two other patients', () => {
+      init({ flags: [{ ...flagPair(8), b: deskPatient({ id: 9 }) }] });
+      expect(el.querySelector('.dup-flag')).toBeNull();
+    });
+
+    it('keeps the chip and shows an error when the flag cannot be removed', () => {
+      init({ flags: [flagPair(5)] });
+      (el.querySelector('#clear-duplicate-flag') as HTMLButtonElement).click();
+      http.expectOne(`${api}/patients/5/duplicate-flags/3/clear`).flush({ status: 409, error: 'INVALID_STATE', message: 'x', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
+      fixture.detectChanges();
+      expect(el.querySelector('.dup-flag')).not.toBeNull();
+      expect(el.querySelector('.error-message')).not.toBeNull();
+    });
+
+    it('does not fail the page when the flag lookup fails', () => {
+      fixture.detectChanges();
+      http.expectOne(r => isFlags(r.url)).flush('x', { status: 500, statusText: 'Server Error' });
+      http.expectOne(`${api}/patients/5/medical`).flush(medical());
+      http.expectOne(`${api}/patients/5/care-team`).flush([]);
+      http.expectOne(`${api}/messages/inbox`).flush([]);
+      http.expectOne(`${api}/patients/5`).flush(JANE);
+      http.expectOne(`${api}/patients/5/follow-ups`).flush([]);
+      http.expectOne(`${api}/patients/5/check-ins`).flush([]);
+      http.expectOne(`${api}/patients/5/alerts`).flush([]);
+      http.expectOne(`${api}/patients/5/appointments`).flush([]);
+      fixture.detectChanges();
+      expect(el.querySelector('.dup-flag')).toBeNull();
+      expect(el.querySelector('.profile-hero h1')!.textContent).toContain('Jane Doe');
+    });
   });
 
   it('renders patient demographics, empty states and a New appointment link', () => {
@@ -354,6 +459,7 @@ describe('PatientDetailComponent', () => {
 
     it('shows a retry banner inside the Medical tab when the medical call fails', () => {
       fixture.detectChanges();
+      http.expectOne(r => /\/patients\/\d+\/duplicate-flags$/.test(r.url)).flush([]);
       http.expectOne(`${api}/patients/5/medical`).flush('x', { status: 500, statusText: 'Server Error' });
       http.expectOne(`${api}/patients/5/care-team`).flush([]);
       http.expectOne(`${api}/messages/inbox`).flush([]);
@@ -368,6 +474,7 @@ describe('PatientDetailComponent', () => {
     it('a failed definition request is announced as "Alert threshold unavailable", not "No alert rule"', () => {
       spyOn(console, 'warn');
       fixture.detectChanges();
+      http.expectOne(r => /\/patients\/\d+\/duplicate-flags$/.test(r.url)).flush([]);
       http.expectOne(`${api}/patients/5/medical`).flush(medical());
       http.expectOne(`${api}/patients/5/care-team`).flush([]);
       http.expectOne(`${api}/messages/inbox`).flush([]);
@@ -433,6 +540,7 @@ describe('PatientDetailComponent by access role', () => {
 
   /** Answers the calls a clinical member makes. */
   function flushClinical(data: { followUps?: object[]; alerts?: object[]; appointments?: object[]; careTeam?: object[] } = {}) {
+    http.expectOne(r => /\/patients\/\d+\/duplicate-flags$/.test(r.url)).flush([]);
     http.expectOne(`${api}/patients/5/medical`).flush(medical());
     http.expectOne(`${api}/patients/5/care-team`).flush(data.careTeam ?? []);
     http.expectOne(`${api}/messages/inbox`).flush([]);
@@ -447,6 +555,7 @@ describe('PatientDetailComponent by access role', () => {
 
   /** Answers the calls reception makes: the patient, the care team, the schedule and the contact preferences. */
   function flushReception(data: { appointments?: object[]; careTeam?: object[]; prefs?: object } = {}) {
+    http.expectOne(r => /\/patients\/\d+\/duplicate-flags$/.test(r.url)).flush([]);
     http.expectOne(`${api}/patients/5`).flush({ ...JANE, activeFollowUp: null, unresolvedAlertCount: null });
     http.expectOne(`${api}/patients/5/care-team`).flush(data.careTeam ?? []);
     http.expectOne(`${api}/patients/5/appointments`).flush(data.appointments ?? []);

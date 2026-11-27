@@ -1,0 +1,28 @@
+<div class="banner fd-card-banner" [ngClass]="'banner--' + tone" role="status" [attr.data-kind]="state.kind">
+  <span class="banner__glyph" aria-hidden="true">{{ glyph }}</span>
+  <div [ngSwitch]="state.kind">
+    <ng-container *ngSwitchCase="'recognised'"><strong>{{ 'fd.card.recognised' | t }}</strong></ng-container>
+    <ng-container *ngSwitchCase="'multi'">
+      <strong>{{ 'fd.card.multi' | t:{ count: $any(state).count } }}</strong>
+      <p class="fd-card-banner__help">{{ 'fd.card.pick' | t }}</p>
+      <div class="btn-row"><button type="button" class="btn btn--secondary fd-flag-dups" *appCan="'PATIENT_WRITE'" [disabled]="busy" (click)="flagDuplicates.emit()">{{ 'fd.card.flagDup' | t }}</button></div>
+    </ng-container>
+    <ng-container *ngSwitchCase="'candidates'">
+      <strong>{{ 'fd.card.unknown' | t }}</strong>
+      <p class="fd-card-banner__help">{{ 'fd.card.pick' | t }}</p>
+    </ng-container>
+    <ng-container *ngSwitchCase="'none'"><strong>{{ 'fd.card.none' | t }}</strong></ng-container>
+    <ng-container *ngSwitchCase="'mismatch'">
+      <strong>{{ 'fd.card.mismatch' | t }}</strong>
+      <div class="btn-row"><button type="button" class="btn btn--secondary fd-note-without" [disabled]="busy" (click)="noteWithout.emit()">{{ 'fd.card.noteWithout' | t }}</button></div>
+    </ng-container>
+    <ng-container *ngSwitchCase="'inUse'">
+      <strong>{{ 'fd.card.inUse' | t }}</strong>
+      <div class="btn-row">
+        <button type="button" class="btn btn--secondary fd-reason-infant" *ngIf="$any(state).underOne" [disabled]="busy" (click)="reason.emit('PARENT_CARD_CHILD_UNDER_1')">{{ 'fd.card.reasonInfant' | t }}</button>
+        <button type="button" class="btn btn--secondary fd-reason-other" *ngIf="clinical" [disabled]="busy" (click)="reason.emit('OTHER')">{{ 'fd.card.reasonOther' | t }}</button>
+      </div>
+    </ng-container>
+    <p class="fd-card-banner__help" *ngIf="mismatchBirth">{{ 'fd.card.birthMismatch' | t }}</p>
+  </div>
+</div>

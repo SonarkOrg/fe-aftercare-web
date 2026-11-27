@@ -1,0 +1,9 @@
+<div class="fd-panel fd-result-panel" role="group" [attr.aria-label]="match.patient.firstName + ' ' + match.patient.lastName">
+  <p class="fd-panel__facts">{{ match.patient.firstName }} {{ match.patient.lastName }}<ng-container *ngIf="match.patient.dateOfBirth"> · {{ 'fd.result.born' | t:{ date: (match.patient.dateOfBirth | tzDate:'date') } }}</ng-container></p>
+  <div class="btn-row">
+    <a class="btn btn--secondary fd-open-file" [routerLink]="['/patients', match.patient.id]">{{ 'fd.result.open' | t }}</a>
+    <ng-container *ngIf="!readOnly">
+      <button type="button" class="btn btn--primary fd-walkin-btn" *appCan="'APPOINTMENT_WRITE'" (click)="walkIn.emit(match)">{{ 'fd.result.walkIn' | t }}</button>
+    </ng-container>
+  </div>
+</div>

@@ -8,7 +8,7 @@ import { AccessRole, Me, Permission } from '../models/me.model';
 import { ContactPreferences, NotificationItem, NotificationSettings } from '../models/notification.model';
 import { RetentionRun, RetentionSettings } from '../models/retention.model';
 import { Appointment, AppointmentDetail } from '../models/appointment.model';
-import { ArrivalRow, Arrivals, DeskPatient } from '../models/arrival.model';
+import { ArrivalRow, Arrivals, Card, DeskPatient, PatientMatch, PatientSearchResult } from '../models/arrival.model';
 import { CheckIn, FollowUp } from '../models/follow-up.model';
 import { Patient } from '../models/patient.model';
 import { RuleJson } from '../models/questionnaire-definition.model';
@@ -156,6 +156,23 @@ export function deskPatient(over: Partial<DeskPatient> = {}): DeskPatient {
   };
 }
 
+/** A health card state (never a number). `status` defaults to a card on file that expires in 2027. */
+export function card(over: Partial<Card> = {}): Card {
+  return { onFile: true, expiry: '2027-03', status: 'OK', seenAt: '2026-10-14T13:00:00Z', expirySource: 'STAFF', ...over };
+}
+
+/** One search hit; `todayAppointments` defaults to one open, not-arrived appointment for the default desk patient. */
+export function patientMatch(over: Partial<PatientMatch> = {}): PatientMatch {
+  return {
+    patient: deskPatient(), matchedBy: 'NAME',
+    todayAppointments: [{ appointmentId: 77, scheduledAt: '2026-10-14T10:00:00', type: 'PRE_OP_CONSULT', status: 'READY', arrived: false }], ...over
+  };
+}
+
+export function searchResult(over: Partial<PatientSearchResult> = {}): PatientSearchResult {
+  return { mode: 'NAME', matches: [patientMatch()], candidates: [], warnings: [], ...over };
+}
+
 export function arrivalRow(over: Partial<ArrivalRow> = {}): ArrivalRow {
   return {
     appointmentId: 77, scheduledAt: '2026-10-14T10:00:00', durationMinutes: 30, type: 'PRE_OP_CONSULT', clinician: 'Dr Bouchard', location: 'Salle 2',
@@ -207,7 +224,7 @@ const STAMP = { createdAt: '2026-10-01T14:00:00Z', createdByName: 'Dev Nurse', u
 
 export function medical(over: Partial<PatientMedical> = {}): PatientMedical {
   return {
-    patientId: 5, dateOfBirth: '1980-05-20', healthNumberMasked: 'TREM \u2022\u2022\u2022\u2022 \u2022\u202212',
+    patientId: 5, dateOfBirth: '1980-05-20', healthNumberMasked: '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u202212',
     allergies: [{ id: 1, substance: 'Penicillin', severity: 'SEVERE', reaction: 'Anaphylaxis', ...STAMP }],
     medications: [{ id: 2, name: 'Acetaminophen', dose: '500 mg', frequency: 'q6h', startDate: '2026-10-01', ...STAMP }],
     procedures: [{ id: 3, name: 'Appendectomy', performedOn: '2026-10-10', surgeonStaffId: null, surgeonName: 'Dr. Roy', ...STAMP }],
@@ -294,14 +311,14 @@ export function report(over: Partial<ReportSummary> = {}): ReportSummary {
 
 /** The permission arrays of the Phase A matrix (spec 2.2), in table order. */
 export const ROLE_PERMISSIONS: Record<AccessRole, Permission[]> = {
-  ADMIN: ['PATIENT_READ', 'PATIENT_WRITE', 'PATIENT_DELETE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL',
+  ADMIN: ['PATIENT_READ', 'PATIENT_WRITE', 'PATIENT_DELETE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL', 'HEALTH_CARD_CAPTURE',
     'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'REPORTS_READ', 'AUDIT_READ',
     'STAFF_READ', 'STAFF_MANAGE', 'SETTINGS_READ', 'SETTINGS_MANAGE'],
-  PHYSICIAN: ['PATIENT_READ', 'PATIENT_WRITE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL',
+  PHYSICIAN: ['PATIENT_READ', 'PATIENT_WRITE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL', 'HEALTH_CARD_CAPTURE',
     'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'REPORTS_READ', 'STAFF_READ', 'SETTINGS_READ'],
-  NURSE: ['PATIENT_READ', 'PATIENT_WRITE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL',
+  NURSE: ['PATIENT_READ', 'PATIENT_WRITE', 'CLINICAL_READ', 'CLINICAL_WRITE', 'HEALTH_NUMBER_REVEAL', 'HEALTH_CARD_CAPTURE',
     'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'REPORTS_READ', 'STAFF_READ', 'SETTINGS_READ'],
-  RECEPTION: ['PATIENT_READ', 'PATIENT_WRITE', 'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'STAFF_READ', 'SETTINGS_READ']
+  RECEPTION: ['PATIENT_READ', 'PATIENT_WRITE', 'HEALTH_CARD_CAPTURE', 'APPOINTMENT_READ', 'APPOINTMENT_WRITE', 'FORMS_READ', 'STAFF_READ', 'SETTINGS_READ']
 };
 
 const ME_NAME: Record<AccessRole, string> = { ADMIN: 'Dev Admin', PHYSICIAN: 'Dr Alain Bouchard', NURSE: 'Dev Nurse', RECEPTION: 'Dev Reception' };

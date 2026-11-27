@@ -1,6 +1,6 @@
 <div class="fd-toast-host" role="status">
   <div class="fd-toast" *ngIf="toast as t">
-    <span class="fd-toast__text">{{ t.message }}</span>
+    <span class="fd-toast__text">{{ t.message }}<span class="fd-toast__line" *ngFor="let l of t.lines">{{ l }}</span></span>
     <button type="button" class="btn btn--ghost fd-toast__undo" *ngIf="t.undoable" (click)="undo.emit()"><app-icon name="undo" [size]="16"></app-icon>{{ 'fd.toast.undo' | t }}</button>
   </div>
 </div>

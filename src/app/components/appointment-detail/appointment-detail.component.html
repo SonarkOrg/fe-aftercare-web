@@ -23,7 +23,9 @@
         <dt>{{ 'appt.duration' | t }}</dt><dd>{{ a.durationMinutes | duration }}</dd>
         <dt>{{ 'appt.location' | t }}</dt><dd>{{ a.location || '—' }}</dd>
         <dt>{{ 'appt.clinician' | t }}</dt><dd>{{ a.clinician || '—' }}</dd>
-        <dt>{{ 'appt.form' | t }}</dt><dd>{{ a.questionnaireUrl }}|{{ a.questionnaireVersion }}</dd>
+        <dt>{{ 'appt.form' | t }}</dt><dd *ngIf="hasQuestionnaire(a); else noForm">{{ a.questionnaireUrl }}|{{ a.questionnaireVersion }}</dd>
+        <ng-template #noForm><dd id="no-questionnaire">{{ 'appts.noQuestionnaire' | t }}</dd></ng-template>
+        <ng-container *ngIf="a.cardNote as n"><dt>{{ 'appts.cardNoteLabel' | t }}</dt><dd id="card-note"><app-status-chip [spec]="cardNoteSpec(n)" size="sm"></app-status-chip></dd></ng-container>
         <ng-container *ngIf="a.arrivedAt">
           <dt>{{ 'appts.arrivedSinceLabel' | t }}</dt><dd id="arrived-since">{{ a.arrivedAt | tzDate:'time' }}</dd>
           <dt>{{ 'appts.arrivalSourceLabel' | t }}</dt><dd id="arrival-source">{{ a.arrivalSource ? (a.arrivalSource | enumLabel:'arrivalSource') : '—' }}</dd>
@@ -65,8 +67,10 @@
                                 [questionnaire]="questionnaire" [response]="i.response"></app-questionnaire-form>
       </ng-container>
       <ng-template #noIntake>
-        <p>{{ 'appt.notSubmitted' | t }}</p>
-        <ng-container *appCan="'APPOINTMENT_WRITE'"><button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="a.status === 'SCHEDULED'" (click)="regenerate()">{{ 'appt.regenerate' | t }}</button></ng-container>
+        <p *ngIf="!hasQuestionnaire(a); else expectsForm" id="no-questionnaire-note">{{ 'appts.noQuestionnaire' | t }}</p>
+        <ng-template #expectsForm><p>{{ 'appt.notSubmitted' | t }}</p></ng-template>
+        <!-- a link code opens the patient's whole message thread: plaintext only with CLINICAL_READ (A-44); reception uses « Envoyer le lien » -->
+        <ng-container *appCan="'CLINICAL_READ'"><button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="a.status === 'SCHEDULED' && hasQuestionnaire(a)" (click)="regenerate()">{{ 'appt.regenerate' | t }}</button></ng-container>
         <app-access-link *ngIf="accessCode" [code]="accessCode"></app-access-link>
       </ng-template>
       </ng-template>

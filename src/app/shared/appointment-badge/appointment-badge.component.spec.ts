@@ -56,4 +56,38 @@ describe('AppointmentBadgeComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelectorAll('.chip').length).toBe(1);
   });
+
+  it('a SCHEDULED appointment with a null questionnaire is a neutral « No questionnaire », not « Awaiting » or « missing »', () => {
+    fixture.componentRef.setInput('appointment', { status: 'SCHEDULED', questionnaireMissing: false, questionnaireDefinitionId: null });
+    fixture.detectChanges();
+    const chips = fixture.nativeElement.querySelectorAll('.chip');
+    expect(chips.length).toBe(1);
+    expect(chips[0].querySelector('.chip__label').textContent).toBe('No questionnaire');
+    expect(chips[0].classList).toContain('chip--neutral');
+    expect(chips[0].querySelector('.chip__glyph').textContent.trim()).toBe('—');
+  });
+
+  it('an absent questionnaireDefinitionId (undefined) keeps the normal chip', () => {
+    fixture.componentRef.setInput('appointment', { status: 'SCHEDULED', questionnaireMissing: true });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.chip__label').textContent).toBe('Questionnaire missing');
+  });
+
+  it('adds the neutral « Walk-in » tag and the card-note chip, each with glyph and word', () => {
+    fixture.componentRef.setInput('appointment', { status: 'READY', questionnaireMissing: false, walkIn: true, cardNote: 'NO_CARD' });
+    fixture.detectChanges();
+    const chips = Array.from(fixture.nativeElement.querySelectorAll('.chip')) as HTMLElement[];
+    expect(chips.map(c => c.querySelector('.chip__label')!.textContent)).toEqual(['Ready', 'Walk-in', 'No card']);
+    for (const c of chips.slice(1)) {
+      expect(c.classList).toContain('chip--neutral');
+      expect(c.querySelector('.chip__glyph')!.textContent!.trim()).toBe('—');
+    }
+  });
+
+  it('no walk-in or card chip when absent or false/null', () => {
+    fixture.componentRef.setInput('appointment', { status: 'READY', questionnaireMissing: false, walkIn: false, cardNote: null });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.chip').length).toBe(1);
+  });
 });
+

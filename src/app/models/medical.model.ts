@@ -1,3 +1,4 @@
+import type { CardStatus } from './arrival.model';
 import { Language } from './settings.model';
 import { StaffRole } from './staff.model';
 
@@ -19,6 +20,10 @@ export interface PatientMedical {
   patientId: number;
   dateOfBirth: string | null;
   healthNumberMasked: string | null;
+  /** Phase 1B: "YYYY-MM". */
+  cardExpiry?: string | null;
+  cardStatus?: CardStatus;
+  cardSeenAt?: string | null;
   allergies: Allergy[];
   medications: Medication[];
   procedures: Procedure[];

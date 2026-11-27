@@ -9,7 +9,7 @@ import { fmtClock, fmtPct } from '../../i18n/format';
 import { I18nService } from '../../i18n/i18n.service';
 import { Appointment, AppointmentMetrics } from '../../models/appointment.model';
 import { addDays, mondayOf, businessToday } from '../../shared/link.util';
-import { appointmentChip } from '../../shared/status';
+import { appointmentChip as baseChip, ChipSpec, GLYPH } from '../../shared/status';
 import { BoardGroup, MINUTES_SAVED_PER_INTAKE, Week, endTime, groupForBoard, isOpenToday, layoutWeek } from './appointment-board';
 
 /** Per browser, never PHI: the view the secretary used last (§7.1). */
@@ -37,7 +37,11 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   metrics: AppointmentMetrics | null = null;
   loading = false;
   errorMessage: string | null = null;
-  appointmentChip = appointmentChip;
+  /** Same chip as the badge: a SCHEDULED walk-in without a questionnaire is neutral « Sans questionnaire », not « awaiting ». */
+  appointmentChip = (a: Appointment): ChipSpec =>
+    a.status === 'SCHEDULED' && a.questionnaireDefinitionId === null
+      ? { tone: 'neutral', glyph: GLYPH.neutral, label: { key: 'appts.noQuestionnaire' } }
+      : baseChip(a);
   endTime = endTime;
   minutesPerIntake = MINUTES_SAVED_PER_INTAKE;
   board: BoardGroup[] = [];
@@ -63,7 +67,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   }
 
   blockTitle(a: Appointment): string {
-    return `${this.time(a)} ${a.patientFirstName} ${a.patientLastName} · ${this.i18n.t(appointmentChip(a).label)}`;
+    return `${this.time(a)} ${a.patientFirstName} ${a.patientLastName} · ${this.i18n.t(this.appointmentChip(a).label)}`;
   }
 
   hourLabel(h: number): string {
@@ -209,7 +213,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
 
   /** Same rule as the server's linkUsable: open, SCHEDULED, and the appointment day has not ended (spec 5.6). */
   canRegenerate(a: Appointment): boolean {
-    return a.status === 'SCHEDULED' && a.scheduledAt.substring(0, 10) >= businessToday();
+    return a.status === 'SCHEDULED' && a.questionnaireDefinitionId !== null && a.scheduledAt.substring(0, 10) >= businessToday();
   }
 
   endOf(a: Appointment): string {
@@ -233,7 +237,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     }
     this.actionError = null;
     this.appointments.regenerateCode(a.id).subscribe({
-      next: res => (this.codes = { ...this.codes, [a.id]: res.accessCode }),
+      next: res => (this.codes = res.accessCode ? { ...this.codes, [a.id]: res.accessCode } : this.codes),
       error: err => this.fail(err)
     });
   }

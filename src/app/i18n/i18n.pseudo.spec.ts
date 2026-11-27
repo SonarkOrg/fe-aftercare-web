@@ -178,11 +178,8 @@ describe('pseudo-locale: the Arrivals page (P1A-FE-A)', () => {
 
   it('rows, expanded fix panel, shortcuts popover, toast, banners and the idle mask only show dictionary text', async () => {
     const { ArrivalsComponent } = await import('../components/front-desk/arrivals/arrivals.component');
-    const { ArrivalBoxComponent } = await import('../components/front-desk/arrival-box/arrival-box.component');
-    const { ArrivalRowComponent } = await import('../components/front-desk/arrival-row/arrival-row.component');
-    const { FixPanelComponent } = await import('../components/front-desk/fix-panel/fix-panel.component');
-    const { UndoToastComponent } = await import('../components/front-desk/undo-toast/undo-toast.component');
-    const f = h.create('pseudo', ArrivalsComponent, [ArrivalBoxComponent, ArrivalRowComponent, FixPanelComponent, UndoToastComponent], false, {}, 'RECEPTION');
+    const { FRONT_DESK_DECLARATIONS } = await import('../components/front-desk/front-desk.testing');
+    const f = h.create('pseudo', ArrivalsComponent, FRONT_DESK_DECLARATIONS, false, {}, 'RECEPTION');
     await h.settle(f);
     const c = f.componentInstance;
     const data = dataStrings();

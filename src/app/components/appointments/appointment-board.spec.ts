@@ -25,6 +25,23 @@ describe('appointment-board', () => {
     });
   });
 
+  describe('appointments without a questionnaire (walk-ins)', () => {
+    it('go to their own « no questionnaire » group, never « awaiting » or « missing »', () => {
+      const g = groupForBoard([
+        appointment({ id: 1, status: 'SCHEDULED', questionnaireDefinitionId: null, questionnaireUrl: null, questionnaireVersion: null, walkIn: true }),
+        appointment({ id: 2, status: 'SCHEDULED' })
+      ]);
+      expect(g.map(x => x.key)).toEqual(['awaiting', 'noForm']);
+      expect(g[1].title).toBe('appts.noQuestionnaire');
+      expect(g[1].items.map(a => a.id)).toEqual([1]);
+    });
+    it('a fixture without the member (older payload) still counts as having a questionnaire', () => {
+      const a = appointment({ id: 3, status: 'SCHEDULED' }) as unknown as Record<string, unknown>;
+      delete a['questionnaireDefinitionId'];
+      expect(groupForBoard([a as never]).map(x => x.key)).toEqual(['awaiting']);
+    });
+  });
+
   describe('arrived rows', () => {
     it('sort first inside each open group and do not add a group', () => {
       const g = groupForBoard([

@@ -48,7 +48,7 @@ export class PatientEditComponent implements OnInit, OnDestroy {
 
   @ViewChild('drawerEl') drawerEl?: ElementRef<HTMLElement>;
 
-  form = { firstName: '', lastName: '', email: '', phone: '', gender: 'male', dateOfBirth: '', city: '', state: '', zip: '' };
+  form = { firstName: '', lastName: '', email: '', phone: '', gender: '', dateOfBirth: '', city: '', state: '', zip: '' };
   consent: ContactConsent | null = null;
   submitted = false;
   saving = false;
@@ -68,7 +68,7 @@ export class PatientEditComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const p = this.patient;
     this.form = {
-      firstName: p.firstName, lastName: p.lastName, email: p.email, phone: p.phone, gender: p.gender || 'male',
+      firstName: p.firstName, lastName: p.lastName, email: p.email ?? '', phone: p.phone ?? '', gender: p.gender ?? '',
       dateOfBirth: p.dateOfBirth ?? '', city: p.address?.city ?? '', state: p.address?.state ?? '', zip: p.address?.zip ?? ''
     };
     this.doc.body.classList.add('drawer-open');
@@ -107,7 +107,8 @@ export class PatientEditComponent implements OnInit, OnDestroy {
       return v < MIN_DOB ? this.i18n.t('pf.edit.err.dobOld') : null;
     }
     if (!v) {
-      return this.i18n.t('pf.edit.err.required');
+      // only the first and last name are required: a file may exist with no phone, e-mail, gender or address
+      return field.key === 'firstName' || field.key === 'lastName' ? this.i18n.t('pf.edit.err.required') : null;
     }
     if (field.max && v.length > field.max) {
       return this.i18n.t('pf.edit.err.max', { max: field.max });
@@ -135,7 +136,7 @@ export class PatientEditComponent implements OnInit, OnDestroy {
   /* ---------- consent notice ---------- */
 
   get contactChanged(): boolean {
-    return this.value('email') !== this.patient.email || this.value('phone') !== this.patient.phone;
+    return this.value('email') !== (this.patient.email ?? '') || this.value('phone') !== (this.patient.phone ?? '');
   }
 
   get showConsentNotice(): boolean {
@@ -159,11 +160,15 @@ export class PatientEditComponent implements OnInit, OnDestroy {
     const f = this.form;
     const contactChanged = this.contactChanged;
     // full replace on the server: everything not sent is cleared, so send the whole patient with only the edits applied
+    const blank = (v: string): string | null => v.trim() || null;
+    const city = blank(f.city);
+    const state = blank(f.state);
+    const zip = blank(f.zip);
     const body: Patient = {
       id: this.patient.id,
-      firstName: f.firstName.trim(), lastName: f.lastName.trim(), email: f.email.trim(), phone: f.phone.trim(), gender: f.gender,
+      firstName: f.firstName.trim(), lastName: f.lastName.trim(), email: blank(f.email), phone: blank(f.phone), gender: blank(f.gender),
       dateOfBirth: f.dateOfBirth.trim() || null,
-      address: { city: f.city.trim(), state: f.state.trim(), zip: f.zip.trim() }
+      address: city || state || zip ? { city, state, zip } : null
     };
     this.saving = true;
     this.files.updatePatient(this.patient.id!, body).subscribe({

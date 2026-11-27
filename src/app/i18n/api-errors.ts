@@ -30,7 +30,10 @@ export const ERROR_CODE_KEYS: Record<string, TKey> = {
   CHANNEL_DISABLED: 'error.code.CHANNEL_DISABLED',
   NO_RECIPIENT: 'error.code.NO_RECIPIENT',
   LINK_UNAVAILABLE: 'error.code.LINK_UNAVAILABLE',
-  NOTIFICATION_LIMIT: 'error.code.NOTIFICATION_LIMIT'
+  NOTIFICATION_LIMIT: 'error.code.NOTIFICATION_LIMIT',
+  POSSIBLE_DUPLICATE: 'error.code.POSSIBLE_DUPLICATE',
+  HEALTH_NUMBER_IN_USE: 'error.code.HEALTH_NUMBER_IN_USE',
+  HEALTH_NUMBER_MISMATCH: 'error.code.HEALTH_NUMBER_MISMATCH'
 };
 
 // Must match the backend's fixed messages; when the BE adds one, add it here (unknown ones fall back to the code key).
@@ -69,7 +72,13 @@ export const API_MESSAGE_KEYS: Record<string, TKey> = {
   'INVALID_STATE|Undo the arrival before moving the appointment to another day': 'error.msg.arrivalMove',
   'INVALID_STATE|Undo the arrival before deleting the appointment': 'error.msg.arrivalDelete',
   "INVALID_STATE|Consent is already recorded; change it in the patient's contact preferences": 'error.msg.consentRecorded',
-  "INVALID_STATE|Consent was reset by a contact change; record it in the patient's contact preferences": 'error.msg.consentReset'
+  "INVALID_STATE|Consent was reset by a contact change; record it in the patient's contact preferences": 'error.msg.consentReset',
+  'INVALID_STATE|Only a card you attached in the last 10 minutes can be removed': 'error.msg.cardUndoWindow',
+  'INVALID_STATE|Not a walk-in of today': 'error.msg.notWalkIn',
+  'INVALID_STATE|No questionnaire for this appointment': 'error.msg.noQuestionnaireAppt',
+  'INVALID_STATE|Walk-in arrival cannot be undone; undo the walk-in': 'error.msg.walkInArrival',
+  'RATE_LIMITED|Too many card lookups; search by name': 'error.msg.tooManyCardLookups',
+  'RATE_LIMITED|Too many searches; try again later': 'error.msg.tooManySearches'
 };
 
 /** Exact `field|message` pairs. */
@@ -86,7 +95,14 @@ export const FIELD_MESSAGE_KEYS: Record<string, TKey> = {
   'contactConsent|cannot be reset to UNKNOWN': 'error.field.consentNoReset',
   'contactConsent|must be GRANTED or WITHDRAWN': 'error.field.consentChoice',
   'status|must be CANCELLED, COMPLETED or NO_SHOW': 'error.field.invalid',
-  'resourceType|must be QuestionnaireResponse': 'error.field.invalid'
+  'resourceType|must be QuestionnaireResponse': 'error.field.invalid',
+  'cardExpiry|must be YYYY-MM': 'error.field.cardExpiry',
+  'query|must be at least 2 characters': 'error.field.queryMin',
+  'phoneDigits|must be 4 to 10 digits': 'error.field.phoneDigits',
+  'query|query, dateOfBirth, phoneDigits or healthNumber is required': 'error.field.searchRequired',
+  'sharedCardReason|allowed only for a child under one year': 'error.field.sharedCardUnder1',
+  // "*" = any field: the server refuses NAM-shaped text in names and clinician fields (spec 3.1.12)
+  '*|looks like a health number': 'error.field.looksLikeHealthNumber'
 };
 
 interface FieldPattern { re: RegExp; key: TKey; params: (m: RegExpExecArray) => Params }
@@ -156,7 +172,7 @@ export class ApiErrorsService {
 
   /** A field-level validation message from `fieldErrors`. */
   fieldText(field: string, serverMessage: string): string {
-    const exact = FIELD_MESSAGE_KEYS[`${field}|${serverMessage}`];
+    const exact = FIELD_MESSAGE_KEYS[`${field}|${serverMessage}`] ?? FIELD_MESSAGE_KEYS[`*|${serverMessage}`];
     if (exact) {
       return this.i18n.t(exact);
     }

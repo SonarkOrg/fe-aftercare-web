@@ -184,6 +184,21 @@ describe('AppointmentsComponent', () => {
     expect(el.textContent).not.toContain('No appointments.');
   });
 
+  it('day view (1B): a walk-in without a questionnaire has its own group, a Walk-in tag, the card note, and no « New link »', () => {
+    fixture.detectChanges();
+    flush('2026-10-14', '2026-10-14', [
+      appointment({ id: 7, scheduledAt: '2026-10-14T09:00:00', status: 'SCHEDULED', walkIn: true, cardNote: 'NO_CARD', arrivedAt: '2026-10-14T13:00:00Z',
+        questionnaireDefinitionId: null, questionnaireUrl: null, questionnaireVersion: null })
+    ]);
+    expect(Array.from(el.querySelectorAll('.board-group h3')).map(h => h.textContent!.trim())).toEqual(['No questionnaire 1']);
+    const labels = Array.from(el.querySelectorAll('.appt-card .chip__label')).map(b => b.textContent);
+    expect(labels).toContain('Walk-in');
+    expect(labels).toContain('No card');
+    expect(labels).not.toContain('Awaiting questionnaire');
+    expect(labels).not.toContain('Questionnaire missing');
+    expect(el.querySelector('.btn-newlink')).toBeNull();
+  });
+
   it('omits a redacted (null) specialty in the board, the list and the week grid', async () => {
     const redacted = [
       appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00', status: 'NEEDS_REVIEW', specialty: null }),

@@ -11,7 +11,9 @@ import { intakeFlagLabel, intakeFlagMessage } from '../../i18n/content';
 import { fmtClock } from '../../i18n/format';
 import { I18nService } from '../../i18n/i18n.service';
 import { Lang, TKey } from '../../i18n/i18n.types';
+import type { CardNote } from '../../models/arrival.model';
 import { businessToday, initials } from '../../shared/link.util';
+import { cardNoteChip, ChipSpec } from '../../shared/status';
 import { PageTitleService } from '../../shell/page-title.service';
 
 @Component({
@@ -75,7 +77,16 @@ export class AppointmentDetailComponent implements OnInit {
 
   /** Same rule as the server's linkUsable: open, and the appointment day has not ended (spec 5.6). */
   get canSendLink(): boolean {
-    return this.open && !!this.appt && this.appt.scheduledAt.substring(0, 10) >= businessToday();
+    return this.open && !!this.appt && this.hasQuestionnaire(this.appt) && this.appt.scheduledAt.substring(0, 10) >= businessToday();
+  }
+
+  /** False only for a walk-in created without a questionnaire (phase 1B): no link, no « missing » warning. */
+  hasQuestionnaire(a: AppointmentDetail): boolean {
+    return a.questionnaireDefinitionId !== null;
+  }
+
+  cardNoteSpec(n: CardNote): ChipSpec {
+    return cardNoteChip(n);
   }
 
   /** Arrival can be noted or undone only for an open appointment of today. */

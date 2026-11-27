@@ -1,4 +1,4 @@
-import { extractNam, formatRamq, isValidRamq, normalizeRamq } from './ramq.util';
+import { birthDatesFromRamq, cardExpiryLabel, extractNam, formatCardExpiry, formatRamq, isValidRamq, looksLikeNam, normalizeRamq, parseCardExpiry } from './ramq.util';
 
 describe('ramq.util', () => {
   it('normalizes: upper-case, no spaces or hyphens', () => {
@@ -62,5 +62,73 @@ describe('ramq.util', () => {
         expect(extractNam(v)).withContext(String(v)).toBeNull();
       }
     });
+  });
+});
+
+describe('ramq.util (phase 1B)', () => {
+  const TODAY = '2026-11-26';
+
+  describe('birthDatesFromRamq', () => {
+    it('gives the one date that is not in the future', () => {
+      expect(birthDatesFromRamq('TREM68541212', TODAY)).toEqual(['1968-04-12']);
+    });
+    it('a year that fits two centuries gives two dates, newest first', () => {
+      expect(birthDatesFromRamq('TREM20010512', TODAY)).toEqual(['2020-01-05', '1920-01-05']);
+    });
+    it('reads +50 on the month as a marker, never as a sex', () => {
+      expect(birthDatesFromRamq('ROYS85522712', TODAY)).toEqual(['1985-02-27']);
+    });
+    it('ignores impossible dates and malformed text', () => {
+      expect(birthDatesFromRamq('TREM68023012', TODAY)).toEqual([]); // 30 February
+      expect(birthDatesFromRamq('nope', TODAY)).toEqual([]);
+      expect(birthDatesFromRamq('TREM 6854 1212', TODAY)).toEqual(['1968-04-12']);
+    });
+    it('drops a future century', () => {
+      expect(birthDatesFromRamq('TREM27010512', TODAY)).toEqual(['1927-01-05']);
+    });
+  });
+
+  describe('parseCardExpiry', () => {
+    it('accepts every printed form', () => {
+      for (const v of ['0327', '03 27', '03-27', '03/27', '03-2027', '03/2027', '2027-03']) {
+        expect(parseCardExpiry(v, TODAY)).withContext(v).toBe('2027-03');
+      }
+    });
+    it('refuses an old year, a far year and nonsense', () => {
+      expect(parseCardExpiry('1103', TODAY)).toBeNull();
+      expect(parseCardExpiry('03-2099', TODAY)).toBeNull();
+      expect(parseCardExpiry('1327', TODAY)).toBeNull();
+      expect(parseCardExpiry('0027', TODAY)).toBeNull();
+      expect(parseCardExpiry('032027', TODAY)).toBeNull();
+      expect(parseCardExpiry('abc', TODAY)).toBeNull();
+      expect(parseCardExpiry('', TODAY)).toBeNull();
+    });
+    it('keeps the window edges: 24 months back and 10 years ahead are in, one more month is out', () => {
+      expect(parseCardExpiry('11-2024', TODAY)).toBe('2024-11');
+      expect(parseCardExpiry('10-2024', TODAY)).toBeNull();
+      expect(parseCardExpiry('11-2036', TODAY)).toBe('2036-11');
+      expect(parseCardExpiry('12-2036', TODAY)).toBeNull();
+    });
+  });
+
+  it('formatCardExpiry writes MM-AAAA', () => {
+    expect(formatCardExpiry('2027-03')).toBe('03-2027');
+    expect(formatCardExpiry('x')).toBe('x');
+  });
+
+  it('cardExpiryLabel names the month in both languages', () => {
+    expect(cardExpiryLabel('2027-03', 'fr')).toBe('mars 2027');
+    expect(cardExpiryLabel('2027-03', 'en')).toBe('March 2027');
+    expect(cardExpiryLabel('2027-12', 'fr')).toBe('décembre 2027');
+    expect(cardExpiryLabel('bad', 'en')).toBe('bad');
+  });
+
+  it('looksLikeNam catches a NAM in any common typing and spares ordinary names', () => {
+    for (const v of ['TREM68541212', 'trem 6854 1212', 'TREM.6854.1212', 'TREM 68 54 12 12', 'Marie TREM68541212']) {
+      expect(looksLikeNam(v)).withContext(v).toBeTrue();
+    }
+    for (const v of ['Tremblay', 'Jean-François', 'Zzz-Test 2', '', 'Dr Roy 2026']) {
+      expect(looksLikeNam(v)).withContext(v).toBeFalse();
+    }
   });
 });

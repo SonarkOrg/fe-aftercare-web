@@ -427,4 +427,50 @@ describe('AppointmentDetailComponent arrival', () => {
     const labels = Array.from(el.querySelectorAll('.profile-hero__chips .chip__label')).map(c => c.textContent);
     expect(labels).toEqual(['Ready', 'Here']);
   });
+
+  describe('phase 1B: no questionnaire, card note, walk-in', () => {
+    const walkIn = (over: Partial<AppointmentDetail> = {}) => appointmentDetail({
+      status: 'SCHEDULED', scheduledAt: `${businessToday()}T10:00:00`, walkIn: true, arrivedAt: '2026-10-14T18:52:03Z', arrivalSource: 'DESK',
+      questionnaireDefinitionId: null, questionnaireUrl: null, questionnaireVersion: null, ...over
+    });
+
+    it('a null questionnaire reads « No questionnaire », with no send-link, no regenerate and no raw "null|null"', async () => {
+      await mount('NURSE', walkIn());
+      expect(el.querySelector('#no-questionnaire')!.textContent).toContain('No questionnaire');
+      expect(el.querySelector('#no-questionnaire-note')!.textContent).toContain('No questionnaire');
+      expect(has('app-send-link')).toBeFalse();
+      expect(has('regenerate-link')).toBeFalse();
+      expect(el.textContent).not.toContain('null|null');
+      expect(el.textContent).not.toContain('Not submitted yet.');
+      expect(el.textContent).not.toContain('Questionnaire missing');
+    });
+
+    it('the header carries the neutral « Walk-in » tag with its glyph', async () => {
+      await mount('NURSE', walkIn());
+      const labels = Array.from(el.querySelectorAll('.profile-hero__chips .chip__label')).map(c => c.textContent);
+      expect(labels).toContain('Walk-in');
+      expect(labels).toContain('No questionnaire');
+      const tag = el.querySelector('.walk-in-chip .chip')!;
+      expect(tag.classList).toContain('chip--neutral');
+      expect(tag.querySelector('.chip__glyph')!.textContent!.trim()).toBe('—');
+    });
+
+    it('a card note shows as a neutral chip in the header and in the details list', async () => {
+      await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: `${businessToday()}T10:00:00`, cardNote: 'NOT_VALID_TODAY' }));
+      expect(el.querySelector('#card-note .chip__label')!.textContent).toBe('Card not valid today');
+      expect(el.querySelector('#card-note .chip')!.classList).toContain('chip--neutral');
+      expect(el.querySelector('.profile-hero__chips .card-note-chip')).not.toBeNull();
+    });
+
+    it('no card note row when there is none', async () => {
+      await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: `${businessToday()}T10:00:00` }));
+      expect(has('card-note')).toBeFalse();
+    });
+
+    it('A-44: reception gets Send link but never « New link » on an appointment with a questionnaire', async () => {
+      await mount('RECEPTION', appointmentDetail({ status: 'SCHEDULED', scheduledAt: `${businessToday()}T23:00:00` }));
+      expect(has('app-send-link')).toBeTrue();
+      expect(has('regenerate-link')).toBeFalse();
+    });
+  });
 });

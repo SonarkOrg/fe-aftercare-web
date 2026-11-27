@@ -115,6 +115,24 @@ describe('FixPanelComponent', () => {
     http.verify();
   });
 
+  it('a walk-in with a questionnaire offers the real "Send link" to the desk once consent is granted (A-44: no code)', () => {
+    const walkIn = (consent: 'UNKNOWN' | 'GRANTED', over: Partial<ArrivalRow> = {}) =>
+      sophie({ walkIn: true, desk: { state: 'ARRIVED', reasons: [], notices: [] }, ...over }, consent);
+    const { f, el } = setup(walkIn('GRANTED'));
+    expect(el.querySelector('.fd-walkin-link app-send-link')).not.toBeNull();
+    expect(el.querySelector('.fd-new-link')).toBeNull();
+    const shown = (row: ArrivalRow) => {
+      f.componentInstance.row = row;
+      f.componentInstance.ngOnChanges();
+      f.detectChanges();
+      return el.querySelector('.fd-walkin-link') !== null;
+    };
+    expect(shown(walkIn('UNKNOWN'))).toBeFalse();
+    expect(shown(walkIn('GRANTED', { questionnaire: 'NONE', linkUsable: false }))).toBeFalse();
+    expect(shown(walkIn('GRANTED', { walkIn: false }))).toBeFalse();
+    expect(shown(walkIn('GRANTED'))).toBeTrue();
+  });
+
   it('"New link" is offered only while the link is usable and the appointment is SCHEDULED', () => {
     expect(setup(sophie({ linkUsable: false }, 'GRANTED'), 'NURSE').el.querySelector('.fd-new-link')).toBeNull();
     TestBed.resetTestingModule();
@@ -161,5 +179,48 @@ describe('FixPanelComponent', () => {
     expect(el.textContent).toContain('Accepte les messages de la clinique ?');
     expect(el.querySelector('.fd-consent-yes')!.textContent).toBe('Oui');
     expect(el.querySelector('.fd-new-link')!.textContent).toContain('Nouveau lien');
+  });
+
+  describe('card (phase 1B)', () => {
+    const arrivedExpired = (): ArrivalRow => F.arrivalRow({
+      arrival: { arrivedAt: '2026-10-14T13:00:00Z', source: 'DESK', byName: null },
+      desk: { state: 'ARRIVED', reasons: ['CARD_EXPIRED'], notices: [] }, patient: F.deskPatient({ card: F.card({ status: 'EXPIRED', expiry: '2026-01' }) })
+    });
+
+    it('shows « expires 01-2026 » and the inline expiry field; Save sends PUT …/health-card with the parsed month', () => {
+      const { f, el, http } = setup(arrivedExpired());
+      expect(el.textContent).toContain('expires 01-2026');
+      const input = el.querySelector<HTMLInputElement>('.fd-expiry')!;
+      input.value = '0327';
+      input.dispatchEvent(new Event('input'));
+      f.detectChanges();
+      el.querySelector<HTMLButtonElement>('.fd-expiry-save')!.click();
+      const req = http.expectOne(r => r.method === 'PUT' && r.url.endsWith('/patients/12/health-card'));
+      expect(req.request.body).toEqual({ cardExpiry: '2027-03' });
+    });
+
+    it('an unreadable expiry is refused without a request', () => {
+      const { f, el, http } = setup(arrivedExpired());
+      const input = el.querySelector<HTMLInputElement>('.fd-expiry')!;
+      input.value = '1103';
+      input.dispatchEvent(new Event('input'));
+      f.detectChanges();
+      el.querySelector<HTMLButtonElement>('.fd-expiry-save')!.click();
+      f.detectChanges();
+      http.expectNone(() => true);
+      expect(el.querySelector('.field-error')!.textContent).toContain('MM-YYYY');
+    });
+
+    it('offers the two card notes on an arrived row and sends PUT …/card-note', () => {
+      const { el, http } = setup(arrivedExpired());
+      el.querySelector<HTMLButtonElement>('.fd-note-none')!.click();
+      const req = http.expectOne(r => r.method === 'PUT' && r.url.endsWith('/appointments/77/card-note'));
+      expect(req.request.body).toEqual({ note: 'NO_CARD' });
+    });
+
+    it('shows « Complete the file » for a missing date of birth', () => {
+      const { el } = setup(F.arrivalRow({ desk: { state: 'CHECK', reasons: ['DOB_MISSING'], notices: [] } }));
+      expect(el.querySelector('.fd-complete')!.getAttribute('href')).toBe('/patients/12?edit=1');
+    });
   });
 });

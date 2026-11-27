@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { Patient } from '../../models/patient.model';
+import { SendLinkComponent } from '../../shared/send-link/send-link.component';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { JANE, appointment, appointmentDetail } from '../../testing/fixtures';
 import { AppointmentFormComponent } from './appointment-form.component';
@@ -21,7 +22,7 @@ describe('AppointmentFormComponent', () => {
 
   function setup(params: Record<string, string>, query: Record<string, string>) {
     TestBed.configureTestingModule({
-      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule, SendLinkComponent],
       declarations: [AppointmentFormComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
       providers: [{
         provide: ActivatedRoute,
@@ -35,6 +36,34 @@ describe('AppointmentFormComponent', () => {
   }
 
   afterEach(() => http.verify());
+
+  it('A-44: a create that returns no code offers « Send link » instead of a copy field', async () => {
+    setup({}, { patientId: '5' });
+    fixture.detectChanges();
+    http.expectOne(`${api}/patients`).flush([JANE]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    component.submit();
+    http.expectOne(`${api}/appointments`).flush({ appointment: appointment({ id: 9 }), accessCode: null }, { status: 201, statusText: 'Created' });
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Appointment created.');
+    expect(el.querySelector('.access-link')).toBeNull();
+    expect(el.querySelector('#created-send-link')).not.toBeNull();
+    expect(el.querySelector('#created-send-link button')).not.toBeNull();
+  });
+
+  it('with a code (CLINICAL_READ) the copy field shows and Send link does not', async () => {
+    setup({}, { patientId: '5' });
+    fixture.detectChanges();
+    http.expectOne(`${api}/patients`).flush([JANE]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    component.submit();
+    http.expectOne(`${api}/appointments`).flush({ appointment: appointment({ id: 9 }), accessCode: code }, { status: 201, statusText: 'Created' });
+    fixture.detectChanges();
+    expect(el.querySelector('.access-link')).not.toBeNull();
+    expect(el.querySelector('#created-send-link')).toBeNull();
+  });
 
   it('preselects the patient from the query param and creates with a Toronto-local scheduledAt', async () => {
     setup({}, { patientId: '5' });
