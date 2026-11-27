@@ -78,7 +78,7 @@ describe('NotificationSettingsComponent', () => {
     for (const sel of ['.chip-email', '.chip-sms']) {
       const chip = q(sel + ' .chip');
       expect(chip.classList).toContain('chip--warning');
-      expect(chip.textContent).toContain('Logging only: messages are not delivered');
+      expect(chip.textContent).toContain('Logging only \u2014 nothing is sent');
       expect(chip.querySelector('.chip__glyph')!.textContent).toBe('●');
     }
     fixture.destroy();
@@ -88,6 +88,32 @@ describe('NotificationSettingsComponent', () => {
     expect(q('.chip-email .chip').classList).toContain('chip--neutral');
     expect(q('.chip-email .chip').textContent).toContain('Delivered via SMTP');
     expect(q('.chip-sms .chip').textContent).toContain('Delivered via Twilio');
+  });
+
+  it('OFF provider: neutral chip, disabled toggle, hint, and the flag is sent as false', async () => {
+    await init(notificationSettings({ emailProvider: 'OFF', smsProvider: 'TWILIO', emailEnabled: true, smsEnabled: true }));
+    const chip = q('.chip-email .chip');
+    expect(chip.classList).toContain('chip--neutral');
+    expect(chip.querySelector('.chip__glyph')!.textContent).toBe('—');
+    expect(chip.textContent).toContain('Off');
+    expect(q<HTMLInputElement>('#ns-email').disabled).toBeTrue();
+    expect(q<HTMLInputElement>('#ns-email').checked).toBeFalse();
+    expect(q('#ns-email-off').textContent).toContain('No e-mail provider is configured for this clinic.');
+    expect(q<HTMLInputElement>('#ns-sms').disabled).toBeFalse();
+    expect(el.querySelector('#ns-sms-off')).toBeNull();
+    await save();
+    const r = http.expectOne(url);
+    expect(r.request.body.emailEnabled).toBeFalse();
+    expect(r.request.body.smsEnabled).toBeTrue();
+    r.flush(notificationSettings({ emailProvider: 'OFF', smsProvider: 'TWILIO', emailEnabled: false, smsEnabled: true }));
+    await settle();
+  });
+
+  it('SMS OFF shows its own hint and a disabled toggle', async () => {
+    await init(notificationSettings({ emailProvider: 'SMTP', smsProvider: 'OFF', smsEnabled: false }));
+    expect(q<HTMLInputElement>('#ns-sms').disabled).toBeTrue();
+    expect(q('#ns-sms-off').textContent).toContain('No SMS provider is configured for this clinic.');
+    expect(q<HTMLInputElement>('#ns-email').disabled).toBeFalse();
   });
 
   it('sends exactly the editable fields (no provider, updatedAt or updatedBy)', async () => {
@@ -173,5 +199,48 @@ describe('NotificationSettingsComponent', () => {
     http.expectOne(url).flush(notificationSettings());
     await settle();
     expect(q('form')).not.toBeNull();
+  });
+});
+
+describe('NotificationSettingsComponent (fr-CA, provider off)', () => {
+  const url = `${environment.apiUrl}/settings/notifications`;
+
+  it('shows the French chip and hints', async () => {
+    await TestBed.configureTestingModule({
+      imports: [I18nTestingModule.forLang('fr'), HttpClientTestingModule, FormsModule],
+      declarations: [NotificationSettingsComponent, ...SHARED_DECLARATIONS]
+    }).compileComponents();
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(NotificationSettingsComponent);
+    const el: HTMLElement = fixture.nativeElement;
+    fixture.detectChanges();
+    http.expectOne(url).flush(notificationSettings({ emailProvider: 'OFF', smsProvider: 'OFF', emailEnabled: false, smsEnabled: false }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('.chip-email .chip')!.textContent).toContain('Désactivé');
+    expect(el.querySelector('.chip-sms .chip')!.textContent).toContain('Désactivé');
+    expect(el.querySelector('#ns-email-off')!.textContent).toContain('Aucun fournisseur de courriel n\'est configuré pour cette clinique.');
+    expect(el.querySelector('#ns-sms-off')!.textContent).toContain('Aucun fournisseur de texto n\'est configuré pour cette clinique.');
+    http.verify();
+  });
+
+  it('shows the French logging-only warning', async () => {
+    await TestBed.configureTestingModule({
+      imports: [I18nTestingModule.forLang('fr'), HttpClientTestingModule, FormsModule],
+      declarations: [NotificationSettingsComponent, ...SHARED_DECLARATIONS]
+    }).compileComponents();
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(NotificationSettingsComponent);
+    const el: HTMLElement = fixture.nativeElement;
+    fixture.detectChanges();
+    http.expectOne(url).flush(notificationSettings({ emailProvider: 'LOG', smsProvider: 'LOG' }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const chip = el.querySelector('.chip-email .chip')!;
+    expect(chip.classList).toContain('chip--warning');
+    expect(chip.textContent).toContain('Journalisation seulement \u2014 rien n\'est envoyé');
+    http.verify();
   });
 });

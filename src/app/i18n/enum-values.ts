@@ -68,7 +68,7 @@ export const ENUM_VALUES: Record<EnumGroup, string[]> = {
   retentionMode: keys<RetentionMode>({ DRY_RUN: true, PURGE: true }),
   retentionTrigger: keys<RetentionTrigger>({ SCHEDULED: true, MANUAL: true }),
   retentionRunStatus: keys<RetentionRunStatus>({ SUCCEEDED: true, FAILED: true }),
-  emailProvider: keys<EmailProvider>({ LOG: true, SMTP: true }),
-  smsProvider: keys<SmsProvider>({ LOG: true, TWILIO: true }),
+  emailProvider: keys<EmailProvider>({ LOG: true, SMTP: true, OFF: true }),
+  smsProvider: keys<SmsProvider>({ LOG: true, TWILIO: true, OFF: true }),
   language: keys<Language>({ FR: true, EN: true })
 };

@@ -33,6 +33,12 @@ describe('ApiErrorsService', () => {
         }
       });
 
+      it('A-45: SECOND_PERSON_REQUIRED is shown by its code, whatever the server message', () => {
+        const e = { status: 409, error: { status: 409, error: 'SECOND_PERSON_REQUIRED', message: 'Another staff member must record this consent after a contact change', fieldErrors: {} } };
+        expect(errors.text(e, 'common.cancel')).toBe(i18n.t('error.code.SECOND_PERSON_REQUIRED'));
+        expect(i18n.t('error.code.SECOND_PERSON_REQUIRED')).toContain(lang === 'fr' ? 'Un autre membre du personnel' : 'Another staff member');
+      });
+
       it('the call-site override wins over the table', () => {
         expect(errors.text(body('INVALID_STATE', 'Alert is already resolved'), 'common.cancel', { INVALID_STATE: 'alerts.error.alreadyResolved' }))
           .toBe(i18n.t('alerts.error.alreadyResolved'));
@@ -53,6 +59,20 @@ describe('ApiErrorsService', () => {
         const e = { status: 500, error: { status: 500, error: 'CONFLICT', message: 'x', fieldErrors: {} } };
         expect(errors.text(e, 'common.cancel')).toBe(i18n.t('error.server'));
         expect(errors.text({ status: 400, error: { status: 503, error: 'CONFLICT', message: 'x', fieldErrors: {} } }, 'common.cancel')).toBe(i18n.t('error.server'));
+      });
+
+      it('INTERNAL_ERROR shows the reference when the body has one, and ends after "Try again." otherwise', () => {
+        const withRef = { status: 500, error: { status: 500, error: 'INTERNAL_ERROR', message: 'Unexpected error', fieldErrors: {}, details: { reference: '1a2b3c4d' } } };
+        const out = errors.text(withRef, 'common.cancel');
+        expect(out).toBe(i18n.t('error.code.INTERNAL_ERROR_REF', { ref: '1a2b3c4d' }));
+        expect(out).toContain('1a2b3c4d');
+        expect(out).not.toBe(i18n.t('error.server'));
+        const noRef = { status: 500, error: { status: 500, error: 'INTERNAL_ERROR', message: 'Unexpected error', fieldErrors: {} } };
+        expect(errors.text(noRef, 'common.cancel')).toBe(i18n.t('error.code.INTERNAL_ERROR'));
+        expect(errors.text(noRef, 'common.cancel')).not.toContain('{ref}');
+        const odd = { status: 500, error: { status: 500, error: 'INTERNAL_ERROR', message: 'x', fieldErrors: {}, details: { reference: '<b>x</b>' } } };
+        expect(errors.text(odd, 'common.cancel')).toBe(i18n.t('error.code.INTERNAL_ERROR'));
+        expect(i18n.t('error.code.INTERNAL_ERROR')).toBe(lang === 'fr' ? 'Erreur inattendue. Réessayez.' : 'Unexpected error. Try again.');
       });
 
       it('field messages: every exact row and every pattern', () => {

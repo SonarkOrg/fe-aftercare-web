@@ -9,6 +9,9 @@ import { ChipSpec } from '../../../shared/status';
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function providerChip(provider: string): ChipSpec {
+  if (provider === 'OFF') {
+    return { tone: 'neutral', glyph: '—', label: { key: 'settings.notif.providerOff' } };
+  }
   if (provider === 'LOG') {
     return { tone: 'warning', glyph: '●', label: { key: 'settings.notif.logOnly' } };
   }
@@ -47,12 +50,21 @@ export class NotificationSettingsComponent implements OnInit {
 
   private apply(s: NotificationSettings): void {
     this.current = s;
+    // A channel with no provider cannot be on (the API refuses it with CHANNEL_NOT_CONFIGURED), whatever the stored flag says.
     this.form = {
-      emailEnabled: s.emailEnabled, smsEnabled: s.smsEnabled,
+      emailEnabled: s.emailProvider === 'OFF' ? false : s.emailEnabled, smsEnabled: s.smsProvider === 'OFF' ? false : s.smsEnabled,
       checkInReminderEnabled: s.checkInReminderEnabled, checkInReminderTime: s.checkInReminderTime,
       appointmentReminderEnabled: s.appointmentReminderEnabled, appointmentReminderHours: s.appointmentReminderHours,
       missedCheckInEnabled: s.missedCheckInEnabled, missedCheckInCutoff: s.missedCheckInCutoff
     };
+  }
+
+  get emailOff(): boolean {
+    return this.current?.emailProvider === 'OFF';
+  }
+
+  get smsOff(): boolean {
+    return this.current?.smsProvider === 'OFF';
   }
 
   get emailChip(): ChipSpec | null {

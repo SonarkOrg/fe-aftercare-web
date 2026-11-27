@@ -6,8 +6,8 @@ export type NotificationStatus = 'PENDING' | 'SENDING' | 'SENT' | 'FAILED' | 'CA
 export type NotificationError = 'PROVIDER_ERROR' | 'PROVIDER_REJECTED' | 'INVALID_RECIPIENT' | 'NO_CONSENT'
   | 'CHANNEL_DISABLED' | 'LINK_UNAVAILABLE' | 'NOT_APPLICABLE' | 'VOLUME_LIMIT';
 export type ContactConsent = 'UNKNOWN' | 'GRANTED' | 'WITHDRAWN';
-export type EmailProvider = 'LOG' | 'SMTP';
-export type SmsProvider = 'LOG' | 'TWILIO';
+export type EmailProvider = 'LOG' | 'SMTP' | 'OFF';
+export type SmsProvider = 'LOG' | 'TWILIO' | 'OFF';
 
 export interface ContactPreferences {
   patientId: number;

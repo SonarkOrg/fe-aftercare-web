@@ -64,7 +64,8 @@ describe('PatientQuestionnaireComponent', () => {
 
   /** The unread count for the Messages tab is requested once after the session loads. */
   function flushThread(body = publicThread()) {
-    http.expectOne(r => r.url === murl && r.method === 'GET').flush(body);
+    http.expectNone(r => r.url === murl && r.method === 'GET');
+    http.expectOne(r => r.url === murl + '/unread-count' && r.method === 'GET').flush({ unreadCount: body.unreadCount });
     fixture.detectChanges();
   }
 
@@ -310,7 +311,7 @@ describe('PatientQuestionnaireComponent', () => {
     it('ignores a failing unread request: the tab still shows', () => {
       fixture.detectChanges();
       http.expectOne(url).flush(checkin);
-      http.expectOne(r => r.url === murl).flush('x', { status: 500, statusText: 'Server Error' });
+      http.expectOne(r => r.url === murl + '/unread-count').flush('x', { status: 500, statusText: 'Server Error' });
       fixture.detectChanges();
       expect(tab('messages')).not.toBeNull();
       expect(tab('messages').querySelector('.pq-count')).toBeNull();
@@ -320,13 +321,59 @@ describe('PatientQuestionnaireComponent', () => {
       query = { tab: 'messages' };
       fixture.detectChanges();
       http.expectOne(url).flush(checkin);
-      http.expectOne(r => r.url === murl && r.method === 'GET').flush(publicThread());
       fixture.detectChanges();
+      http.expectNone(r => r.url === murl + '/unread-count');
       http.expectOne(r => r.url === murl && r.method === 'GET').flush(publicThread({ items: [publicMessage()] }));
       http.expectOne(r => r.url === murl + '/read').flush(null, { status: 204, statusText: 'No Content' });
       fixture.detectChanges();
       expect(tab('messages').getAttribute('aria-selected')).toBe('true');
       expect(el.querySelector('app-patient-messages')).not.toBeNull();
+    });
+
+    it('page open with the questionnaire tab asks only for the count, never the thread; the first thread GET happens on selecting Messages', () => {
+      fixture.detectChanges();
+      http.expectOne(url).flush(checkin);
+      http.expectNone(r => r.url === murl && r.method === 'GET');
+      http.expectOne(r => r.url === murl + '/unread-count').flush({ unreadCount: 3 });
+      fixture.detectChanges();
+      expect(tab('messages').querySelector('.pq-count')!.textContent).toContain('3');
+      tab('messages').click();
+      fixture.detectChanges();
+      http.expectOne(r => r.url === murl && r.method === 'GET').flush(publicThread());
+      fixture.detectChanges();
+    });
+
+    it('?tab=messages in a hidden document loads no thread until the page becomes visible', () => {
+      let state: DocumentVisibilityState = 'hidden';
+      const spy = spyOnProperty(document, 'visibilityState', 'get').and.callFake(() => state);
+      query = { tab: 'messages' };
+      fixture.detectChanges();
+      http.expectOne(url).flush(checkin);
+      http.expectOne(r => r.url === murl + '/unread-count').flush({ unreadCount: 1 });
+      fixture.detectChanges();
+      expect(tab('questionnaire').getAttribute('aria-selected')).toBe('true');
+      http.expectNone(r => r.url === murl && r.method === 'GET');
+      state = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+      fixture.detectChanges();
+      expect(tab('messages').getAttribute('aria-selected')).toBe('true');
+      http.expectOne(r => r.url === murl && r.method === 'GET').flush(publicThread({ items: [publicMessage()] }));
+      http.expectOne(r => r.url === murl + '/read').flush(null, { status: 204, statusText: 'No Content' });
+      fixture.detectChanges();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('a staff message with senderName null shows the care-team label in both languages', () => {
+      load(checkin);
+      openMessages([publicMessage({ id: 6, sender: 'STAFF', senderName: null })], { unreadCount: 1 });
+      http.expectOne(r => r.url === murl + '/read').flush(null, { status: 204, statusText: 'No Content' });
+      fixture.detectChanges();
+      expect(el.querySelector('.pq-msg-item .pq-meta')!.textContent).toContain(mfr.careTeam);
+      (el.querySelector('#lang-toggle') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(el.querySelector('.pq-msg-item .pq-meta')!.textContent).toContain(men.careTeam);
+      expect(mfr.careTeam).toBe('Équipe de soins');
+      expect(men.careTeam).toBe('Care team');
     });
 
     it('arrow keys switch tabs and the emergency footer stays visible on both', () => {

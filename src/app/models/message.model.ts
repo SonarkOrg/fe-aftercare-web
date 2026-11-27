@@ -28,3 +28,6 @@ export interface PublicMessage {
 export interface PublicThread {
   clinicName: string; clinicPhone: string | null; items: PublicMessage[]; hasMore: boolean; unreadCount: number;
 }
+
+/** Count-only answer of GET /api/public/q/{code}/messages/unread-count. */
+export interface PublicUnreadCount { unreadCount: number }

@@ -12,6 +12,9 @@ export const ERROR_CODE_KEYS: Record<string, TKey> = {
   INVALID_STATE: 'error.code.INVALID_STATE',
   PAYLOAD_TOO_LARGE: 'error.code.PAYLOAD_TOO_LARGE',
   UNSUPPORTED_MEDIA_TYPE: 'error.code.UNSUPPORTED_MEDIA_TYPE',
+  INTERNAL_ERROR: 'error.code.INTERNAL_ERROR',
+  METHOD_NOT_ALLOWED: 'error.code.METHOD_NOT_ALLOWED',
+  NOT_ACCEPTABLE: 'error.code.NOT_ACCEPTABLE',
   RATE_LIMITED: 'error.code.RATE_LIMITED',
   ALREADY_SUBMITTED: 'error.code.ALREADY_SUBMITTED',
   STAFF_INACTIVE: 'error.code.STAFF_INACTIVE',
@@ -28,12 +31,14 @@ export const ERROR_CODE_KEYS: Record<string, TKey> = {
   LAST_ADMIN: 'error.code.LAST_ADMIN',
   NO_CONSENT: 'error.code.NO_CONSENT',
   CHANNEL_DISABLED: 'error.code.CHANNEL_DISABLED',
+  CHANNEL_NOT_CONFIGURED: 'error.code.CHANNEL_NOT_CONFIGURED',
   NO_RECIPIENT: 'error.code.NO_RECIPIENT',
   LINK_UNAVAILABLE: 'error.code.LINK_UNAVAILABLE',
   NOTIFICATION_LIMIT: 'error.code.NOTIFICATION_LIMIT',
   POSSIBLE_DUPLICATE: 'error.code.POSSIBLE_DUPLICATE',
   HEALTH_NUMBER_IN_USE: 'error.code.HEALTH_NUMBER_IN_USE',
-  HEALTH_NUMBER_MISMATCH: 'error.code.HEALTH_NUMBER_MISMATCH'
+  HEALTH_NUMBER_MISMATCH: 'error.code.HEALTH_NUMBER_MISMATCH',
+  SECOND_PERSON_REQUIRED: 'error.code.SECOND_PERSON_REQUIRED'
 };
 
 // Must match the backend's fixed messages; when the BE adds one, add it here (unknown ones fall back to the code key).
@@ -141,6 +146,13 @@ export class ApiErrorsService {
   text(err: unknown, fallback: TKey, ctx?: Partial<Record<string, TKey>>): string {
     const api = apiErrorOf(err);
     const httpStatus = (err as { status?: number } | null)?.status;
+    // The catch-all 500 (PRIV-A-48) carries a reference support can find in the logs; show it when it looks like one.
+    if (api?.error === 'INTERNAL_ERROR') {
+      const ref = api.details?.reference;
+      return typeof ref === 'string' && /^[0-9a-f]{8}$/.test(ref)
+        ? this.i18n.t('error.code.INTERNAL_ERROR_REF', { ref })
+        : this.i18n.t('error.code.INTERNAL_ERROR');
+    }
     // A 5xx is a server fault whatever the body says: never show a code-specific message for it.
     if (typeof httpStatus === 'number' && httpStatus >= 500 || (api && api.status >= 500)) {
       return this.i18n.t('error.server');

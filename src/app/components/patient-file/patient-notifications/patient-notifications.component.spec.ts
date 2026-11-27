@@ -178,6 +178,16 @@ describe('PatientNotificationsComponent', () => {
     expect(q('.banner--error').textContent).toContain("You don't have permission for this action.");
   });
 
+  it('shows the A-45 text when the same person who changed the contact records the consent', async () => {
+    await init(contactPrefs({ contactConsent: 'UNKNOWN' }));
+    q<HTMLFormElement>('form').dispatchEvent(new Event('submit'));
+    http.expectOne(`${api}/patients/5/contact-preferences`).flush(
+      { status: 409, error: 'SECOND_PERSON_REQUIRED', message: 'Another staff member must record this consent after a contact change', fieldErrors: {} },
+      { status: 409, statusText: 'Conflict' });
+    await settle();
+    expect(q('.banner--error').textContent).toContain('Another staff member must record this consent because you just changed the contact details.');
+  });
+
   describe('recent messages', () => {
     it('says so when none were sent', async () => {
       await init();

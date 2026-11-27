@@ -5,6 +5,8 @@ export interface ApiErrorDetails {
   attemptsLeft?: number;
   retryAfterSeconds?: number;
   reason?: string;
+  /** INTERNAL_ERROR: the 8-hex reference the server logged; the only thing support needs. */
+  reference?: string;
 }
 
 export interface ApiError {

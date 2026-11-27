@@ -27,6 +27,13 @@ describe('PublicMessageService', () => {
     r.flush({});
   });
 
+  it('unreadCount hits the count-only endpoint', () => {
+    svc.unreadCount('abc/1').subscribe(c => expect(c.unreadCount).toBe(4));
+    const r = http.expectOne(`${base}/unread-count`);
+    expect(r.request.method).toBe('GET');
+    r.flush({ unreadCount: 4 });
+  });
+
   it('send and markRead', () => {
     svc.send('abc/1', 'bonjour').subscribe();
     let r = http.expectOne(base);

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { PublicMessage, PublicThread } from '../models/message.model';
+import { PublicMessage, PublicThread, PublicUnreadCount } from '../models/message.model';
 
 /** Public (no auth) endpoints; the access code travels in the path and the staff token is never attached. */
 @Injectable({ providedIn: 'root' })
@@ -19,6 +19,11 @@ export class PublicMessageService {
       params = params.set('before', before);
     }
     return this.http.get<PublicThread>(this.url(code), { params });
+  }
+
+  /** Count only (no content): used on page open so a link scanner never receives the thread. */
+  unreadCount(code: string): Observable<PublicUnreadCount> {
+    return this.http.get<PublicUnreadCount>(`${this.url(code)}/unread-count`);
   }
 
   send(code: string, body: string): Observable<PublicMessage> {

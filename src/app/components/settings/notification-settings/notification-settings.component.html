@@ -9,13 +9,15 @@
     <div class="toggle-row">
       <label for="ns-email">{{ 'enum.notificationChannel.EMAIL' | t }}</label>
       <span class="ns-provider"><app-status-chip size="sm" class="chip-email" [spec]="emailChip!"></app-status-chip></span>
-      <input id="ns-email" name="emailEnabled" type="checkbox" [(ngModel)]="form.emailEnabled" (ngModelChange)="touch()">
+      <input id="ns-email" name="emailEnabled" type="checkbox" [(ngModel)]="form.emailEnabled" (ngModelChange)="touch()" [disabled]="emailOff" [attr.aria-describedby]="emailOff ? 'ns-email-off' : null">
     </div>
+    <p class="helper-line" id="ns-email-off" *ngIf="emailOff"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.noEmailProvider' | t }}</p>
     <div class="toggle-row">
       <label for="ns-sms">{{ 'enum.notificationChannel.SMS' | t }}</label>
       <span class="ns-provider"><app-status-chip size="sm" class="chip-sms" [spec]="smsChip!"></app-status-chip></span>
-      <input id="ns-sms" name="smsEnabled" type="checkbox" [(ngModel)]="form.smsEnabled" (ngModelChange)="touch()">
+      <input id="ns-sms" name="smsEnabled" type="checkbox" [(ngModel)]="form.smsEnabled" (ngModelChange)="touch()" [disabled]="smsOff" [attr.aria-describedby]="smsOff ? 'ns-sms-off' : null">
     </div>
+    <p class="helper-line" id="ns-sms-off" *ngIf="smsOff"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.noSmsProvider' | t }}</p>
     <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.consentRule' | t }}</p>
   </section>
 

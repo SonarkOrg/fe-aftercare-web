@@ -56,6 +56,18 @@ describe('FixPanelComponent', () => {
     http.verify();
   });
 
+  it('a 409 "another staff member" refusal shows the A-45 text and keeps the question open', () => {
+    const { f, el, saved, http } = setup(sophie());
+    el.querySelector<HTMLButtonElement>('.fd-consent-yes')!.click();
+    http.expectOne(r => r.method === 'PUT').flush(
+      { status: 409, error: 'SECOND_PERSON_REQUIRED', message: 'Another staff member must record this consent after a contact change', fieldErrors: {} },
+      { status: 409, statusText: 'Conflict' });
+    f.detectChanges();
+    expect(saved).toEqual([]);
+    expect(el.textContent).toContain('Another staff member must record this consent because you just changed the contact details.');
+    expect(el.querySelector('.fd-consent-yes')).not.toBeNull();
+  });
+
   it('"No" at the desk sends WITHDRAWN and points to the clinical team, with no send button and no new link', () => {
     const { f, el, saved, http } = setup(sophie());
     el.querySelector<HTMLButtonElement>('.fd-consent-no')!.click();

@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { PublicMessageService } from '../../Services/PublicMessage.service';
 import { PublicQuestionnaireService } from '../../Services/PublicQuestionnaire.service';
@@ -29,6 +29,9 @@ export class PatientQuestionnaireComponent implements OnInit {
   tab: PqTab = 'questionnaire';
   /** Unread clinic messages, shown on the Messages tab. */
   unread = 0;
+
+  /** A ?tab=messages deep link opened in a hidden document (a link scanner): wait until a person sees the page. */
+  private pendingMessagesTab = false;
 
   @ViewChild('statusMsg') statusMsg?: ElementRef<HTMLElement>;
 
@@ -71,9 +74,24 @@ export class PatientQuestionnaireComponent implements OnInit {
     document.documentElement.lang = this.lang;
     this.code = this.route.snapshot.paramMap.get('code') ?? '';
     if (this.route.snapshot.queryParamMap?.get('tab') === 'messages') {
-      this.tab = 'messages';
+      if (document.visibilityState === 'visible') {
+        this.tab = 'messages';
+      } else {
+        this.pendingMessagesTab = true;
+      }
     }
     this.load();
+  }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (this.pendingMessagesTab && document.visibilityState === 'visible') {
+      this.pendingMessagesTab = false;
+      if (this.tabsVisible) {
+        this.unread = 0;
+        this.selectTab('messages');
+      }
+    }
   }
 
   toggleLang(): void {
@@ -97,8 +115,11 @@ export class PatientQuestionnaireComponent implements OnInit {
         if (s.submitted) {
           this.focusStatus();
         }
-        // Unread count for the Messages tab; a failure is ignored (the tab still shows).
-        this.messages.thread(this.code).subscribe({ next: t => (this.unread = this.tab === 'messages' ? 0 : t.unreadCount), error: () => { /* ignore */ } });
+        // Unread badge for the Messages tab through a count-only call (never the thread itself); a failure is
+        // ignored (the tab still shows). When the page opens on the Messages tab that view loads the thread.
+        if (this.tab !== 'messages') {
+          this.messages.unreadCount(this.code).subscribe({ next: c => (this.unread = this.tab === 'messages' ? 0 : c.unreadCount), error: () => { /* ignore */ } });
+        }
       },
       error: err => {
         this.state = err?.status === 404 ? 'invalid' : 'error';
@@ -137,6 +158,7 @@ export class PatientQuestionnaireComponent implements OnInit {
   }
 
   selectTab(t: PqTab, focus = false): void {
+    this.pendingMessagesTab = false;
     this.tab = t;
     if (focus) {
       setTimeout(() => document.getElementById('pq-tab-' + t)?.focus());
