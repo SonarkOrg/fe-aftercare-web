@@ -74,9 +74,9 @@ export class I18nService {
   }
 
   /** Test helper: installs complete dictionaries synchronously. */
-  preload(lang: AnyLang, dicts: { core: { en: Dict; fr: Dict }; patientFile: { en: Dict; fr: Dict }; pages: { en: Dict; fr: Dict } }): void {
+  preload(lang: AnyLang, dicts: { core: { en: Dict; fr: Dict }; patientFile: { en: Dict; fr: Dict }; pages: { en: Dict; fr: Dict }; frontDesk: { en: Dict; fr: Dict } }): void {
     this.current = lang;
-    for (const scope of ['core', 'patientFile', 'pages'] as const) {
+    for (const scope of ['core', 'patientFile', 'pages', 'frontDesk'] as const) {
       this.scopes[scope] = { fr: dicts[scope].fr, en: dicts[scope].en, pseudo: this.mapPseudo(dicts[scope].en) };
     }
     this.rebuild();
@@ -180,7 +180,7 @@ export class I18nService {
     this.scopes[scope] = entry;
     // Re-derive pseudo for scopes that were registered before the switch
     if (lang === 'pseudo') {
-      for (const s of ['patientFile', 'pages'] as const) {
+      for (const s of ['patientFile', 'pages', 'frontDesk'] as const) {
         const d = this.scopes[s];
         if (d?.en) {
           d.pseudo = this.mapPseudo(d.en);

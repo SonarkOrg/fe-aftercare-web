@@ -18,3 +18,24 @@ export function formatRamq(v: string): string {
   const n = normalizeRamq(v);
   return n.length === 12 ? `${n.slice(0, 4)} ${n.slice(4, 8)} ${n.slice(8)}` : v;
 }
+
+/**
+ * The first substring of a scan or typed text that looks like a NAM and passes the structure check, or null.
+ * A scan is assumed to give the NAM only; any longer payload is read in memory and the rest is discarded (spec 3.1.11).
+ */
+export function extractNam(raw: string): string | null {
+  const text = (raw ?? '').toUpperCase();
+  // 4 letters then 8 digits, each digit optionally preceded by ONE separator (space, dot, dash, slash, underscore), so a NAM
+  // typed in pairs ("TREM 68 54 12 12") or with dots ("TREM.6854.1212") is recognised too.
+  // Sticky: tried at every offset in turn so overlapping candidates are not skipped.
+  const re = /([A-Z]{4})((?:[\s.\-\/_]?\d){8})/y;
+  for (let i = 0; i < text.length; i++) {
+    re.lastIndex = i;
+    const m = re.exec(text);
+    const nam = m ? m[1] + m[2].replace(/\D/g, '') : null;
+    if (nam && isValidRamq(nam)) {
+      return nam;
+    }
+  }
+  return null;
+}

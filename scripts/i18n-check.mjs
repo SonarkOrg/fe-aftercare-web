@@ -141,10 +141,10 @@ for (const f of walk(src)) {
 // 8. scope: a key from a lazy dictionary (patientFile, pages) used outside its own module is missing at runtime; shared keys belong in core
 const dictDir0 = path.join(src, 'i18n/dict');
 const scopeOf = {};
-for (const [file, scope] of [['core', 'core'], ['patient-file', 'patientFile'], ['pages', 'pages']]) {
+for (const [file, scope] of [['core', 'core'], ['patient-file', 'patientFile'], ['pages', 'pages'], ['front-desk', 'frontDesk']]) {
   for (const m of readFileSync(path.join(dictDir0, `${file}.en.ts`), 'utf8').matchAll(/^\s*'([^']+)':/gm)) scopeOf[m[1]] = scope;
 }
-const fileScope = rel => /components\/(patient-file|patient-detail)\//.test(rel) ? 'patientFile' : /components\/(settings|reports|messages|pages\.module)|shared\/report\.util/.test(rel) ? 'pages' : 'core';
+const fileScope = rel => /components\/(patient-file|patient-detail)\//.test(rel) ? 'patientFile' : /components\/front-desk\//.test(rel) ? 'frontDesk' : /components\/(settings|reports|messages|pages\.module)|shared\/report\.util/.test(rel) ? 'pages' : 'core';
 for (const f of walk(src)) {
   const rel = path.relative(root, f).replaceAll('\\', '/');
   const mine = fileScope(rel);

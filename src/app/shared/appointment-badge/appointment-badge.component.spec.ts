@@ -37,4 +37,23 @@ describe('AppointmentBadgeComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.chip__label').textContent).toBe('Cancelled');
   });
+
+  it('adds a second "Here" chip (glyph and word) when the patient has arrived, and none otherwise', () => {
+    fixture.componentRef.setInput('appointment', { status: 'READY', questionnaireMissing: false, arrivedAt: '2026-10-14T13:52:03Z' });
+    fixture.detectChanges();
+    const chips = Array.from(fixture.nativeElement.querySelectorAll('.chip')) as HTMLElement[];
+    expect(chips.map(c => c.querySelector('.chip__label')!.textContent)).toEqual(['Ready', 'Here']);
+    expect(chips[1].classList).toContain('chip--good');
+    expect(chips[1].querySelector('.chip__glyph')!.textContent!.trim()).toBe('✓');
+
+    fixture.componentRef.setInput('appointment', { status: 'READY', questionnaireMissing: false, arrivedAt: null });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.chip').length).toBe(1);
+  });
+
+  it('keeps the status chip unchanged when arrivedAt is absent from the input', () => {
+    fixture.componentRef.setInput('appointment', { status: 'SCHEDULED', questionnaireMissing: true });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.chip').length).toBe(1);
+  });
 });

@@ -15,11 +15,17 @@
     <div class="grid-form form-2col">
       <div class="form-group span-2">
         <label for="ap-patient">{{ 'common.patient' | t }}</label>
-        <select id="ap-patient" name="patientId" [(ngModel)]="patientId" [disabled]="editId !== null" required>
+        <select id="ap-patient" name="patientId" [(ngModel)]="patientId" (ngModelChange)="patientChanged()" [disabled]="editId !== null" required>
           <option [ngValue]="null" disabled>{{ 'apptForm.selectPatient' | t }}</option>
           <option *ngFor="let p of patients" [ngValue]="p.id">{{ p.firstName }} {{ p.lastName }}</option>
         </select>
       </div>
+      <fieldset class="radio-group span-2 consent-group" id="ap-consent" *ngIf="askConsent">
+        <legend>{{ 'appts.form.consent.legend' | t }}</legend>
+        <label class="radio-row"><input type="radio" name="contactConsent" id="ap-consent-yes" value="GRANTED" [(ngModel)]="consentChoice"> {{ 'appts.form.consent.yes' | t }}</label>
+        <label class="radio-row"><input type="radio" name="contactConsent" id="ap-consent-no" value="WITHDRAWN" [(ngModel)]="consentChoice"> {{ 'appts.form.consent.no' | t }}</label>
+        <label class="radio-row"><input type="radio" name="contactConsent" id="ap-consent-unknown" value="UNKNOWN" [(ngModel)]="consentChoice"> {{ 'appts.form.consent.notAsked' | t }}</label>
+      </fieldset>
       <div class="form-group">
         <label for="ap-type">{{ 'appt.type' | t }}</label>
         <select id="ap-type" name="type" [(ngModel)]="type">
@@ -54,6 +60,7 @@
       </div>
     </div>
     <div class="banner banner--error error-message" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ error }}</span></div>
+    <div class="banner banner--info consent-saved" role="status" *ngIf="consentSaved && (error || fieldErrorList.length)"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ 'apptForm.consentSaved' | t }}</span></div>
     <ul class="banner banner--error error-message" *ngIf="fieldErrorList.length"><li *ngFor="let e of fieldErrorList">▲ {{ e }}</li></ul>
     <div class="btn-row">
       <button type="submit" class="btn btn--primary" [disabled]="saving">{{ (editId === null ? 'apptForm.create' : 'apptForm.save') | t }}</button>

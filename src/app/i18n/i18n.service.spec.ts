@@ -107,4 +107,20 @@ describe('I18nService', () => {
     service.register('patientFile', { en: { 'pd.tab.overview': 'Overview' }, fr: { 'pd.tab.overview': 'Sommaire' } });
     expect(service.t('pd.tab.overview')).toBe('Sommaire');
   });
+  it('the frontDesk scope is registered like the other lazy scopes and survives a language switch', async () => {
+    service.setHint('fr', false);
+    await service.boot();
+    service.register('frontDesk', { en: { 'fd.hero.title': 'Arrivals' }, fr: { 'fd.hero.title': 'Arrivées du jour' } });
+    expect(service.t('fd.hero.title')).toBe('Arrivées du jour');
+    await service.use('en');
+    expect(service.t('fd.hero.title')).toBe('Arrivals');
+  });
+
+  it('preload installs the frontDesk dictionaries', () => {
+    service.preload('fr', {
+      core: { en: {}, fr: {} }, patientFile: { en: {}, fr: {} }, pages: { en: {}, fr: {} },
+      frontDesk: { en: { 'fd.hero.title': 'Arrivals' }, fr: { 'fd.hero.title': 'Arrivées du jour' } }
+    });
+    expect(service.t('fd.hero.title')).toBe('Arrivées du jour');
+  });
 });

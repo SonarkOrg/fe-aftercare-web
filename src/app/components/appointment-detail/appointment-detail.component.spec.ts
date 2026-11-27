@@ -7,7 +7,7 @@ import { environment } from '../../../environments/environment';
 import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questionnaire-form.component';
 import { AppointmentDetail } from '../../models/appointment.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
-import { FULL_Q, appointmentDetail, contactPrefs, notification, providePermissions } from '../../testing/fixtures';
+import { FULL_Q, appointmentDetail, arrivalRow, contactPrefs, notification, providePermissions } from '../../testing/fixtures';
 import { AccessRole } from '../../models/me.model';
 import { addDays, businessToday } from '../../shared/link.util';
 import { SendLinkComponent } from '../../shared/send-link/send-link.component';
@@ -279,9 +279,14 @@ describe('AppointmentDetailComponent by access role', () => {
       });
     }
 
-    it('no Send link once the appointment time has passed', async () => {
+    it('no Send link once the appointment day has passed', async () => {
       await mount('NURSE', appointmentDetail({ status: 'SCHEDULED', scheduledAt: past() }));
       expect(has('app-send-link')).toBeFalse();
+    });
+
+    it('Send link stays until the end of the appointment day, as on the server (a late patient)', async () => {
+      await mount('NURSE', appointmentDetail({ status: 'SCHEDULED', scheduledAt: `${businessToday()}T00:01:00` }));
+      expect(has('app-send-link')).toBeTrue();
     });
   });
 
@@ -299,5 +304,127 @@ describe('AppointmentDetailComponent by access role', () => {
     http.expectOne(url).flush(appointmentDetail({ status: 'NEEDS_REVIEW', scheduledAt: future() }));
     fixture.detectChanges();
     expect(el.querySelector('.error-message')!.textContent).toContain("You don't have permission for this action.");
+  });
+});
+
+describe('AppointmentDetailComponent arrival', () => {
+  const api = environment.apiUrl;
+  const url = `${api}/appointments/4`;
+  const today = () => `${businessToday()}T09:00:00`;
+  const tomorrow = () => `${addDays(businessToday(), 1)}T09:00:00`;
+  let fixture: ComponentFixture<AppointmentDetailComponent>;
+  let http: HttpTestingController;
+  let el: HTMLElement;
+
+  async function mount(role: AccessRole, detail: AppointmentDetail, over: Parameters<typeof providePermissions>[1] = {}) {
+    await TestBed.configureTestingModule({
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule, SendLinkComponent],
+      declarations: [AppointmentDetailComponent, QuestionnaireFormComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions(role, over), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '4' }) } } }]
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(AppointmentDetailComponent);
+    el = fixture.nativeElement;
+    fixture.detectChanges();
+    http.expectOne(url).flush(detail);
+    fixture.detectChanges();
+  }
+  afterEach(() => http.verify());
+  const has = (sel: string) => el.querySelector(sel) !== null;
+  const arrivedRow = (byName: string | null) => arrivalRow({ appointmentId: 4, arrival: { arrivedAt: '2026-10-14T18:52:03Z', source: 'DESK', byName } });
+
+  it('offers #arrive-appt (and not #undo-arrival) for an open appointment of today without arrival', async () => {
+    await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: today() }));
+    expect(has('#arrive-appt')).toBeTrue();
+    expect(has('#undo-arrival')).toBeFalse();
+    expect(has('#arrived-since')).toBeFalse();
+    expect(el.querySelector('#arrive-appt')!.closest('.btn-row.actions')).not.toBeNull();
+  });
+
+  it('offers neither for another day, for a closed appointment, or without APPOINTMENT_WRITE', async () => {
+    await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: tomorrow() }));
+    expect(has('#arrive-appt')).toBeFalse();
+    expect(has('#undo-arrival')).toBeFalse();
+  });
+
+  it('closed appointment of today: no arrival button', async () => {
+    await mount('RECEPTION', appointmentDetail({ status: 'COMPLETED', scheduledAt: today() }));
+    expect(has('#arrive-appt')).toBeFalse();
+  });
+
+  it('read-only member: no arrival button', async () => {
+    await mount('NURSE', appointmentDetail({ status: 'READY', scheduledAt: today() }), { permissions: ['APPOINTMENT_READ'] });
+    expect(has('#arrive-appt')).toBeFalse();
+  });
+
+  it('arrive POSTs without confirmation, reloads, and shows who noted it and the source', async () => {
+    const confirm = spyOn(window, 'confirm');
+    await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: today() }));
+    (el.querySelector('#arrive-appt') as HTMLButtonElement).click();
+    const req = http.expectOne(`${url}/arrival`);
+    expect(req.request.method).toBe('POST');
+    req.flush(arrivedRow('Dev Reception'));
+    http.expectOne(url).flush(appointmentDetail({ status: 'READY', scheduledAt: today(), arrivedAt: '2026-10-14T18:52:03Z', arrivalSource: 'DESK' }));
+    fixture.detectChanges();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(has('#arrive-appt')).toBeFalse();
+    expect(has('#undo-arrival')).toBeTrue();
+    // label in the dt, value in the dd (never the time inside the label)
+    const since = el.querySelector('#arrived-since')!;
+    expect(since.tagName).toBe('DD');
+    expect(since.previousElementSibling!.textContent).toBe('Here since');
+    expect(since.textContent).not.toContain('Here since');
+    expect(el.querySelector('#arrival-source')!.textContent).toBe('At the desk');
+    expect(el.querySelector('#arrived-by')!.textContent).toBe('Dev Reception');
+    expect(el.querySelector('.btn-row.actions #undo-arrival')).not.toBeNull();
+  });
+
+  it('shows the arrival facts after a plain load, leaving out "Recorded by" when the API gave no name', async () => {
+    await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: today(), arrivedAt: '2026-10-14T18:52:03Z', arrivalSource: 'LINK' }));
+    expect(el.querySelector('#arrived-since')).not.toBeNull();
+    expect(el.querySelector('dl.kv')!.textContent).toContain('By the patient (link)');
+    expect(has('#arrived-by')).toBeFalse();
+    expect(el.textContent).not.toMatch(/null|undefined/);
+  });
+
+  it('an arrived SCHEDULED appointment without intake cannot be deleted (undo the arrival first)', async () => {
+    await mount('RECEPTION', appointmentDetail({ status: 'SCHEDULED', scheduledAt: today(), arrivedAt: '2026-10-14T18:52:03Z', arrivalSource: 'DESK' }));
+    expect(has('#delete-appt')).toBeFalse();
+    expect(has('#undo-arrival')).toBeTrue();
+  });
+
+  it('shows the name when the detail DTO carries arrivedByName', async () => {
+    await mount('RECEPTION', { ...appointmentDetail({ status: 'READY', scheduledAt: today(), arrivedAt: '2026-10-14T18:52:03Z', arrivalSource: 'DESK' }), arrivedByName: 'Marc Pelletier' });
+    expect(el.querySelector('#arrived-by')!.textContent).toBe('Marc Pelletier');
+  });
+
+  it('undo DELETEs and reloads without asking', async () => {
+    const confirm = spyOn(window, 'confirm');
+    await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: today(), arrivedAt: '2026-10-14T18:52:03Z', arrivalSource: 'DESK' }));
+    (el.querySelector('#undo-arrival') as HTMLButtonElement).click();
+    const req = http.expectOne(`${url}/arrival`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(arrivalRow({ appointmentId: 4, arrival: null }));
+    http.expectOne(url).flush(appointmentDetail({ status: 'READY', scheduledAt: today() }));
+    fixture.detectChanges();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(has('#arrive-appt')).toBeTrue();
+    expect(has('#arrived-since')).toBeFalse();
+  });
+
+  it('a failed arrival shows the translated message and reloads', async () => {
+    await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: today() }));
+    (el.querySelector('#arrive-appt') as HTMLButtonElement).click();
+    http.expectOne(`${url}/arrival`).flush({ status: 409, error: 'INVALID_STATE', message: 'Appointment is closed', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
+    http.expectOne(url).flush(appointmentDetail({ status: 'COMPLETED', scheduledAt: today() }));
+    fixture.detectChanges();
+    expect(el.querySelector('.error-message')).not.toBeNull();
+    expect(has('#arrive-appt')).toBeFalse();
+  });
+
+  it('the badge of the header shows the Here chip once arrived', async () => {
+    await mount('RECEPTION', appointmentDetail({ status: 'READY', scheduledAt: today(), arrivedAt: '2026-10-14T18:52:03Z', arrivalSource: 'DESK' }));
+    const labels = Array.from(el.querySelectorAll('.profile-hero__chips .chip__label')).map(c => c.textContent);
+    expect(labels).toEqual(['Ready', 'Here']);
   });
 });

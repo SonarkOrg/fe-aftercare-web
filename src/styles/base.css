@@ -23,7 +23,7 @@ p { margin: 0; }
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 /* on dark or green fills the ring also gets a white halo so it reads on both sides */
 .user-pill:focus-visible, .top-nav__item[aria-current=page]:focus-visible, .btn--primary:focus-visible, .btn--accent:focus-visible,
-.pill-group__item[aria-pressed=true]:focus-visible, .tab[aria-selected=true]:focus-visible, .today-pill:focus-visible { box-shadow: 0 0 0 4px #fff; }
+.pill-group__item[aria-pressed=true]:focus-visible, .pill-group__item[aria-current=page]:focus-visible, .tab[aria-selected=true]:focus-visible, .today-pill:focus-visible { box-shadow: 0 0 0 4px #fff; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

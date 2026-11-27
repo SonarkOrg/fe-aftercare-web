@@ -63,7 +63,13 @@ export const API_MESSAGE_KEYS: Record<string, TKey> = {
   'INVALID_STATE|Alert is already resolved': 'error.msg.alertResolved',
   'INVALID_STATE|Access link cannot be regenerated': 'error.msg.linkNoRegen',
   'INVALID_STATE|Appointment link is not usable': 'error.msg.apptLinkUnusable',
-  'INVALID_STATE|A retention run is already in progress': 'error.msg.retentionRunning'
+  'INVALID_STATE|A retention run is already in progress': 'error.msg.retentionRunning',
+  'INVALID_STATE|Appointment is closed': 'error.msg.apptClosed',
+  'INVALID_STATE|Arrival can only be recorded on the appointment day': 'error.msg.arrivalDay',
+  'INVALID_STATE|Undo the arrival before moving the appointment to another day': 'error.msg.arrivalMove',
+  'INVALID_STATE|Undo the arrival before deleting the appointment': 'error.msg.arrivalDelete',
+  "INVALID_STATE|Consent is already recorded; change it in the patient's contact preferences": 'error.msg.consentRecorded',
+  "INVALID_STATE|Consent was reset by a contact change; record it in the patient's contact preferences": 'error.msg.consentReset'
 };
 
 /** Exact `field|message` pairs. */
@@ -78,6 +84,7 @@ export const FIELD_MESSAGE_KEYS: Record<string, TKey> = {
   'file|must not be empty': 'error.field.fileEmpty',
   'checkInReminderTime|must be before the missed check-in cutoff': 'error.field.reminderBeforeCutoff',
   'contactConsent|cannot be reset to UNKNOWN': 'error.field.consentNoReset',
+  'contactConsent|must be GRANTED or WITHDRAWN': 'error.field.consentChoice',
   'status|must be CANCELLED, COMPLETED or NO_SHOW': 'error.field.invalid',
   'resourceType|must be QuestionnaireResponse': 'error.field.invalid'
 };

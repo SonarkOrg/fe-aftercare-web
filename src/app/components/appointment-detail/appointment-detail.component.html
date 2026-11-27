@@ -24,6 +24,11 @@
         <dt>{{ 'appt.location' | t }}</dt><dd>{{ a.location || '—' }}</dd>
         <dt>{{ 'appt.clinician' | t }}</dt><dd>{{ a.clinician || '—' }}</dd>
         <dt>{{ 'appt.form' | t }}</dt><dd>{{ a.questionnaireUrl }}|{{ a.questionnaireVersion }}</dd>
+        <ng-container *ngIf="a.arrivedAt">
+          <dt>{{ 'appts.arrivedSinceLabel' | t }}</dt><dd id="arrived-since">{{ a.arrivedAt | tzDate:'time' }}</dd>
+          <dt>{{ 'appts.arrivalSourceLabel' | t }}</dt><dd id="arrival-source">{{ a.arrivalSource ? (a.arrivalSource | enumLabel:'arrivalSource') : '—' }}</dd>
+          <ng-container *ngIf="arrivedBy"><dt>{{ 'appts.arrivedBy' | t }}</dt><dd id="arrived-by">{{ arrivedBy }}</dd></ng-container>
+        </ng-container>
       </dl>
       <div class="btn-row actions" *appCan="'APPOINTMENT_WRITE'">
         <ng-container *appCan="'CLINICAL_WRITE'"><button type="button" id="mark-reviewed" class="btn btn--primary" *ngIf="a.status === 'NEEDS_REVIEW'" (click)="markReviewed()">{{ 'dashboard.menu.markReviewed' | t }}</button></ng-container>
@@ -33,8 +38,10 @@
                 (click)="setStatus('COMPLETED', 'appts.confirmComplete')">{{ 'appts.markCompleted' | t }}</button>
         <button type="button" id="no-show-appt" class="btn btn--secondary" *ngIf="open"
                 (click)="setStatus('NO_SHOW', 'appt.confirm.noShow')">{{ 'appt.markNoShow' | t }}</button>
+        <button type="button" id="arrive-appt" class="btn btn--secondary" *ngIf="arrivalDay && !a.arrivedAt" [disabled]="arrivalBusy" (click)="arrive()">{{ 'appts.arrive' | t }}</button>
+        <button type="button" id="undo-arrival" class="btn btn--secondary" *ngIf="arrivalDay && a.arrivedAt" [disabled]="arrivalBusy" (click)="undoArrival()"><app-icon name="undo" [size]="16"></app-icon>{{ 'appts.undoArrival' | t }}</button>
         <a class="btn btn--secondary" id="edit-appt" *ngIf="open" [routerLink]="['/appointments', a.id, 'edit']">{{ 'common.edit' | t }}</a>
-        <button type="button" id="delete-appt" class="btn btn--danger" *ngIf="a.status === 'SCHEDULED' && !a.intake && !a.intakeSubmittedAt" (click)="delete()">{{ 'common.delete' | t }}</button>
+        <button type="button" id="delete-appt" class="btn btn--danger" *ngIf="a.status === 'SCHEDULED' && !a.intake && !a.intakeSubmittedAt && !a.arrivedAt" (click)="delete()">{{ 'common.delete' | t }}</button>
         <app-send-link *ngIf="canSendLink" kind="appointment" [targetId]="a.id" [patientId]="a.patientId" (sent)="onLinkSent(a.patientId)"></app-send-link>
       </div>
     </section>

@@ -8,6 +8,8 @@ import { PAGES_EN } from '../i18n/dict/pages.en';
 import { PAGES_FR } from '../i18n/dict/pages.fr';
 import { PATIENT_FILE_EN } from '../i18n/dict/patient-file.en';
 import { PATIENT_FILE_FR } from '../i18n/dict/patient-file.fr';
+import { FRONT_DESK_EN } from '../i18n/dict/front-desk.en';
+import { FRONT_DESK_FR } from '../i18n/dict/front-desk.fr';
 import { I18nModule } from '../i18n/i18n.module';
 import { I18nService } from '../i18n/i18n.service';
 import { AnyLang, Dict, Params, TKey } from '../i18n/i18n.types';
@@ -27,7 +29,8 @@ function load(service: I18nService, lang: AnyLang): I18nService {
   service.preload(lang, {
     core: { en: CORE_EN as unknown as Dict, fr: CORE_FR as unknown as Dict },
     patientFile: { en: PATIENT_FILE_EN as unknown as Dict, fr: PATIENT_FILE_FR as unknown as Dict },
-    pages: { en: PAGES_EN as unknown as Dict, fr: PAGES_FR as unknown as Dict }
+    pages: { en: PAGES_EN as unknown as Dict, fr: PAGES_FR as unknown as Dict },
+    frontDesk: { en: FRONT_DESK_EN as unknown as Dict, fr: FRONT_DESK_FR as unknown as Dict }
   });
   return service;
 }

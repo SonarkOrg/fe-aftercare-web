@@ -19,8 +19,17 @@ export interface BoardGroup {
 }
 
 const byTime = (a: Appointment, b: Appointment) => a.scheduledAt.localeCompare(b.scheduledAt) || a.id - b.id;
+/** Open groups list the people who are already here first (arrival is a timestamp, not a status or a group). */
+const byArrivalThenTime = (a: Appointment, b: Appointment) => Number(!!b.arrivedAt) - Number(!!a.arrivedAt) || byTime(a, b);
 
-/** Fixed order; empty groups are omitted. Within a group: scheduledAt, then id. */
+const OPEN_STATUSES = ['SCHEDULED', 'READY', 'NEEDS_REVIEW'];
+
+/** True for an open appointment whose business date is today: the only case where an arrival can be noted or undone. */
+export function isOpenToday(a: Pick<Appointment, 'status' | 'scheduledAt'>, today: string = businessToday()): boolean {
+  return OPEN_STATUSES.includes(a.status) && a.scheduledAt.substring(0, 10) === today;
+}
+
+/** Fixed order; empty groups are omitted. Within a group: scheduledAt, then id (open groups: arrived rows first). */
 export function groupForBoard(appts: Appointment[]): BoardGroup[] {
   const defs: { key: BoardKey; title: TKey; collapsed: boolean; test: (a: Appointment) => boolean }[] = [
     { key: 'review', title: 'enum.appointmentStatus.NEEDS_REVIEW', collapsed: false, test: a => a.status === 'NEEDS_REVIEW' },
@@ -30,7 +39,7 @@ export function groupForBoard(appts: Appointment[]): BoardGroup[] {
     { key: 'closed', title: 'appts.group.closed', collapsed: true, test: a => ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(a.status) }
   ];
   return defs
-    .map(d => ({ key: d.key, title: d.title, collapsed: d.collapsed, items: appts.filter(d.test).sort(byTime) }))
+    .map(d => ({ key: d.key, title: d.title, collapsed: d.collapsed, items: appts.filter(d.test).sort(d.key === 'closed' ? byTime : byArrivalThenTime) }))
     .filter(g => g.items.length > 0);
 }
 

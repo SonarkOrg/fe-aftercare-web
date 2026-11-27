@@ -1,4 +1,5 @@
 import type { CoreKey } from './dict/core.en';
+import type { FrontDeskKey } from './dict/front-desk.en';
 import type { PagesKey } from './dict/pages.en';
 import type { PatientFileKey } from './dict/patient-file.en';
 
@@ -13,10 +14,10 @@ export type Entry = string | PluralEntry;
 export type DictOf<T> = { [K in keyof T]: T[K] extends string ? string : PluralEntry };
 export type Params = Record<string, string | number>;
 
-export type TKey = CoreKey | PatientFileKey | PagesKey;
+export type TKey = CoreKey | PatientFileKey | PagesKey | FrontDeskKey;
 
 /** A text decided in TS and stored in component state: translate it in the template with `| t`. */
 export interface Msg { key: TKey; params?: Params }
 
-export type Scope = 'core' | 'patientFile' | 'pages';
+export type Scope = 'core' | 'patientFile' | 'pages' | 'frontDesk';
 export type Dict = Record<string, Entry>;

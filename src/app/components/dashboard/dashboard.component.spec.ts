@@ -328,6 +328,23 @@ describe('DashboardComponent without CLINICAL_READ (reception)', () => {
     fixture.detectChanges();
   }
 
+  it('links the appointments card to today\'s arrivals and shows the Here chip on arrived rows only', () => {
+    fixture.detectChanges();
+    http.expectOne(r => r.url === `${api}/appointments`).flush([
+      appts[0], { ...appts[1], arrivedAt: `${today}T12:50:00Z`, arrivalSource: 'DESK' }
+    ]);
+    http.expectOne(r => r.url === `${api}/appointments/metrics`).flush(metrics);
+    fixture.detectChanges();
+    const link = el.querySelector('.card--appts #arrivals-link') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('/appointments/arrivals');
+    expect(link.classList).toContain('card__link');
+    expect(link.textContent!.trim()).toBe("Today's arrivals");
+    const rows = Array.from(el.querySelectorAll('.appts .appt'));
+    expect(rows.map(r => r.querySelectorAll('.arrival-chip').length)).toEqual([1, 0]); // 08:30 arrived, 14:00 not
+    expect(rows[0].querySelector('.arrival-chip .chip__glyph')!.textContent!.trim()).toBe('✓');
+    expect(rows[0].querySelector('.arrival-chip')!.textContent).toContain('Here');
+  });
+
   it('makes no clinical request at all: no alerts, check-ins, patients, definitions, messages or follow-ups', () => {
     fixture.detectChanges();
     http.expectNone(r => r.url === `${api}/alerts`);
@@ -405,6 +422,25 @@ describe('DashboardComponent buttons by permission', () => {
     const e: HTMLElement = f.nativeElement;
     expect(e.querySelector('a[href="/appointments/new"]')).toBeNull();
     expect(e.querySelector('a[href="/patients?add=1"]')).toBeNull();
+    TestBed.inject(HttpTestingController).match(() => true);
+  });
+});
+
+describe('DashboardComponent arrivals link by permission', () => {
+  it('hides the Arrivals link from a member without APPOINTMENT_READ', async () => {
+    await TestBed.configureTestingModule({
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, RouterTestingModule, FormsModule],
+      declarations: [DashboardComponent, AccessLinkComponent, ...SHARED_DECLARATIONS],
+      providers: [
+        providePermissions('NURSE', { permissions: ['CLINICAL_READ', 'PATIENT_READ'] }),
+        { provide: StaffAuth, useValue: { userName$: of('Dev Nurse') } },
+        { provide: AlertCountService, useValue: { refresh: () => undefined } },
+        { provide: SettingsService, useValue: { clinic$: of(CLINIC) } }
+      ]
+    }).compileComponents();
+    const f = TestBed.createComponent(DashboardComponent);
+    f.detectChanges();
+    expect((f.nativeElement as HTMLElement).querySelector('#arrivals-link')).toBeNull();
     TestBed.inject(HttpTestingController).match(() => true);
   });
 });

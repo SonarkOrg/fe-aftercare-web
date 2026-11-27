@@ -2,6 +2,7 @@ import { NotificationService } from '../../Services/Notification.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppointmentService } from '../../Services/Appointment.service';
+import { ArrivalService } from '../../Services/Arrival.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
 import { AppointmentDetail, AppointmentStatusRequest, ReadinessFlagView } from '../../models/appointment.model';
@@ -10,7 +11,7 @@ import { intakeFlagLabel, intakeFlagMessage } from '../../i18n/content';
 import { fmtClock } from '../../i18n/format';
 import { I18nService } from '../../i18n/i18n.service';
 import { Lang, TKey } from '../../i18n/i18n.types';
-import { businessNow, initials } from '../../shared/link.util';
+import { businessToday, initials } from '../../shared/link.util';
 import { PageTitleService } from '../../shell/page-title.service';
 
 @Component({
@@ -26,11 +27,15 @@ export class AppointmentDetailComponent implements OnInit {
   notFound = false;
   errorMessage: string | null = null;
   initials = initials;
+  /** Who noted the arrival: known right after this page recorded it (the detail DTO carries no name in 1A). */
+  arrivedByName: string | null = null;
+  arrivalBusy = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private appointments: AppointmentService,
+    private arrivals: ArrivalService,
     private definitions: QuestionnaireDefinitionService,
     private titles: PageTitleService,
     private notifications: NotificationService,
@@ -68,9 +73,48 @@ export class AppointmentDetailComponent implements OnInit {
     return s === 'SCHEDULED' || s === 'READY' || s === 'NEEDS_REVIEW';
   }
 
-  /** The link is usable while the appointment is open and still ahead of us. */
+  /** Same rule as the server's linkUsable: open, and the appointment day has not ended (spec 5.6). */
   get canSendLink(): boolean {
-    return this.open && !!this.appt && this.appt.scheduledAt > businessNow();
+    return this.open && !!this.appt && this.appt.scheduledAt.substring(0, 10) >= businessToday();
+  }
+
+  /** Arrival can be noted or undone only for an open appointment of today. */
+  get arrivalDay(): boolean {
+    return this.open && !!this.appt && this.appt.scheduledAt.substring(0, 10) === businessToday();
+  }
+
+  /** The name of whoever noted the arrival, from the detail payload or from the arrival this page just recorded. */
+  get arrivedBy(): string | null {
+    return this.appt?.arrivedByName ?? this.arrivedByName;
+  }
+
+  arrive(): void {
+    this.runArrival(this.arrivals.arrive(this.id));
+  }
+
+  undoArrival(): void {
+    this.runArrival(this.arrivals.undo(this.id));
+  }
+
+  /** No confirmation (D5): arrival is idempotent and reversible. */
+  private runArrival(obs: ReturnType<ArrivalService['arrive']>): void {
+    if (this.arrivalBusy) {
+      return;
+    }
+    this.arrivalBusy = true;
+    this.errorMessage = null;
+    obs.subscribe({
+      next: row => {
+        this.arrivalBusy = false;
+        this.arrivedByName = row.arrival?.byName ?? null;
+        this.load();
+      },
+      error: err => {
+        this.arrivalBusy = false;
+        this.errorMessage = this.errors.text(err, 'appts.error.arrive');
+        this.load();
+      }
+    });
   }
 
   load(): void {

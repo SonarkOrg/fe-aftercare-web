@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { switchMap, tap } from 'rxjs';
 import { AppointmentService } from '../../Services/Appointment.service';
+import { PatientDeskService } from '../../Services/PatientDesk.service';
 import { PatientService } from '../../Services/Patient.service';
 import { ApiErrorsService } from '../../i18n/api-errors';
 import { I18nService } from '../../i18n/i18n.service';
@@ -31,6 +33,9 @@ export class AppointmentFormComponent implements OnInit {
   types: AppointmentType[] = ['PRE_OP_CONSULT', 'SURGERY', 'POST_OP_FOLLOWUP', 'GENERAL_CONSULT'];
   specialties: Specialty[] = ['VISCERAL_SURGERY', 'ORTHOPEDIC_SURGERY'];
 
+  /** Create mode, patient with consent still UNKNOWN: the answer given at the desk (§7.9). UNKNOWN = "not asked yet". */
+  consentChoice: 'UNKNOWN' | 'GRANTED' | 'WITHDRAWN' = 'UNKNOWN';
+
   saving = false;
   error: string | null = null;
   fieldErrors: Record<string, string> = {};
@@ -41,6 +46,7 @@ export class AppointmentFormComponent implements OnInit {
     private router: Router,
     private appointments: AppointmentService,
     private patientService: PatientService,
+    private desk: PatientDeskService,
     private i18n: I18nService,
     private errors: ApiErrorsService
   ) {}
@@ -63,6 +69,19 @@ export class AppointmentFormComponent implements OnInit {
       next: list => (this.patients = list),
       error: err => (this.error = this.errors.text(err, 'apptForm.error.loadPatients'))
     });
+  }
+
+  get selectedPatient(): Patient | null {
+    return this.patients.find(p => p.id === this.patientId) ?? null;
+  }
+
+  /** Only when creating, and only while the clinic does not know yet whether the patient accepts messages. */
+  get askConsent(): boolean {
+    return this.editId === null && this.selectedPatient?.contactConsent === 'UNKNOWN';
+  }
+
+  patientChanged(): void {
+    this.consentChoice = 'UNKNOWN';
   }
 
   get fieldErrorList(): string[] {
@@ -114,7 +133,17 @@ export class AppointmentFormComponent implements OnInit {
         error: err => this.fail(err)
       });
     } else {
-      this.appointments.create({ patientId: this.patientId, ...body }).subscribe({
+      const patientId = this.patientId;
+      const choice = this.askConsent && this.consentChoice !== 'UNKNOWN' ? this.consentChoice : null;
+      // The consent goes first so the link message is not skipped for missing consent (spec 7.9). If the consent call
+      // fails nothing is created; if it succeeds and the create then fails, the consent IS recorded: the patient is
+      // updated locally (the fieldset disappears) and the form says so next to the create error.
+      const create$ = choice
+        ? this.desk.setConsent(patientId, choice).pipe(
+            tap(() => this.consentRecorded(patientId, choice)),
+            switchMap(() => this.appointments.create({ patientId, ...body })))
+        : this.appointments.create({ patientId, ...body });
+      create$.subscribe({
         next: res => {
           this.saving = false;
           this.created = res;
@@ -122,6 +151,14 @@ export class AppointmentFormComponent implements OnInit {
         error: err => this.fail(err)
       });
     }
+  }
+
+  /** Shown with a create error when the consent answer was already saved. */
+  consentSaved = false;
+
+  private consentRecorded(patientId: number, value: 'GRANTED' | 'WITHDRAWN'): void {
+    this.consentSaved = true;
+    this.patients = this.patients.map(p => (p.id === patientId ? { ...p, contactConsent: value } : p));
   }
 
   private fail(err: unknown): void {

@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
+import { Patient } from '../../models/patient.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { JANE, appointment, appointmentDetail } from '../../testing/fixtures';
 import { AppointmentFormComponent } from './appointment-form.component';
@@ -138,5 +139,124 @@ describe('AppointmentFormComponent', () => {
     fixture.detectChanges();
     expect(el.querySelector('form')).toBeNull();
     expect(el.querySelector('#load-error')!.textContent).toContain('Server error. Please try again later.');
+  });
+
+  describe('clinic messages (consent) fieldset', () => {
+    const unknown: Patient = { ...JANE, contactConsent: 'UNKNOWN' };
+
+    async function ready(patient: Patient = unknown) {
+      setup({}, { patientId: '5' });
+      fixture.detectChanges();
+      http.expectOne(`${api}/patients`).flush([patient]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+    const radios = () => Array.from(el.querySelectorAll('#ap-consent input[type=radio]')) as HTMLInputElement[];
+
+    it('shows three radios, "Not asked yet" selected, when the patient consent is UNKNOWN (create mode)', async () => {
+      await ready();
+      expect(el.querySelector('#ap-consent legend')!.textContent).toBe('Clinic messages');
+      expect(radios().map(r => r.parentElement!.textContent!.trim())).toEqual(['Accepts', 'Refuses', 'Not asked yet']);
+      expect(radios().map(r => r.checked)).toEqual([false, false, true]);
+    });
+
+    it('is absent when consent is already answered, when the list has no consent field, and in edit mode', async () => {
+      await ready({ ...JANE, contactConsent: 'GRANTED' });
+      expect(el.querySelector('#ap-consent')).toBeNull();
+    });
+
+    it('is absent for a patient without the member (older payload)', async () => {
+      await ready(JANE);
+      expect(el.querySelector('#ap-consent')).toBeNull();
+    });
+
+    it('is absent in edit mode', async () => {
+      setup({ id: '4' }, {});
+      fixture.detectChanges();
+      http.expectOne(`${api}/appointments/4`).flush(appointmentDetail());
+      http.expectOne(`${api}/patients`).flush([unknown]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(el.querySelector('#ap-consent')).toBeNull();
+    });
+
+    it('"Not asked yet" behaves as today: no consent call, one POST', async () => {
+      await ready();
+      component.submit();
+      const req = http.expectOne(`${api}/appointments`);
+      expect(req.request.method).toBe('POST');
+      req.flush({ appointment: appointment(), accessCode: code });
+    });
+
+    it('"Accepts" sends PUT contact-consent GRANTED first, then POST /appointments', async () => {
+      await ready();
+      radios()[0].click();
+      fixture.detectChanges();
+      component.submit();
+      http.expectNone(`${api}/appointments`);
+      const put = http.expectOne(`${api}/patients/5/contact-consent`);
+      expect(put.request.method).toBe('PUT');
+      expect(put.request.body).toEqual({ contactConsent: 'GRANTED' });
+      http.expectNone(`${api}/appointments`);
+      put.flush({ contactConsent: 'GRANTED' });
+      const post = http.expectOne(`${api}/appointments`);
+      expect(post.request.method).toBe('POST');
+      post.flush({ appointment: appointment(), accessCode: code });
+      fixture.detectChanges();
+      expect(el.querySelector('.created')).not.toBeNull();
+    });
+
+    it('"Refuses" sends WITHDRAWN', async () => {
+      await ready();
+      radios()[1].click();
+      fixture.detectChanges();
+      component.submit();
+      const put = http.expectOne(`${api}/patients/5/contact-consent`);
+      expect(put.request.body).toEqual({ contactConsent: 'WITHDRAWN' });
+      put.flush({ contactConsent: 'WITHDRAWN' });
+      http.expectOne(`${api}/appointments`).flush({ appointment: appointment(), accessCode: code });
+    });
+
+    it('consent saved but create refused: both are said, and a retry sends no second consent call', async () => {
+      await ready();
+      radios()[0].click();
+      fixture.detectChanges();
+      component.submit();
+      http.expectOne(`${api}/patients/5/contact-consent`).flush({ contactConsent: 'GRANTED' });
+      http.expectOne(`${api}/appointments`).flush({ status: 409, error: 'NO_ACTIVE_QUESTIONNAIRE', message: 'x', fieldErrors: {} }, { status: 409, statusText: 'Conflict' });
+      fixture.detectChanges();
+      expect(component.created).toBeNull();
+      expect(el.querySelector('.error-message')).not.toBeNull();
+      expect(el.querySelector('.consent-saved')!.textContent).toContain('The answer about clinic messages is saved in the file');
+      expect(el.querySelector('#ap-consent')).toBeNull();
+      component.submit();
+      http.expectNone(`${api}/patients/5/contact-consent`);
+      http.expectOne(`${api}/appointments`).flush({ appointment: appointment(), accessCode: code });
+    });
+
+    it('a failed consent call creates nothing and shows the error', async () => {
+      await ready();
+      radios()[0].click();
+      fixture.detectChanges();
+      component.submit();
+      http.expectOne(`${api}/patients/5/contact-consent`).flush({}, { status: 500, statusText: 'Server Error' });
+      fixture.detectChanges();
+      http.expectNone(`${api}/appointments`);
+      expect(component.created).toBeNull();
+      expect(component.saving).toBeFalse();
+      expect(el.querySelector('.error-message')).not.toBeNull();
+      expect(el.querySelector('form')).not.toBeNull();
+    });
+
+    it('changing the patient resets the choice to "Not asked yet"', async () => {
+      await ready();
+      radios()[0].click();
+      fixture.detectChanges();
+      expect(component.consentChoice).toBe('GRANTED');
+      component.patientChanged();
+      expect(component.consentChoice).toBe('UNKNOWN');
+    });
   });
 });

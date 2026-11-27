@@ -1,4 +1,5 @@
 import { FhirQuestionnaireResponse } from '../fhir/fhir.model';
+import type { ArrivalSource } from './arrival.model';
 import { Specialty } from './follow-up.model';
 
 export type AppointmentType = 'PRE_OP_CONSULT' | 'SURGERY' | 'POST_OP_FOLLOWUP' | 'GENERAL_CONSULT';
@@ -29,6 +30,9 @@ export interface Appointment {
   createdAt: string;
   createdBy: string;
   updatedAt: string;
+  arrivedAt: string | null;
+  arrivalSource: ArrivalSource | null;
+  walkIn: boolean;
 }
 
 export interface AppointmentWithCode {
@@ -59,6 +63,8 @@ export interface AppointmentDetail extends Appointment {
   intake: Intake | null;
   /** True when the caller may not see the answers (no CLINICAL_READ); `intake` is then null. */
   intakeRedacted: boolean;
+  /** Staff member who recorded the arrival (« Noté par »); null when not arrived. Detail endpoint only. */
+  arrivedByName?: string | null;
 }
 
 export interface CreateAppointmentRequest {
@@ -90,4 +96,7 @@ export interface AppointmentMetrics {
   questionnairesCompleted: number;
   questionnaireMissing: number;
   completionRate: number | null;
+  /** Open or completed appointments with an arrival (phase 1A). */
+  arrived: number;
+  walkIns: number;
 }

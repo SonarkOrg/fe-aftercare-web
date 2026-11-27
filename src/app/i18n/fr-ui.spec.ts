@@ -219,3 +219,59 @@ describe('French staff UI (fr-CA)', () => {
     });
   });
 });
+
+describe('French Arrivals page (P1A-FE-A)', () => {
+  const h = new PageHarness();
+  const NBSP = '\u00a0';
+
+  // the page remembers itself as the last view; the day-board specs must not be redirected by it
+  afterEach(() => { try { localStorage.removeItem('aftercare.appts.view'); } catch { /* ignore */ } });
+
+  it('title, KPIs, groups, chips, buttons and the hero line, with Quebec typography', async () => {
+    const { ArrivalsComponent } = await import('../components/front-desk/arrivals/arrivals.component');
+    const { ArrivalBoxComponent } = await import('../components/front-desk/arrival-box/arrival-box.component');
+    const { ArrivalRowComponent } = await import('../components/front-desk/arrival-row/arrival-row.component');
+    const { FixPanelComponent } = await import('../components/front-desk/fix-panel/fix-panel.component');
+    const { UndoToastComponent } = await import('../components/front-desk/undo-toast/undo-toast.component');
+    const f = h.create('fr', ArrivalsComponent, [ArrivalBoxComponent, ArrivalRowComponent, FixPanelComponent, UndoToastComponent], false, {}, 'RECEPTION');
+    await h.settle(f);
+    const el = f.nativeElement as HTMLElement;
+    const c = f.componentInstance;
+    expect(el.querySelector('h1')!.textContent).toBe('Arrivées');
+    expect(el.querySelector('.hero__sub')!.textContent).toBe(`mercredi 14 octobre 2026 · mis à jour à 9${NBSP}h${NBSP}41`);
+    expect(Array.from(el.querySelectorAll('.kpi__label')).map(k => k.textContent)).toEqual(['Attendus', 'À vérifier', 'Sur place']);
+    expect(Array.from(el.querySelectorAll('.card__title--sm')).map(t => t.textContent!.trim().replace(/\s*\d+$/, ''))).toEqual(['Attendus', 'Sur place']);
+    expect(el.querySelector('#arrive-77')!.textContent!.trim()).toBe('Marquer l\'arrivée');
+    expect(el.querySelector('.fd-row__since')!.textContent).toBe(`Sur place depuis 9${NBSP}h${NBSP}02`);
+    expect(el.querySelector('.fd-undo')!.textContent!.trim()).toBe('Annuler l\'arrivée');
+    expect(el.querySelector('.fd-row[data-appt="77"] .fd-row__age')!.textContent).toBe('58 ans');
+    expect(Array.from(el.querySelectorAll('.fd-row[data-appt="78"] .chip__label')).map(x => x.textContent)).toEqual(['À vérifier', 'Questionnaire manquant', 'Consentement sans réponse']);
+    expect(el.querySelector('#arrival-box')!.getAttribute('placeholder')).toBe('Nom ou date de naissance');
+    c.expandedId = 78;
+    f.detectChanges();
+    expect(el.textContent).toContain(`Accepte les messages de la clinique${NBSP}?`);
+    expect(el.querySelector('.fd-send-disabled')!.textContent).toBe('Envoyer le lien');
+    c.expandedId = null;
+    c.keysOpen = true;
+    f.detectChanges();
+    expect(el.querySelector('#fd-keys-btn')!.textContent).toBe('Raccourcis');
+    expect(el.querySelector('.fd-keys')!.textContent).toContain('Maj+Entrée');
+    c.keysOpen = false;
+    c.cardHint = true;
+    f.detectChanges();
+    expect(el.querySelector('.fd-hint')!.textContent).toBe('La lecture de carte arrive à la prochaine étape. Tapez le nom.');
+    c.cardHint = false;
+    c.onQuery('zzzq');
+    f.detectChanges();
+    expect(el.querySelector('.fd-nomatch .empty__title')!.textContent).toBe(`Aucun rendez-vous aujourd'hui pour «${NBSP}zzzq${NBSP}».`);
+    c.onQuery('');
+    c.readOnly = true;
+    c.stale = true;
+    f.detectChanges();
+    expect(el.textContent).toContain('Les arrivées se notent le jour même.');
+    expect(el.textContent).toContain(`Liste non actualisée depuis 9${NBSP}h${NBSP}41`);
+    (c as unknown as { lock(): void }).lock();
+    f.detectChanges();
+    expect(el.querySelector('.fd-idle')!.textContent).toBe('Écran masqué — appuyez sur une touche pour continuer');
+  });
+});

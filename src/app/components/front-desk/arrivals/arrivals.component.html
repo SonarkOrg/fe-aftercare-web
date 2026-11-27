@@ -1,0 +1,110 @@
+<div class="page fd" [class.fd-locked]="locked" [class.fd-has-toast]="!!toast">
+  <section class="hero">
+    <div>
+      <h1 class="hero__title">{{ 'fd.hero.title' | t }}</h1>
+      <p class="hero__sub" *ngIf="data">{{ data.date | tzDate:'dayLongYear' }} · {{ 'fd.hero.updated' | t:{ time: updated } }}</p>
+    </div>
+  </section>
+
+  <p class="sr-only" aria-live="polite" id="fd-selection">{{ selectionText }}</p>
+  <p class="sr-only" aria-live="polite" id="fd-live">{{ live }}</p>
+
+  <div class="kpis fd-kpis" *ngIf="loading && !data" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--kpi" *ngFor="let i of [1, 2, 3]"></div></div>
+  <div class="kpis fd-kpis" *ngIf="data" [attr.aria-hidden]="locked ? 'true' : null">
+    <div class="kpi" id="kpi-expected">
+      <span class="kpi__icon"><app-icon name="clock" [size]="22" [stroke]="1.6"></app-icon></span>
+      <span class="kpi__body"><span class="kpi__label">{{ 'fd.kpi.expected' | t }}</span><span class="kpi__value">{{ counts.expected }}</span></span>
+    </div>
+    <div class="kpi" id="kpi-tocheck">
+      <span class="kpi__icon"><app-icon name="alert-triangle" [size]="22" [stroke]="1.6"></app-icon></span>
+      <span class="kpi__body"><span class="kpi__label">{{ 'fd.kpi.toCheck' | t }}</span><span class="kpi__value">{{ counts.toCheck }}</span></span>
+    </div>
+    <div class="kpi" id="kpi-here">
+      <span class="kpi__icon"><app-icon name="check-circle" [size]="22" [stroke]="1.6"></app-icon></span>
+      <span class="kpi__body"><span class="kpi__label">{{ 'fd.kpi.here' | t }}</span><span class="kpi__value">{{ counts.arrived }}</span></span>
+    </div>
+  </div>
+
+  <div class="toolbar fd-toolbar">
+    <app-arrival-box [value]="query" (valueChange)="onQuery($event)" (key)="onKey($event)" (undoKey)="onUndoKey($event)"></app-arrival-box>
+    <nav class="pill-group fd-views" [attr.aria-label]="'appts.view' | t">
+      <a id="view-day" class="pill-group__item" routerLink="/appointments" [queryParams]="{ view: 'day' }">{{ 'appts.day' | t }}</a>
+      <a id="view-week" class="pill-group__item" routerLink="/appointments" [queryParams]="{ view: 'week' }">{{ 'weekBars.week' | t }}</a>
+      <a id="view-arrivals" class="pill-group__item" *appCan="'APPOINTMENT_READ'" routerLink="/appointments/arrivals" aria-current="page">{{ 'appts.view.arrivals' | t }}</a>
+    </nav>
+    <span class="toolbar__spacer"></span>
+    <div class="fd-keys-wrap hide-sm">
+      <button type="button" id="fd-keys-btn" class="btn btn--secondary" aria-haspopup="dialog" [attr.aria-expanded]="keysOpen" (click)="toggleKeys()">{{ 'fd.keys.button' | t }}</button>
+      <div class="menu-pop fd-keys" role="dialog" aria-labelledby="fd-keys-title" *ngIf="keysOpen">
+        <h2 id="fd-keys-title" class="card__title--sm">{{ 'fd.keys.title' | t }}</h2>
+        <dl class="fd-keys__list">
+          <ng-container *ngFor="let k of keyRows">
+            <dt>{{ k.key | t }}</dt>
+            <dd>{{ k.desc | t }}</dd>
+          </ng-container>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="fd-hint" role="status" *ngIf="cardHint">{{ 'fd.box.cardLater' | t }}</p>
+
+  <div class="banner banner--info" role="status" *ngIf="data && readOnly"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ 'fd.hero.pastDay' | t }}</span></div>
+  <div class="banner banner--warning" role="status" *ngIf="stale"><span class="banner__glyph" aria-hidden="true">●</span><span>{{ 'fd.error.stale' | t:{ time: updated } }}</span></div>
+  <div class="banner banner--error error-message" *ngIf="loadError">
+    <span class="banner__glyph" aria-hidden="true">▲</span>
+    <span><strong>{{ 'common.errorLabel' | t }}</strong> {{ 'fd.error.load' | t }}</span>
+    <button type="button" class="btn btn--secondary fd-retry" (click)="retry()">{{ 'common.retry' | t }}</button>
+  </div>
+  <div class="banner banner--error error-message" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ actionError }}</span></div>
+
+  <div class="fd-loading" *ngIf="loading && !data" aria-busy="true"><div class="skeleton skeleton--row" *ngFor="let i of [1, 2, 3, 4, 5]"></div></div>
+
+  <div class="card empty" *ngIf="data && rows.length === 0">
+    <span class="empty__glyph" aria-hidden="true">—</span>
+    <p class="empty__title">{{ (readOnly ? 'fd.empty.noneDate' : 'fd.empty.none') | t }}</p>
+  </div>
+
+  <div class="card empty fd-nomatch" *ngIf="data && rows.length > 0 && filtering && visibleCount === 0">
+    <span class="empty__glyph" aria-hidden="true">—</span>
+    <p class="empty__title" *ngIf="safeQuery">{{ 'fd.empty.noMatch' | t:{ text: query.trim() } }}</p>
+    <p class="empty__title" *ngIf="!safeQuery">{{ 'fd.empty.noMatchAny' | t }}</p>
+    <a class="btn btn--secondary" *ngIf="safeQuery" routerLink="/patients" [queryParams]="{ q: query.trim() }">{{ 'fd.empty.searchAll' | t }}</a>
+  </div>
+
+  <div class="fd-idle" role="status" *ngIf="locked"><span>{{ 'fd.idle.masked' | t }}</span></div>
+
+  <div class="card card--list fd-list" *ngIf="data && visibleCount > 0" [attr.aria-hidden]="locked ? 'true' : null">
+    <section class="fd-group" data-group="expected" *ngIf="expected.length">
+      <div class="card__head"><h2 class="card__title--sm">{{ 'fd.group.expected' | t }} <span class="badge">{{ expected.length }}</span></h2></div>
+      <ul class="rows">
+        <li *ngFor="let r of expected; trackBy: trackRow">
+          <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: r }"></ng-container>
+        </li>
+      </ul>
+    </section>
+    <section class="fd-group" data-group="here" *ngIf="here.length">
+      <div class="card__head"><h2 class="card__title--sm">{{ 'fd.group.here' | t }} <span class="badge">{{ here.length }}</span></h2></div>
+      <ul class="rows">
+        <li *ngFor="let r of here; trackBy: trackRow">
+          <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: r }"></ng-container>
+        </li>
+      </ul>
+    </section>
+    <details class="fd-group board-closed" data-group="closed" *ngIf="closed.length" (toggle)="onClosedToggle($any($event.target).open)">
+      <summary class="card__head"><span class="card__title--sm">{{ 'fd.group.closed' | t }} <span class="badge">{{ closed.length }}</span></span><app-icon name="chevron-down" [size]="16"></app-icon></summary>
+      <ul class="rows">
+        <li *ngFor="let r of closed; trackBy: trackRow">
+          <ng-container *ngTemplateOutlet="rowTpl; context: { $implicit: r }"></ng-container>
+        </li>
+      </ul>
+    </details>
+  </div>
+
+  <app-undo-toast [toast]="toast" (undo)="undoLast()" (dismissed)="onToastDone()"></app-undo-toast>
+</div>
+
+<ng-template #rowTpl let-r>
+  <app-arrival-row [row]="r" [active]="r.appointmentId === activeId" [expanded]="expandedId === r.appointmentId" [readOnly]="readOnly" [busy]="busy.has(r.appointmentId)"
+                   (arrive)="arrive($event)" (undo)="undoRow($event)" (toggle)="toggle($event)" (consentSaved)="onConsent($event)"></app-arrival-row>
+</ng-template>

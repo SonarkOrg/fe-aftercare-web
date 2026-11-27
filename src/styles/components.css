@@ -164,6 +164,9 @@ select.select {
   font: 500 14px/1 var(--font-display); cursor: pointer; white-space: nowrap; min-height: 0; }
 .pill-group__item:hover { background: var(--sage-50); color: var(--ink); }
 .pill-group__item[aria-pressed=true] { background: var(--accent-grad); color: #fff; }
+/* view links (anchors) mark the current view with aria-current=page instead of aria-pressed */
+a.pill-group__item { text-decoration: none; }
+.pill-group__item[aria-current=page], .pill-group__item[aria-current=page]:hover { background: var(--accent-grad); color: #fff; }
 .pill-group__item .glyph { font-size: 10px; }
 .pill-group__count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--sage-50); color: var(--ink); font: 600 12px/1 var(--font-display); }
 .pill-group__item[aria-pressed=true] .pill-group__count { background: rgba(255, 255, 255, .22); color: #fff; }

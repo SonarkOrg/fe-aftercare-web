@@ -1,0 +1,34 @@
+<div class="fd-panel" [attr.data-appt]="row.appointmentId">
+  <p class="fd-panel__facts" *ngIf="row.patient.dateOfBirth">{{ 'fd.row.born' | t:{ date: (row.patient.dateOfBirth | tzDate:'date') } }}<ng-container *ngIf="row.location"> · {{ row.location }}</ng-container></p>
+  <div class="banner banner--error" role="alert" *ngIf="error"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ error }}</span></div>
+
+  <ng-container *ngIf="questionnaireMissing && !readOnly">
+    <div class="fd-panel__block" *ngIf="askConsent">
+      <p class="fd-panel__q" id="fd-consent-q-{{ row.appointmentId }}">{{ 'fd.fix.consentAsk' | t }}</p>
+      <div class="btn-row" role="group" *appCan="'PATIENT_WRITE'" [attr.aria-labelledby]="'fd-consent-q-' + row.appointmentId">
+        <button type="button" class="btn btn--secondary fd-consent-yes" [disabled]="busy" (click)="answer('GRANTED')">{{ 'common.yes' | t }}</button>
+        <button type="button" class="btn btn--secondary fd-consent-no" [disabled]="busy" (click)="answer('WITHDRAWN')">{{ 'common.no' | t }}</button>
+      </div>
+    </div>
+    <p class="fd-panel__note" *ngIf="consent === 'WITHDRAWN' && !contactMissing">{{ (clinical ? 'fd.fix.refused' : 'fd.fix.refusedDesk') | t }}</p>
+    <p class="fd-panel__note" *ngIf="contactMissing">{{ 'fd.fix.noContact' | t }}</p>
+    <div class="btn-row fd-panel__links" *appCan="'APPOINTMENT_WRITE'">
+      <button type="button" class="btn btn--secondary fd-send-disabled" disabled *ngIf="askConsent">{{ 'sendLink.button' | t }}</button>
+      <app-send-link *ngIf="consent === 'GRANTED' && !contactMissing" kind="appointment" [targetId]="row.appointmentId" [patientId]="row.patient.id"></app-send-link>
+      <button type="button" class="btn btn--secondary fd-new-link" *ngIf="canNewLink" [disabled]="busy" (click)="newLink()"><app-icon name="link" [size]="16"></app-icon>{{ 'dashboard.menu.newLink' | t }}</button>
+    </div>
+    <app-access-link *ngIf="code" [code]="code"></app-access-link>
+  </ng-container>
+
+  <div class="fd-panel__block" *ngIf="!questionnaireMissing && askConsent && !readOnly">
+    <p class="fd-panel__q" id="fd-consent-q-{{ row.appointmentId }}">{{ 'fd.fix.consentAskPatient' | t }}</p>
+    <div class="btn-row" role="group" *appCan="'PATIENT_WRITE'" [attr.aria-labelledby]="'fd-consent-q-' + row.appointmentId">
+      <button type="button" class="btn btn--secondary fd-consent-yes" [disabled]="busy" (click)="answer('GRANTED')">{{ 'common.yes' | t }}</button>
+      <button type="button" class="btn btn--secondary fd-consent-no" [disabled]="busy" (click)="answer('WITHDRAWN')">{{ 'common.no' | t }}</button>
+    </div>
+  </div>
+
+  <p class="fd-panel__note" *ngIf="contactMissing && !questionnaireMissing">{{ 'fd.fix.contactMissingHelp' | t }}</p>
+  <p class="fd-panel__note" *ngIf="dobMissing">{{ 'fd.fix.dobMissingHelp' | t }}</p>
+  <p class="fd-panel__open"><a class="btn btn--ghost fd-open-file" [routerLink]="['/patients', row.patient.id]">{{ 'fd.row.openFile' | t }}</a></p>
+</div>

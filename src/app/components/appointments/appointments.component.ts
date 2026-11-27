@@ -1,14 +1,20 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
 import { AppointmentService } from '../../Services/Appointment.service';
+import { ArrivalService } from '../../Services/Arrival.service';
 import { ApiErrorsService } from '../../i18n/api-errors';
 import { enumKey } from '../../i18n/enum-key';
 import { fmtClock, fmtPct } from '../../i18n/format';
 import { I18nService } from '../../i18n/i18n.service';
 import { Appointment, AppointmentMetrics } from '../../models/appointment.model';
-import { addDays, mondayOf, businessNow, businessToday } from '../../shared/link.util';
+import { addDays, mondayOf, businessToday } from '../../shared/link.util';
 import { appointmentChip } from '../../shared/status';
-import { BoardGroup, MINUTES_SAVED_PER_INTAKE, Week, endTime, groupForBoard, layoutWeek } from './appointment-board';
+import { BoardGroup, MINUTES_SAVED_PER_INTAKE, Week, endTime, groupForBoard, isOpenToday, layoutWeek } from './appointment-board';
+
+/** Per browser, never PHI: the view the secretary used last (§7.1). */
+export const VIEW_STORAGE_KEY = 'aftercare.appts.view';
+type RememberedView = 'day' | 'week' | 'arrivals';
 
 interface DayGroup {
   date: string;
@@ -21,6 +27,9 @@ interface DayGroup {
 })
 export class AppointmentsComponent implements OnInit, OnDestroy {
   private loadSub?: Subscription;
+  private querySub?: Subscription;
+  private all: Appointment[] = [];
+  private busy = new Set<number>();
   date = businessToday();
   view: 'day' | 'week' = 'day';
   groups: DayGroup[] = [];
@@ -40,7 +49,14 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   live = '';
   codes: Record<number, string> = {};
 
-  constructor(private appointments: AppointmentService, public i18n: I18nService, private errors: ApiErrorsService) {}
+  constructor(
+    private appointments: AppointmentService,
+    private arrivals: ArrivalService,
+    public i18n: I18nService,
+    private errors: ApiErrorsService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
   typeLabel(a: Appointment): string {
     return this.i18n.t(enumKey('appointmentType', a.type));
@@ -55,11 +71,106 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.load();
+    // The view lives in the URL (?view=day|week), so the links are plain router links and a reload keeps it.
+    this.querySub = this.route.queryParamMap.subscribe(q => this.onViewParam(q.get('view')));
   }
 
   ngOnDestroy(): void {
+    this.querySub?.unsubscribe();
     this.loadSub?.unsubscribe();
+  }
+
+  private onViewParam(raw: string | null): void {
+    if (raw === null) {
+      // No explicit view: open the one used last. Arrivals is another route; anything else is day.
+      const last = this.remembered();
+      if (last === 'arrivals') {
+        void this.router.navigate(['/appointments/arrivals'], { replaceUrl: true });
+        return;
+      }
+      this.showView(last === 'week' ? 'week' : 'day');
+      return;
+    }
+    const v = raw === 'week' ? 'week' : 'day';
+    this.remember(v);
+    this.showView(v);
+  }
+
+  /**
+   * Programmatic switch (state and data only; the view links navigate to ?view= instead and the component follows the URL).
+   * Kept because the shared i18n specs (pseudo-locale, French rendering) switch the view this way.
+   */
+  setView(v: 'day' | 'week'): void {
+    this.remember(v);
+    this.showView(v);
+  }
+
+  private showView(v: 'day' | 'week'): void {
+    this.view = v;
+    this.metricsTitle = v === 'week' ? 'appts.thisWeek' : 'common.today';
+    this.load();
+  }
+
+  private remembered(): RememberedView | null {
+    try {
+      const v = localStorage.getItem(VIEW_STORAGE_KEY);
+      return v === 'day' || v === 'week' || v === 'arrivals' ? v : null;
+    } catch {
+      return null;
+    }
+  }
+
+  remember(v: RememberedView): void {
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, v);
+    } catch {
+      /* private window or blocked storage: the view is simply not remembered */
+    }
+  }
+
+  canArrive(a: Appointment): boolean {
+    return !a.arrivedAt && isOpenToday(a);
+  }
+
+  canUndoArrival(a: Appointment): boolean {
+    return !!a.arrivedAt && isOpenToday(a);
+  }
+
+  isBusy(a: Appointment): boolean {
+    return this.busy.has(a.id);
+  }
+
+  arrive(a: Appointment): void {
+    this.runArrival(a, this.arrivals.arrive(a.id), 'appts.live.arrived');
+  }
+
+  undoArrival(a: Appointment): void {
+    this.runArrival(a, this.arrivals.undo(a.id), 'appts.live.arrivalUndone');
+  }
+
+  /** Arrival and its undo never ask for confirmation (D5); the row is updated in place from the answer. */
+  private runArrival(a: Appointment, obs: ReturnType<ArrivalService['arrive']>, live: 'appts.live.arrived' | 'appts.live.arrivalUndone'): void {
+    if (this.busy.has(a.id)) {
+      return;
+    }
+    this.busy.add(a.id);
+    this.actionError = null;
+    obs.subscribe({
+      next: row => {
+        this.busy.delete(a.id);
+        a.arrivedAt = row.arrival?.arrivedAt ?? null;
+        a.arrivalSource = row.arrival?.source ?? null;
+        this.board = groupForBoard(this.all);
+        this.live = this.i18n.t(live, { name: `${a.patientFirstName} ${a.patientLastName}` });
+      },
+      error: err => {
+        this.busy.delete(a.id);
+        if (err?.status === 409 || err?.status === 404) { // closed, wrong day or deleted by another desk
+          this.load();
+        }
+        this.actionError = this.errors.text(err, 'appts.error.arrive');
+      }
+    });
   }
 
   get range(): { from: string; to: string } {
@@ -96,8 +207,9 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     return m ? m.total - m.cancelled : 0;
   }
 
+  /** Same rule as the server's linkUsable: open, SCHEDULED, and the appointment day has not ended (spec 5.6). */
   canRegenerate(a: Appointment): boolean {
-    return a.scheduledAt > businessNow();
+    return a.status === 'SCHEDULED' && a.scheduledAt.substring(0, 10) >= businessToday();
   }
 
   endOf(a: Appointment): string {
@@ -146,12 +258,6 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
     }
   }
 
-  setView(v: 'day' | 'week'): void {
-    this.view = v;
-    this.metricsTitle = v === 'week' ? 'appts.thisWeek' : 'common.today';
-    this.load();
-  }
-
   setDate(d: string): void {
     if (d) {
       this.date = d;
@@ -178,6 +284,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       next: r => {
         this.metrics = r.metrics;
         this.count = r.list.length;
+        this.all = r.list;
         this.board = groupForBoard(r.list);
         this.week = this.view === 'week' ? layoutWeek(r.list, from, { lang: this.i18n.lang }) : null;
         this.rangeFrom = from;
@@ -194,6 +301,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.groups = [];
         this.count = 0;
+        this.all = [];
         this.metrics = null;
         this.board = [];
         this.week = null;

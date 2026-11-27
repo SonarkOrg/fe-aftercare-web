@@ -132,4 +132,12 @@ describe('PatientAuditComponent', () => {
       expect(Array.from(select().options).map(o => o.textContent!.trim())).toEqual(['All staff']);
     });
   });
+  it('renders the five phase 1A actions and the appointment resource with labels, not raw codes', () => {
+    const actions = ['APPOINTMENT_VIEWED', 'APPOINTMENT_LIST_VIEWED', 'APPOINTMENT_ARRIVED', 'APPOINTMENT_ARRIVAL_UNDONE', 'ACCESS_LINK_ISSUED'] as const;
+    init({ items: actions.map((action, i) => ev({ id: i + 1, action, resourceType: 'APPOINTMENT', resourceId: 77, detail: null })), page: 0, size: 50, hasMore: false });
+    const rows = Array.from(el.querySelectorAll('tbody tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent!.trim()));
+    expect(rows.map(r => r[2])).toEqual(['Appointment viewed', 'Appointment list viewed', 'Arrival recorded', 'Arrival undone', 'New link issued']);
+    expect(rows.every(r => r[3] === 'Appointment #77')).toBeTrue();
+    expect(el.textContent).not.toMatch(/APPOINTMENT_|ACCESS_LINK_ISSUED/);
+  });
 });

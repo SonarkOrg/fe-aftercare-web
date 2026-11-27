@@ -3,6 +3,8 @@ import { QUESTIONNAIRE_TEXT } from '../components/patient-questionnaire/patient-
 import { PATIENT_MESSAGES_TEXT } from '../components/patient-questionnaire/patient-messages/patient-messages.i18n';
 import { CORE_EN } from './dict/core.en';
 import { CORE_FR } from './dict/core.fr';
+import { FRONT_DESK_EN } from './dict/front-desk.en';
+import { FRONT_DESK_FR } from './dict/front-desk.fr';
 import { PAGES_EN } from './dict/pages.en';
 import { PAGES_FR } from './dict/pages.fr';
 import { PATIENT_FILE_EN } from './dict/patient-file.en';
@@ -35,6 +37,7 @@ const PAIRS: { name: string; en: Flat; fr: Flat }[] = [
   { name: 'core', en: flat(CORE_EN as never), fr: flat(CORE_FR as never) },
   { name: 'patientFile', en: flat(PATIENT_FILE_EN as never), fr: flat(PATIENT_FILE_FR as never) },
   { name: 'pages', en: flat(PAGES_EN as never), fr: flat(PAGES_FR as never) },
+  { name: 'frontDesk', en: flat(FRONT_DESK_EN as never), fr: flat(FRONT_DESK_FR as never) },
   { name: '/q questionnaire', en: fromRecord(QUESTIONNAIRE_TEXT.en as never), fr: fromRecord(QUESTIONNAIRE_TEXT.fr as never) },
   { name: '/q messages', en: fromRecord(PATIENT_MESSAGES_TEXT.en as never), fr: fromRecord(PATIENT_MESSAGES_TEXT.fr as never) },
   { name: 'questionnaire form', en: WORDS.en, fr: WORDS.fr }
@@ -94,7 +97,7 @@ describe('dictionaries', () => {
         }
       });
 
-      if (name === 'core' || name === 'patientFile' || name === 'pages') {
+      if (name === 'core' || name === 'patientFile' || name === 'pages' || name === 'frontDesk') {
         it('has the same shape (string or plural) in both languages, with {count} in one and other', () => {
           for (const k of Object.keys(en)) {
             if (k.includes('#')) {

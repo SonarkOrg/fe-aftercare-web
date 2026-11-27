@@ -23,7 +23,7 @@ export const INTAKE_RESPONSE: FhirQuestionnaireResponse = {
 export const DEF = { id: 7, url: F.FULL_Q.url, version: '1', title: { fr: 'Suivi quotidien', en: 'Daily check-in' }, purpose: 'FOLLOW_UP_CHECKIN', specialty: 'VISCERAL_SURGERY',
   appointmentTypes: [], status: 'ACTIVE', loadedAt: '2026-10-14T00:00:00Z', questionnaire: F.FULL_Q, rules: F.SEED_RULES };
 const PAGE = <T>(items: T[]) => ({ items, page: 0, size: 50, hasMore: false });
-const METRICS = { from: '2026-10-14', to: '2026-10-14', total: 3, scheduled: 1, ready: 1, needsReview: 1, cancelled: 0, completed: 0, noShow: 0, questionnairesCompleted: 2, questionnaireMissing: 1, completionRate: 0.67 };
+const METRICS = { from: '2026-10-14', to: '2026-10-14', total: 3, scheduled: 1, ready: 1, needsReview: 1, cancelled: 0, completed: 0, noShow: 0, questionnairesCompleted: 2, questionnaireMissing: 1, completionRate: 0.67, arrived: 0, walkIns: 0 };
 export const AUDIT = { id: 1, occurredAt: '2026-10-14T15:00:00Z', actorName: 'Dev Admin', actorSub: 'dev|admin-1', action: 'PATIENT_FILE_VIEWED', resourceType: 'PATIENT', resourceId: 5, patientId: 5, detail: null };
 
 export function respond(url: string, method: string): unknown {
@@ -42,6 +42,13 @@ export function respond(url: string, method: string): unknown {
     [/^\/patients\/\d+\/alerts$|^\/alerts$/, [F.alertDto(), F.missedAlert()]],
     [/^\/patients\/\d+\/appointments$|^\/appointments$/, [F.appointment(), F.appointment({ id: 5, status: 'NEEDS_REVIEW', flagCount: 2 }), F.appointment({ id: 6, questionnaireMissing: true })]],
     [/^\/appointments\/metrics$/, METRICS],
+    [/^\/appointments\/arrivals$/, F.arrivals({
+      counts: { expected: 2, toCheck: 1, arrived: 1, walkIns: 0, closed: 0 },
+      rows: [F.arrivalRow(), F.arrivalRow({ appointmentId: 78, scheduledAt: '2026-10-14T14:30:00', status: 'SCHEDULED', questionnaire: 'MISSING', patient: F.deskPatient({ id: 13, firstName: 'Jean', lastName: 'Gagnon', contactConsent: 'UNKNOWN' }),
+        desk: { state: 'CHECK', reasons: ['QUESTIONNAIRE_MISSING'], notices: ['CONSENT_UNKNOWN'] } }),
+        F.arrivalRow({ appointmentId: 79, scheduledAt: '2026-10-14T09:00:00', patient: F.deskPatient({ id: 14, firstName: 'Sophie', lastName: 'Roy' }),
+        arrival: { arrivedAt: '2026-10-14T13:02:00Z', source: 'DESK', byName: 'Dev Reception' }, desk: { state: 'ARRIVED', reasons: [], notices: [] } })]
+    })],
     [/^\/appointments\/\d+$/, F.appointmentDetail({
       status: 'NEEDS_REVIEW', flagCount: 1, intakeSubmittedAt: '2026-10-12T15:00:00Z',
       intake: { submittedAt: '2026-10-12T15:00:00Z', questionnaireDefinitionId: 7, questionnaireUrl: F.FULL_Q.url, questionnaireVersion: '1', response: INTAKE_RESPONSE,

@@ -17,10 +17,11 @@
     <input type="date" [attr.aria-label]="'chart.table.date' | t" [value]="date" (change)="setDate($any($event.target).value)">
     <button type="button" id="next" class="btn btn--icon" [attr.aria-label]="(view === 'week' ? 'appts.nextWeek' : 'appts.nextDay') | t" (click)="shift(1)"><app-icon name="chevron-right"></app-icon></button>
     <button type="button" id="today" class="btn btn--secondary" (click)="setToday()">{{ 'common.today' | t }}</button>
-    <div class="pill-group" role="group" [attr.aria-label]="'appts.view' | t">
-      <button type="button" id="view-day" class="pill-group__item" [attr.aria-pressed]="view === 'day'" (click)="setView('day')">{{ 'appts.day' | t }}</button>
-      <button type="button" id="view-week" class="pill-group__item" [attr.aria-pressed]="view === 'week'" (click)="setView('week')">{{ 'weekBars.week' | t }}</button>
-    </div>
+    <nav class="pill-group" [attr.aria-label]="'appts.view' | t">
+      <a id="view-day" class="pill-group__item" routerLink="/appointments" [queryParams]="{ view: 'day' }" [attr.aria-current]="view === 'day' ? 'page' : null">{{ 'appts.day' | t }}</a>
+      <a id="view-week" class="pill-group__item" routerLink="/appointments" [queryParams]="{ view: 'week' }" [attr.aria-current]="view === 'week' ? 'page' : null">{{ 'weekBars.week' | t }}</a>
+      <a id="view-arrivals" class="pill-group__item" *appCan="'APPOINTMENT_READ'" routerLink="/appointments/arrivals" (click)="remember('arrivals')">{{ 'appts.view.arrivals' | t }}</a>
+    </nav>
   </div>
 
   <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
@@ -130,8 +131,15 @@
         <a class="btn btn--ghost btn--sm" [routerLink]="['/appointments', a.id]">{{ 'dashboard.menu.open' | t }}</a>
       </ng-container>
       <ng-container *ngSwitchDefault>
-        <button type="button" class="btn btn--secondary btn--sm btn-newlink" *ngIf="canRegenerate(a)" (click)="newLink(a)"><app-icon name="link" [size]="16"></app-icon>{{ 'dashboard.menu.newLink' | t }}</button>
+        <!-- a link code opens the patient's whole message thread: never shown in plaintext without CLINICAL_READ (A-44) -->
+        <ng-container *appCan="'CLINICAL_READ'">
+          <button type="button" class="btn btn--secondary btn--sm btn-newlink" *ngIf="canRegenerate(a)" (click)="newLink(a)"><app-icon name="link" [size]="16"></app-icon>{{ 'dashboard.menu.newLink' | t }}</button>
+        </ng-container>
         <a class="btn btn--ghost btn--sm" [routerLink]="['/appointments', a.id]">{{ 'dashboard.menu.open' | t }}</a>
+      </ng-container>
+      <ng-container *appCan="'APPOINTMENT_WRITE'">
+        <button type="button" class="btn btn--secondary btn--sm btn-arrive" [id]="'arrive-' + a.id" *ngIf="canArrive(a)" [disabled]="isBusy(a)" (click)="arrive(a)">{{ 'appts.arrive' | t }}</button>
+        <button type="button" class="btn btn--ghost btn--sm btn-undo-arrival" [id]="'undo-arrival-' + a.id" *ngIf="canUndoArrival(a)" [disabled]="isBusy(a)" (click)="undoArrival(a)"><app-icon name="undo" [size]="16"></app-icon>{{ 'appts.undoArrival' | t }}</button>
       </ng-container>
     </div>
     <app-access-link class="arow__link" *ngIf="codes[a.id]" [code]="codes[a.id]"></app-access-link>

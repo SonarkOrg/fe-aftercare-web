@@ -1,4 +1,4 @@
-import { formatRamq, isValidRamq, normalizeRamq } from './ramq.util';
+import { extractNam, formatRamq, isValidRamq, normalizeRamq } from './ramq.util';
 
 describe('ramq.util', () => {
   it('normalizes: upper-case, no spaces or hyphens', () => {
@@ -32,5 +32,35 @@ describe('ramq.util', () => {
     expect(formatRamq('TREM68541212')).toBe('TREM 6854 1212');
     expect(formatRamq('trem-6854-1212')).toBe('TREM 6854 1212');
     expect(formatRamq('short')).toBe('short');
+  });
+  describe('extractNam', () => {
+    it('returns the NAM from a bare scan, in any case, with spaces or hyphens', () => {
+      expect(extractNam('ROYS85522712')).toBe('ROYS85522712');
+      expect(extractNam('roys 8552 2712')).toBe('ROYS85522712');
+      expect(extractNam(' ROYS-8552-2712\n')).toBe('ROYS85522712');
+    });
+
+    it('recognises a NAM typed in pairs or with dots or slashes', () => {
+      expect(extractNam('TREM 68 54 12 12')).toBe('TREM68541212');
+      expect(extractNam('TREM.6854.1212')).toBe('TREM68541212');
+      expect(extractNam('trem/68/54/12/12')).toBe('TREM68541212');
+      expect(extractNam('TREM  6854 1212')).toBeNull(); // two separators in a row are not a NAM
+    });
+
+    it('takes the first valid NAM from a longer payload and drops the rest', () => {
+      expect(extractNam('01ROYS85522712SOPHIE19850412')).toBe('ROYS85522712');
+      expect(extractNam('ROYS85522712 TREM68541212')).toBe('ROYS85522712');
+    });
+
+    it('skips a NAM-shaped substring that fails the structure check', () => {
+      expect(extractNam('ROYS85992712 TREM68541212')).toBe('TREM68541212'); // month 99
+      expect(extractNam('ROYS85992712')).toBeNull();
+    });
+
+    it('returns null for names, dates, short text and empty input', () => {
+      for (const v of ['', 'tremblay', 'Marie Tremblay', '12/04/1968', '12041968', 'ROYS8552271', null as unknown as string]) {
+        expect(extractNam(v)).withContext(String(v)).toBeNull();
+      }
+    });
   });
 });

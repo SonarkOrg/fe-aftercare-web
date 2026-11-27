@@ -20,7 +20,7 @@ import { addDays, businessHour, businessNow, businessToday } from '../../shared/
 import { STATUS_RANK, chartTodayDay } from '../../shared/patient-status';
 import { alertQuestion } from '../../i18n/content';
 import { alertAnswer } from '../../shared/alert.util';
-import { ChipSpec, appointmentChip, severityChip } from '../../shared/status';
+import { ChipSpec, appointmentChip, arrivalChip, severityChip } from '../../shared/status';
 import {
   ActiveStats, ProgressSegments, ToPrepare, ackHigh, activeStats, appointmentsToPrepare, checkInsToday, greeting, isTodayOrTomorrow,
   missedYesterdayCount, newToday, openHigh, openHighAlerts, progressSegments, scaleLabels, unresolvedMedium
@@ -76,6 +76,7 @@ export class DashboardComponent implements OnInit {
   chartPatientId: number | null = null;
   severityChip = severityChip;
   appointmentChip = appointmentChip;
+  arrivalChip = arrivalChip;
   reviewChip: ChipSpec = { tone: 'serious', glyph: '◆', label: { key: 'enum.appointmentStatus.NEEDS_REVIEW' }, short: { key: 'chip.appt.reviewShort' } };
   missingChip: ChipSpec = { tone: 'warning', glyph: '●', label: { key: 'chip.appt.questionnaireMissing' }, short: { key: 'chip.appt.questionnaireMissingShort' } };
   missedChip: ChipSpec = { tone: 'warning', glyph: '●', label: { key: 'alert.missedCheckIn' }, short: { key: 'dashboard.chip.missedShort' } };

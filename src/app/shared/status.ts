@@ -1,5 +1,6 @@
 import { AlertSeverity, AlertStatus } from '../models/alert.model';
 import { AppointmentStatus } from '../models/appointment.model';
+import type { DeskState } from '../models/arrival.model';
 import { AllergySeverity } from '../models/medical.model';
 import { TimelineItem } from '../models/timeline.model';
 import { PatientStatus } from './care.model';
@@ -51,6 +52,35 @@ export function appointmentChip(a: { status: AppointmentStatus; questionnaireMis
     default:
       return a.questionnaireMissing ? chip('warning', 'chip.appt.questionnaireMissing', undefined, 'chip.appt.questionnaireMissingShort') : chip('info', 'chip.appt.awaitingQuestionnaire');
   }
+}
+
+export function deskChip(state: DeskState): ChipSpec {
+  switch (state) {
+    case 'GO': return chip('good', 'chip.desk.GO');
+    case 'CHECK': return chip('warning', 'chip.desk.CHECK');
+    case 'ARRIVED': return chip('good', 'chip.desk.ARRIVED');
+    default: return chip('neutral', 'chip.desk.CLOSED');
+  }
+}
+
+/** A reason or notice code of a desk row. Unknown codes (a later phase) return null and are not rendered. */
+export function reasonChip(code: string): ChipSpec | null {
+  switch (code) {
+    case 'QUESTIONNAIRE_MISSING': return chip('warning', 'chip.reason.QUESTIONNAIRE_MISSING');
+    case 'CONTACT_MISSING': return chip('warning', 'chip.reason.CONTACT_MISSING');
+    case 'DOB_MISSING': return chip('warning', 'chip.reason.DOB_MISSING');
+    case 'CONSENT_UNKNOWN': return chip('info', 'chip.reason.CONSENT_UNKNOWN');
+    default: return null;
+  }
+}
+
+/**
+ * « Sur place » only while the appointment is open: on a closed one the arrival columns are history (spec 6.3), and a
+ * « Terminé » next to « Sur place » would read as a patient still in the waiting room.
+ */
+export function arrivalChip(a: { arrivedAt: string | null; status: AppointmentStatus }): ChipSpec | null {
+  const open = a.status === 'SCHEDULED' || a.status === 'READY' || a.status === 'NEEDS_REVIEW';
+  return a.arrivedAt && open ? chip('good', 'chip.desk.ARRIVED') : null;
 }
 
 export function allergyChip(s: AllergySeverity): ChipSpec {

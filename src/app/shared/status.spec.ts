@@ -1,5 +1,5 @@
 import { testT } from '../testing/i18n-testing.module';
-import { ChipSpec, appointmentChip, alertStatusChip, allergyChip, linkedChip, messagingChip, patientStatusChip, ruleOutcomeChip, severityChip, staffActiveChip, timelineTone } from './status';
+import { ChipSpec, appointmentChip, arrivalChip, deskChip, reasonChip, alertStatusChip, allergyChip, linkedChip, messagingChip, patientStatusChip, ruleOutcomeChip, severityChip, staffActiveChip, timelineTone } from './status';
 
 const t = testT('en');
 /** The chip with its message keys turned into English text. */
@@ -76,5 +76,29 @@ describe('status chip mappings', () => {
     expect(t('FOLLOW_UP')).toEqual({ tone: 'good', glyph: '✓', icon: null });
     expect(t('DOCUMENT')).toEqual({ tone: 'neutral', glyph: '', icon: 'file' });
     expect(t('MESSAGE')).toEqual({ tone: 'info', glyph: '', icon: 'message' });
+  });
+  it('desk states are glyph + word, never colour alone', () => {
+    expect(text(deskChip('GO'))).toEqual({ tone: 'good', glyph: '✓', label: 'Ready' });
+    expect(text(deskChip('CHECK'))).toEqual({ tone: 'warning', glyph: '●', label: 'To check' });
+    expect(text(deskChip('ARRIVED'))).toEqual({ tone: 'good', glyph: '✓', label: 'Here' });
+    expect(text(deskChip('CLOSED'))).toEqual({ tone: 'neutral', glyph: '—', label: 'Closed' });
+  });
+  it('desk reasons and notices; an unknown code is not rendered', () => {
+    expect(text(reasonChip('QUESTIONNAIRE_MISSING')!)).toEqual({ tone: 'warning', glyph: '●', label: 'Questionnaire missing' });
+    expect(text(reasonChip('CONTACT_MISSING')!)).toEqual({ tone: 'warning', glyph: '●', label: 'No contact details' });
+    expect(text(reasonChip('DOB_MISSING')!)).toEqual({ tone: 'warning', glyph: '●', label: 'Date of birth missing' });
+    expect(text(reasonChip('CONSENT_UNKNOWN')!)).toEqual({ tone: 'info', glyph: 'ℹ', label: 'Consent not answered' });
+    expect(reasonChip('SOMETHING_NEW')).toBeNull();
+    expect(reasonChip('')).toBeNull();
+  });
+  it('arrival chip only when arrived', () => {
+    for (const status of ['SCHEDULED', 'READY', 'NEEDS_REVIEW'] as const) {
+      expect(text(arrivalChip({ arrivedAt: '2026-10-14T13:02:00Z', status })!)).withContext(status).toEqual({ tone: 'good', glyph: '✓', label: 'Here' });
+    }
+    expect(arrivalChip({ arrivedAt: null, status: 'READY' })).toBeNull();
+    // on a closed appointment the arrival is history, not a chip
+    for (const status of ['COMPLETED', 'CANCELLED', 'NO_SHOW'] as const) {
+      expect(arrivalChip({ arrivedAt: '2026-10-14T13:02:00Z', status })).withContext(status).toBeNull();
+    }
   });
 });

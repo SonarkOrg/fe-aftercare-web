@@ -8,6 +8,7 @@ import { AccessRole, Me, Permission } from '../models/me.model';
 import { ContactPreferences, NotificationItem, NotificationSettings } from '../models/notification.model';
 import { RetentionRun, RetentionSettings } from '../models/retention.model';
 import { Appointment, AppointmentDetail } from '../models/appointment.model';
+import { ArrivalRow, Arrivals, DeskPatient } from '../models/arrival.model';
 import { CheckIn, FollowUp } from '../models/follow-up.model';
 import { Patient } from '../models/patient.model';
 import { RuleJson } from '../models/questionnaire-definition.model';
@@ -138,7 +139,8 @@ export function appointment(over: Partial<Appointment> = {}): Appointment {
     scheduledAt: '2026-10-14T08:30:00', durationMinutes: 30, location: 'Clinic A', clinician: 'Dr. Roy',
     status: 'SCHEDULED', questionnaireMissing: false, intakeSubmittedAt: null, flagCount: 0,
     accessLinkIssuedAt: '2026-10-10T13:00:00Z', reviewedAt: null, reviewedBy: null,
-    createdAt: '2026-10-10T13:00:00Z', createdBy: 'dev|nurse-1', updatedAt: '2026-10-10T13:00:00Z', ...over
+    createdAt: '2026-10-10T13:00:00Z', createdBy: 'dev|nurse-1', updatedAt: '2026-10-10T13:00:00Z',
+    arrivedAt: null, arrivalSource: null, walkIn: false, ...over
   };
 }
 
@@ -146,6 +148,28 @@ export function appointmentDetail(over: Partial<AppointmentDetail> = {}): Appoin
   return { ...appointment(), intake: null, intakeRedacted: false, ...over };
 }
 
+
+export function deskPatient(over: Partial<DeskPatient> = {}): DeskPatient {
+  return {
+    id: 12, firstName: 'Marie', lastName: 'Tremblay', dateOfBirth: '1968-04-12', ageYears: 58, contactMissing: false,
+    contactConsent: 'GRANTED', preferredChannel: 'SMS', language: 'FR', ...over
+  };
+}
+
+export function arrivalRow(over: Partial<ArrivalRow> = {}): ArrivalRow {
+  return {
+    appointmentId: 77, scheduledAt: '2026-10-14T10:00:00', durationMinutes: 30, type: 'PRE_OP_CONSULT', clinician: 'Dr Bouchard', location: 'Salle 2',
+    status: 'READY', walkIn: false, patient: deskPatient(), questionnaire: 'RECEIVED', linkUsable: true, arrival: null,
+    desk: { state: 'GO', reasons: [], notices: [] }, previsit: null, portal: null, ...over
+  };
+}
+
+export function arrivals(over: Partial<Arrivals> = {}): Arrivals {
+  return {
+    date: '2026-10-14', today: true, serverTime: '2026-10-14T09:41:07',
+    counts: { expected: 1, toCheck: 0, arrived: 0, walkIns: 0, closed: 0 }, rows: [arrivalRow()], ...over
+  };
+}
 
 export function checkInDto(over: Partial<CheckIn> & { pain?: number; temp?: number } = {}): CheckIn {
   const { pain, temp, ...rest } = over;

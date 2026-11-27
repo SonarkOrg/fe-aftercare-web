@@ -169,3 +169,42 @@ describe('pseudo-locale: no text outside the dictionaries', () => {
     }
   });
 });
+
+describe('pseudo-locale: the Arrivals page (P1A-FE-A)', () => {
+  const h = new PageHarness();
+
+  // the page remembers itself as the last view; the day-board specs must not be redirected by it
+  afterEach(() => { try { localStorage.removeItem('aftercare.appts.view'); } catch { /* ignore */ } });
+
+  it('rows, expanded fix panel, shortcuts popover, toast, banners and the idle mask only show dictionary text', async () => {
+    const { ArrivalsComponent } = await import('../components/front-desk/arrivals/arrivals.component');
+    const { ArrivalBoxComponent } = await import('../components/front-desk/arrival-box/arrival-box.component');
+    const { ArrivalRowComponent } = await import('../components/front-desk/arrival-row/arrival-row.component');
+    const { FixPanelComponent } = await import('../components/front-desk/fix-panel/fix-panel.component');
+    const { UndoToastComponent } = await import('../components/front-desk/undo-toast/undo-toast.component');
+    const f = h.create('pseudo', ArrivalsComponent, [ArrivalBoxComponent, ArrivalRowComponent, FixPanelComponent, UndoToastComponent], false, {}, 'RECEPTION');
+    await h.settle(f);
+    const c = f.componentInstance;
+    const data = dataStrings();
+    for (const s of ['Marie', 'Tremblay', 'Jean', 'Gagnon', 'Sophie', 'Roy', 'Dr Bouchard', 'Salle 2', 'Dev Reception']) {
+      data.add(s);
+    }
+    const stages: [string, () => void][] = [
+      ['rows', () => undefined],
+      ['expanded fix panel', () => { c.expandedId = 78; }],
+      ['panel of a row with a consent notice', () => { c.expandedId = 79; }],
+      ['shortcuts popover', () => { c.expandedId = null; c.keysOpen = true; }],
+      ['toast with an undo button', () => { c.keysOpen = false; c.toast = { id: 1, message: '⟦Arrival⟧', undoable: true }; }],
+      ['card hint', () => { c.toast = null; c.cardHint = true; }],
+      ['no local match', () => { c.cardHint = false; c.onQuery('zzzq'); }],
+      ['stale banner', () => { c.onQuery(''); c.stale = true; }],
+      ['read-only day', () => { c.stale = false; c.readOnly = true; }],
+      ['idle mask', () => { c.readOnly = false; (c as unknown as { lock(): void }).lock(); }]
+    ];
+    for (const [what, apply] of stages) {
+      apply();
+      f.detectChanges();
+      expect(leftovers(f.nativeElement, data)).withContext(what).toEqual([]);
+    }
+  });
+});

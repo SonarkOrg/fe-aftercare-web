@@ -250,10 +250,12 @@
               <div class="row__name">{{ nameOf(a) }}</div>
               <div class="row__sub">{{ a.type | enumLabel:'appointmentType' }}</div>
               <app-status-chip *ngIf="appointmentChip(a).tone !== 'info'" size="sm" [short]="true" [spec]="appointmentChip(a)"></app-status-chip>
+              <app-status-chip *ngIf="arrivalChip(a) as arrived" class="arrival-chip" size="sm" [short]="true" [spec]="arrived"></app-status-chip>
             </span>
             <a class="chev-hit" [routerLink]="['/appointments', a.id]" [attr.aria-label]="'dashboard.appts.open' | t:{ name: nameOf(a), time: time(a) }"><span class="chev"><app-icon name="chevron-right" [size]="14" [stroke]="2"></app-icon></span></a>
           </li>
         </ol>
+        <div class="card__foot" *appCan="'APPOINTMENT_READ'"><a class="card__link" id="arrivals-link" routerLink="/appointments/arrivals">{{ 'dashboard.appts.arrivalsLink' | t }}</a></div>
         <div class="card__foot" *ngIf="todayAppts.length > limit"><a class="card__link" *appCan="'APPOINTMENT_READ'" routerLink="/appointments">{{ 'dashboard.appts.viewSchedule' | t:{ count: todayAppts.length } }}</a></div>
       </ng-container>
     </section>
