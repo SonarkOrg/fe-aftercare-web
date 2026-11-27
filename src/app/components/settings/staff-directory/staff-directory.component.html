@@ -28,6 +28,7 @@
       <span class="row__end">
         <app-status-chip size="sm" [spec]="s.auth0Subject ? linked : notLinked"></app-status-chip>
         <app-status-chip size="sm" *ngIf="!s.active" [spec]="inactiveChip"></app-status-chip>
+        <app-status-chip size="sm" *ngIf="s.privacyOfficer" class="privacy-officer-chip" [spec]="privacyOfficerChip"></app-status-chip>
         <app-role-badge [role]="s.accessRole"></app-role-badge>
         <app-row-menu [label]="'dashboard.row.actions' | t:{ name: s.displayName }" [items]="menuItems(s)" (selected)="onMenu(s, $event)"></app-row-menu>
       </span>
@@ -55,6 +56,11 @@
           <select id="st-access" name="accessRole" required aria-describedby="st-access-h" [(ngModel)]="form.accessRole"><option *ngFor="let r of accessRoles" [value]="r">{{ r | enumLabel:'accessRole' }}</option></select>
           <span id="st-access-h" class="helper-line">{{ 'settings.staff.accessHelp' | t }}</span>
           <span class="field-error" *ngIf="errors['accessRole']">{{ errors['accessRole'] }}</span>
+        </div>
+        <div class="form-group">
+          <div class="toggle-row"><label for="st-privacy">{{ 'staff.privacyOfficer' | t }}</label><input id="st-privacy" name="privacyOfficer" type="checkbox" [(ngModel)]="form.privacyOfficer" aria-describedby="st-privacy-h"></div>
+          <span id="st-privacy-h" class="helper-line">{{ 'staff.privacyOfficer.help' | t }}</span>
+          <span class="field-error" *ngIf="errors['privacyOfficer']">{{ errors['privacyOfficer'] }}</span>
         </div>
         <div class="form-group">
           <label for="st-sub">{{ 'settings.staff.sub' | t }} <span class="q-optional">({{ 'common.optional' | t }})</span></label>

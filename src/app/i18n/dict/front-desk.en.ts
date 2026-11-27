@@ -148,6 +148,7 @@ export const FRONT_DESK_EN = {
   'fd.quick.required': 'Required.',
   'fd.quick.dobInvalid': 'Use YYYY-MM-DD, DD/MM/YYYY or DDMMYYYY; the date cannot be in the future.',
   'fd.quick.cardInvalid': 'Enter 4 letters and 8 digits.',
+  'fd.namCollectionOff': 'This clinic does not record health numbers. Search by name.',
 } as const;
 
 export type FrontDeskKey = keyof typeof FRONT_DESK_EN;

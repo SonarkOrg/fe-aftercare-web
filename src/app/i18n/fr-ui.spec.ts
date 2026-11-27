@@ -39,7 +39,7 @@ describe('French staff UI (fr-CA)', () => {
       const f = h.create('fr', ShellComponent);
       await settle(f, only(/^\/alerts\/count$|^\/alerts$/, [F.alertDto(), F.alertDto({ id: 2 }), F.alertDto({ id: 3 })]));
       const links = Array.from((f.nativeElement as HTMLElement).querySelectorAll('.top-nav__item')).map(a => a.querySelector('span')!.textContent!.trim());
-      expect(links).toEqual(['Tableau de bord', 'Patients', 'Rendez-vous', 'Alertes', 'Messages', 'Rapports', 'Formulaires']);
+      expect(links).toEqual(['Tableau de bord', 'Patients', 'Rendez-vous', 'Alertes', 'Messages', 'Rapports', 'Formulaires', 'Vie privée']);
       expect((f.nativeElement as HTMLElement).querySelector('.settings-btn')!.getAttribute('aria-label')).toBe('Paramètres');
       (f.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.menu-btn')!.click();
       f.detectChanges();

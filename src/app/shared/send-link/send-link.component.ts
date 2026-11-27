@@ -1,4 +1,5 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { Permissions } from '../../auth/permissions.service';
 import { NotificationService } from '../../Services/Notification.service';
 import { ApiErrorsService } from '../../i18n/api-errors';
 import { I18nModule } from '../../i18n/i18n.module';
@@ -35,7 +36,7 @@ export class SendLinkComponent {
   /** True when the error is NO_CONSENT: the banner then links to the Contacts tab. */
   noConsent = false;
 
-  constructor(private notifications: NotificationService, private host: ElementRef<HTMLElement>, private i18n: I18nService, private errors: ApiErrorsService) {}
+  constructor(private notifications: NotificationService, private host: ElementRef<HTMLElement>, private i18n: I18nService, private errors: ApiErrorsService, private permissions: Permissions) {}
 
   /** Computed once per preferences load (no getter: stable references for the menu). */
   options: ChannelOption[] = [];
@@ -126,6 +127,10 @@ export class SendLinkComponent {
 
   private messageFor(err: unknown): string {
     this.noConsent = apiErrorOf(err)?.error === 'NO_CONSENT';
+    // PRIV-A-06: no live link (revoked) and the desk cannot create one: tell it who can
+    if (apiErrorOf(err)?.error === 'LINK_UNAVAILABLE' && !this.permissions.can('CLINICAL_READ')) {
+      return this.i18n.t('accessLink.revokedNoReissue');
+    }
     return this.errors.text(err, 'sendLink.error.send');
   }
 

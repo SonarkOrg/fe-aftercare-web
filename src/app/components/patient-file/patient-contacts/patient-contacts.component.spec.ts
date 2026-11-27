@@ -4,8 +4,9 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../../environments/environment';
-import { CLINIC, careTeamMember, contact, staffMember, providePermissions } from '../../../testing/fixtures';
+import { CLINIC, careTeamMember, contact, me, staffMember, providePermissions } from '../../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
+import { Permissions } from '../../../auth/permissions.service';
 import { PatientContactsComponent } from './patient-contacts.component';
 import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 
@@ -188,5 +189,32 @@ describe('PatientContactsComponent', () => {
     const link = q<HTMLAnchorElement>('.care-team-card .empty a');
     expect(link.textContent).toBe('Add staff in Settings');
     expect(link.getAttribute('href')).toBe('/settings?tab=staff');
+  });
+
+  it('PRIV-A-06: « Revoke all of the patient\'s links » asks inline, POSTs and says how many links were revoked', async () => {
+    await init();
+    q<HTMLButtonElement>('.revoke-all-links').click();
+    await settle();
+    expect(q('.revoke-all-confirm').textContent).toContain('The link will stop working at once. No new link will be sent.');
+    http.expectNone(`${base}/access-links/revoke`);
+    q<HTMLButtonElement>('.revoke-all-confirm .confirm-inline__cancel').click();
+    await settle();
+    expect(el.querySelector('.revoke-all-confirm')).toBeNull();
+    q<HTMLButtonElement>('.revoke-all-links').click();
+    await settle();
+    q<HTMLButtonElement>('.revoke-all-confirm .confirm-inline__ok').click();
+    const req = http.expectOne(`${base}/access-links/revoke`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toBeNull();
+    req.flush({ revoked: 3 });
+    await settle();
+    expect(q('#link-notice').textContent).toContain('3 link(s) revoked');
+    expect(el.querySelector('.revoke-all-confirm')).toBeNull();
+  });
+
+  it('PRIV-A-06: a member without PATIENT_WRITE has no revoke-all button', async () => {
+    TestBed.inject(Permissions).seed(me('NURSE', { permissions: ['PATIENT_READ', 'CLINICAL_READ'] }));
+    await init();
+    expect(el.querySelector('.revoke-all-links')).toBeNull();
   });
 });

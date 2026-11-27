@@ -793,8 +793,26 @@ export class ArrivalsComponent implements OnInit, OnDestroy {
       return;
     }
     this.searchKind = null;
+    if (this.namCollectionOff(err)) {
+      return;
+    }
     this.actionError = this.errors.text(err, kind === 'card' ? 'fd.error.card' : 'fd.search.error');
     this.refocus();
+  }
+
+  /**
+   * 409 NAM_COLLECTION_OFF (PRIV-A-40, decision P1 not recorded): the clinic does not record health numbers. The number held in
+   * memory is dropped (Enter must not send it again), the box is already empty, and the desk is told to search by name.
+   */
+  private namCollectionOff(err: unknown): boolean {
+    if ((err as { status?: number } | null)?.status !== 409 || apiErrorOf(err)?.error !== 'NAM_COLLECTION_OFF') {
+      return false;
+    }
+    this.dropPending();
+    this.cardHint = false;
+    this.actionError = this.i18n.t('fd.namCollectionOff');
+    this.refocus();
+    return true;
   }
 
   /** Sends the card to a file (no number on file yet), then notes the arrival when there is an appointment today. */
@@ -855,6 +873,9 @@ export class ArrivalsComponent implements OnInit, OnDestroy {
     }
     if (err?.status === 429) {
       this.onSearchError(err, 'card');
+      return;
+    }
+    if (this.namCollectionOff(err)) {
       return;
     }
     this.fail(err, 'fd.error.card');

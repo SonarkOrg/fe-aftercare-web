@@ -20,21 +20,23 @@
             <span class="field-error" id="edit-lastName-err" *ngIf="error('lastName') as msg">{{ msg }}</span>
           </div>
           <div class="form-group">
-            <label for="edit-email">{{ 'patients.form.email' | t }}</label>
+            <label for="edit-email">{{ 'patients.form.emailOptional' | t }}</label>
             <input type="email" id="edit-email" name="email" [(ngModel)]="form.email" (ngModelChange)="touch('email')" [attr.aria-invalid]="error('email') ? 'true' : null" [attr.aria-describedby]="error('email') ? 'edit-email-err' : null" autocomplete="off">
             <span class="field-error" id="edit-email-err" *ngIf="error('email') as msg">{{ msg }}</span>
           </div>
           <div class="form-group">
-            <label for="edit-phone">{{ 'patients.form.phone' | t }}</label>
+            <label for="edit-phone">{{ 'patients.form.phoneOptional' | t }}</label>
             <input type="tel" id="edit-phone" name="phone" [(ngModel)]="form.phone" (ngModelChange)="touch('phone')" [attr.aria-invalid]="error('phone') ? 'true' : null" [attr.aria-describedby]="error('phone') ? 'edit-phone-err' : null" autocomplete="off">
             <span class="field-error" id="edit-phone-err" *ngIf="error('phone') as msg">{{ msg }}</span>
           </div>
-          <div class="form-group">
+          <div class="form-group" *ngIf="collect.gender">
             <label for="edit-gender">{{ 'patients.form.gender' | t }}</label>
             <select id="edit-gender" name="gender" [(ngModel)]="form.gender" (ngModelChange)="touch('gender')" [attr.aria-invalid]="error('gender') ? 'true' : null" [attr.aria-describedby]="error('gender') ? 'edit-gender-err' : null">
-              <option value="">{{ 'patients.form.noGender' | t }}</option>
-              <option value="male">{{ 'patients.form.male' | t }}</option>
+              <option value="">{{ 'patients.form.genderNone' | t }}</option>
               <option value="female">{{ 'patients.form.female' | t }}</option>
+              <option value="male">{{ 'patients.form.male' | t }}</option>
+              <option value="x">{{ 'patients.form.genderX' | t }}</option>
+              <option value="undisclosed">{{ 'patients.form.genderUndisclosed' | t }}</option>
             </select>
             <span class="field-error" id="edit-gender-err" *ngIf="error('gender') as msg">{{ msg }}</span>
           </div>
@@ -44,7 +46,7 @@
             <span class="field-error" id="edit-dob-err" *ngIf="error('dateOfBirth') as msg">{{ msg }}</span>
           </div>
       </div>
-      <div class="grid-form grid-form--3">
+      <div class="grid-form grid-form--3" *ngIf="collect.address">
           <div class="form-group">
             <label for="edit-city">{{ 'patients.form.city' | t }}</label>
             <input type="text" id="edit-city" name="city" [(ngModel)]="form.city" (ngModelChange)="touch('address.city')" [attr.aria-invalid]="error('address.city') ? 'true' : null" [attr.aria-describedby]="error('address.city') ? 'edit-city-err' : null">

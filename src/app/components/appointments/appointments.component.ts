@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
 import { AppointmentService } from '../../Services/Appointment.service';
+import { AccessLinkService } from '../../Services/AccessLink.service';
 import { ArrivalService } from '../../Services/Arrival.service';
 import { ApiErrorsService } from '../../i18n/api-errors';
 import { enumKey } from '../../i18n/enum-key';
@@ -50,12 +51,15 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   rangeFrom = businessToday();
   rangeTo = businessToday();
   actionError: string | null = null;
+  /** Visible result of « Révoquer le lien » (the sr-only `live` region says it too). */
+  notice: string | null = null;
   live = '';
   codes: Record<number, string> = {};
 
   constructor(
     private appointments: AppointmentService,
     private arrivals: ArrivalService,
+    private accessLinks: AccessLinkService,
     public i18n: I18nService,
     private errors: ApiErrorsService,
     private route: ActivatedRoute,
@@ -229,6 +233,29 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       return;
     }
     this.act(this.appointments.setStatus(a.id, 'COMPLETED'), this.i18n.t('appts.live.completed'));
+  }
+
+  /** A link exists only for an open appointment with a questionnaire (walk-ins have none). */
+  canRevokeLink(a: Appointment): boolean {
+    return (a.status === 'SCHEDULED' || a.status === 'READY' || a.status === 'NEEDS_REVIEW') && a.questionnaireDefinitionId !== null;
+  }
+
+  /** PRIV-A-06: kill the link now, send nothing. */
+  revokeLink(a: Appointment): void {
+    if (!window.confirm(this.i18n.t('accessLink.revokeConfirm'))) {
+      return;
+    }
+    this.actionError = null;
+    this.notice = null;
+    this.accessLinks.revokeAppointment(a.id).subscribe({
+      next: res => {
+        const { [a.id]: _gone, ...rest } = this.codes;
+        this.codes = rest;
+        this.notice = this.i18n.t(res.revoked > 1 ? 'accessLink.revokedCount' : 'accessLink.revoked', { n: res.revoked });
+        this.live = this.notice;
+      },
+      error: err => this.fail(err)
+    });
   }
 
   newLink(a: Appointment): void {

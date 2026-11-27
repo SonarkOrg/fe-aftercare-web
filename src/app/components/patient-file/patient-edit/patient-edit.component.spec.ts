@@ -5,8 +5,10 @@ import { environment } from '../../../../environments/environment';
 import { Patient } from '../../../models/patient.model';
 import { SHARED_DECLARATIONS } from '../../../testing/shared-declarations';
 import { I18nTestingModule } from '../../../testing/i18n-testing.module';
-import { JANE, contactPrefs, providePermissions } from '../../../testing/fixtures';
+import { JANE, contactPrefs, provideCollection, providePermissions } from '../../../testing/fixtures';
 import { PatientEditComponent, PatientEditResult } from './patient-edit.component';
+import { throwError } from 'rxjs';
+import { SettingsService } from '../../../Services/Settings.service';
 
 describe('PatientEditComponent', () => {
   let fixture: ComponentFixture<PatientEditComponent>;
@@ -43,7 +45,7 @@ describe('PatientEditComponent', () => {
     await TestBed.configureTestingModule({
       imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule],
       declarations: [PatientEditComponent, ...SHARED_DECLARATIONS],
-      providers: [providePermissions('RECEPTION')]
+      providers: [providePermissions('RECEPTION'), provideCollection(true, true)]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     trigger = document.createElement('button');
@@ -132,7 +134,7 @@ describe('PatientEditComponent', () => {
         expect(input(id).value).withContext(id).toBe('');
       }
       expect((el.querySelector('#edit-gender') as HTMLSelectElement).value).toBe('');
-      expect(Array.from(el.querySelectorAll<HTMLOptionElement>('#edit-gender option')).map(o => o.value)).toEqual(['', 'male', 'female']);
+      expect(Array.from(el.querySelectorAll<HTMLOptionElement>('#edit-gender option')).map(o => o.value)).toEqual(['', 'female', 'male', 'x', 'undisclosed']);
     });
 
     it('saves with only the two names: blanks go as null, no address object, and nothing is flagged as required', async () => {
@@ -267,5 +269,62 @@ describe('PatientEditComponent', () => {
     await open();
     fixture.destroy();
     expect(document.body.classList.contains('drawer-open')).toBeFalse();
+  });
+});
+
+describe('PatientEditComponent when the clinic collects neither gender nor address (PRIV-A-17)', () => {
+  it('shows no gender or address field and never sends a value for them', async () => {
+    await TestBed.configureTestingModule({
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule],
+      declarations: [PatientEditComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions('RECEPTION'), provideCollection(false, false)]
+    }).compileComponents();
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(PatientEditComponent);
+    fixture.componentInstance.patient = { id: 5, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, address: null, dateOfBirth: null };
+    const el: HTMLElement = fixture.nativeElement;
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiUrl}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'UNKNOWN' }));
+    fixture.detectChanges();
+    expect(el.querySelector('#edit-gender')).toBeNull();
+    expect(el.querySelector('#edit-city')).toBeNull();
+    expect(el.querySelector('label[for=edit-email]')!.textContent).toContain('optional');
+    fixture.componentInstance.form.gender = 'female';
+    fixture.componentInstance.form.city = 'Laval';
+    (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    const put = http.expectOne(`${environment.apiUrl}/patients/5`);
+    expect(put.request.body).toEqual({ id: 5, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, dateOfBirth: null, address: null });
+    put.flush({ id: 5, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, address: null });
+    http.expectOne(`${environment.apiUrl}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'UNKNOWN' }));
+    http.verify();
+    fixture.destroy();
+  });
+});
+
+describe('PatientEditComponent when the clinic settings cannot be read (review fix)', () => {
+  it('hides gender and address but sends back the stored values, so a save never erases them', async () => {
+    await TestBed.configureTestingModule({
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule],
+      declarations: [PatientEditComponent, ...SHARED_DECLARATIONS],
+      providers: [providePermissions('RECEPTION'), { provide: SettingsService, useValue: { clinic$: throwError(() => new Error('down')) } }]
+    }).compileComponents();
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(PatientEditComponent);
+    const address = { city: 'Zzz-Ville', state: 'QC', zip: 'H0H 0H0' };
+    fixture.componentInstance.patient = { id: 5, firstName: 'Zzz-Test', lastName: 'Garde', email: null, phone: null, gender: 'x', address, dateOfBirth: null };
+    const el: HTMLElement = fixture.nativeElement;
+    fixture.detectChanges();
+    http.expectOne(`${environment.apiUrl}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'UNKNOWN' }));
+    fixture.detectChanges();
+    expect(el.querySelector('#edit-gender')).toBeNull();
+    expect(el.querySelector('#edit-city')).toBeNull();
+    (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    const put = http.expectOne(`${environment.apiUrl}/patients/5`);
+    expect(put.request.body.gender).toBe('x');
+    expect(put.request.body.address).toEqual(address);
+    put.flush({ id: 5, firstName: 'Zzz-Test', lastName: 'Garde', email: null, phone: null, gender: 'x', address });
+    http.expectOne(`${environment.apiUrl}/patients/5/contact-preferences`).flush(contactPrefs({ contactConsent: 'UNKNOWN' }));
+    http.verify();
+    fixture.destroy();
   });
 });

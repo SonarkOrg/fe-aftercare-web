@@ -9,6 +9,7 @@ import { CLINIC, FULL_Q, SEED_RULES, staffMember, providePermissions } from '../
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { AlertRulesComponent } from './alert-rules/alert-rules.component';
 import { SettingsComponent } from './settings.component';
+import { PrivacyGatesComponent } from './privacy-gates/privacy-gates.component';
 import { StaffDirectoryComponent } from './staff-directory/staff-directory.component';
 import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
@@ -29,7 +30,7 @@ describe('SettingsComponent', () => {
     alertRefresh = jasmine.createSpy('refresh');
     await TestBed.configureTestingModule({
       imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
-      declarations: [SettingsComponent, StaffDirectoryComponent, AlertRulesComponent, ...SHARED_DECLARATIONS],
+      declarations: [SettingsComponent, StaffDirectoryComponent, AlertRulesComponent, PrivacyGatesComponent, ...SHARED_DECLARATIONS],
       providers: [providePermissions('ADMIN'), { provide: AlertCountService, useValue: { refresh: alertRefresh } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -39,6 +40,8 @@ describe('SettingsComponent', () => {
     el = fixture.nativeElement;
   });
   afterEach(() => {
+    // the « Confidentialité » card (PRIV-A-40) asks for the switches when the clinic tab renders; its own spec covers it
+    http.match(`${api}/settings/privacy-gates`);
     http.verify();
     document.body.classList.remove('drawer-open');
   });
@@ -74,6 +77,25 @@ describe('SettingsComponent', () => {
     expect(el.querySelector('.tabs .tab[aria-selected=true]')!.textContent).toBe('Clinic');
   });
 
+  it('the clinic tab hosts the « Confidentialité » card, which asks for the switches', async () => {
+    await init();
+    const r = http.expectOne(`${api}/settings/privacy-gates`);
+    expect(r.request.method).toBe('GET');
+    r.flush([]);
+    await settle();
+    expect(el.querySelector('#spanel-clinic app-privacy-gates h2')!.textContent).toContain('Privacy');
+  });
+
+  it('the Access log tab no longer holds the log: it says it moved and links to /privacy', async () => {
+    await init();
+    component.selectTab('access');
+    await settle();
+    expect(el.querySelector('app-access-log')).toBeNull();
+    const panel = el.querySelector('#spanel-access')!;
+    expect(panel.textContent).toContain('The access log is now under Privacy.');
+    expect(panel.querySelector('a.access-moved__link')!.getAttribute('href')).toBe('/privacy');
+  });
+
   it('arrow keys move between the tabs', async () => {
     await init();
     q('.tabs').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
@@ -93,6 +115,29 @@ describe('SettingsComponent', () => {
       expect(q('label[for=c-lang]').textContent).toBe('Default language for patient contacts');
     });
 
+    it('has two collection switches, off by default, with the privacy officer help text', async () => {
+      await init();
+      expect(q<HTMLInputElement>('#c-collect-gender').checked).toBeFalse();
+      expect(q<HTMLInputElement>('#c-collect-address').checked).toBeFalse();
+      expect(q('label[for=c-collect-gender]').textContent).toBe('Collect gender');
+      expect(q('label[for=c-collect-address]').textContent).toBe('Collect address');
+      expect(q('#c-collect-help').textContent).toContain('Turn on only if the privacy officer has documented why the clinic needs it.');
+    });
+
+    it('sends the two switches with the PUT, and an alert-toggle save leaves them out (unchanged)', async () => {
+      await init();
+      q<HTMLInputElement>('#c-collect-gender').click();
+      await settle();
+      q<HTMLButtonElement>('.save-clinic').click();
+      const r = http.expectOne(`${api}/settings/clinic`);
+      expect(r.request.method).toBe('PUT');
+      expect(r.request.body.collectGender).toBeTrue();
+      expect(r.request.body.collectAddress).toBeFalse();
+      r.flush({ ...CLINIC, collectGender: true });
+      await settle();
+      expect(q<HTMLInputElement>('#c-collect-gender').checked).toBeTrue();
+    });
+
     it('saves the full body (blank optional fields as null, province upper-cased) and confirms with a status banner', async () => {
       await init();
       await type('#c-name', 'Clinique Nord');
@@ -107,7 +152,7 @@ describe('SettingsComponent', () => {
       expect(r.request.method).toBe('PUT');
       expect(r.request.body).toEqual({
         name: 'Clinique Nord', addressLine: null, city: 'Montréal', province: 'ON', postalCode: 'H2X 1Y4', phone: '514-555-0100',
-        defaultLanguage: 'EN', notifySeverities: ['HIGH', 'MEDIUM']
+        defaultLanguage: 'EN', notifySeverities: ['HIGH', 'MEDIUM'], collectGender: false, collectAddress: false
       });
       r.flush({ ...CLINIC, name: 'Clinique Nord', updatedAt: '2026-10-15T14:00:00Z', updatedByName: 'Dev Nurse' });
       await settle();
@@ -219,7 +264,7 @@ describe('SettingsComponent', () => {
       q<HTMLFormElement>('.drawer form').dispatchEvent(new Event('submit'));
       const r = http.expectOne(`${api}/staff`);
       expect(r.request.method).toBe('POST');
-      expect(r.request.body).toEqual({ displayName: 'Alex Aide', email: null, role: 'ADMINISTRATIVE', accessRole: 'NURSE', auth0Subject: null });
+      expect(r.request.body).toEqual({ displayName: 'Alex Aide', email: null, role: 'ADMINISTRATIVE', accessRole: 'NURSE', auth0Subject: null, privacyOfficer: false });
       r.flush(staffMember({ id: 9, displayName: 'Alex Aide', role: 'ADMINISTRATIVE', email: null }), { status: 201, statusText: 'Created' });
       await settle();
       expect(el.querySelector('.drawer')).toBeNull();
@@ -253,7 +298,7 @@ describe('SettingsComponent', () => {
       q<HTMLFormElement>('.drawer form').dispatchEvent(new Event('submit'));
       const r = http.expectOne(`${api}/staff/1`);
       expect(r.request.method).toBe('PUT');
-      expect(r.request.body).toEqual({ displayName: 'Marie N.', email: 'marie@example.com', role: 'NURSE', accessRole: 'NURSE', auth0Subject: 'auth0|abc' });
+      expect(r.request.body).toEqual({ displayName: 'Marie N.', email: 'marie@example.com', role: 'NURSE', accessRole: 'NURSE', auth0Subject: 'auth0|abc', privacyOfficer: false });
       r.flush({ ...staff[0], displayName: 'Marie N.' });
       await settle();
       expect(staffRows()).toContain('Marie N.');

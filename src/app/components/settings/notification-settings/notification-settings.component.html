@@ -59,5 +59,15 @@
     <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.missedRule' | t }}</p>
   </section>
 
+  <section class="card" aria-labelledby="ns-wording">
+    <fieldset class="wording-group">
+      <legend id="ns-wording" class="card__title--sm">{{ 'settings.notif.wording' | t }}</legend>
+      <label class="radio-row" *ngFor="let w of wordings"><input type="radio" name="messageWording" [id]="'ns-wording-' + w" [value]="w" [(ngModel)]="form.messageWording" (ngModelChange)="touch()"> {{ wordingLabelKey(w) | t }}</label>
+      <p class="helper-line" id="ns-wording-example"><span aria-hidden="true">ℹ</span> <strong>{{ 'settings.notif.wordingExample' | t }}</strong> <span class="wording-example">{{ exampleKey(form.messageWording) | t }}</span></p>
+      <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.notif.wordingHelp' | t }}</p>
+      <span class="field-error" role="alert" *ngIf="errors['messageWording']">{{ errors['messageWording'] }}</span>
+    </fieldset>
+  </section>
+
   <div class="btn-row"><button type="submit" class="btn btn--accent save-notifications" [disabled]="saving">{{ (saving ? 'common.saving' : 'common.save') | t }}</button></div>
 </form>

@@ -12,7 +12,7 @@ import { environment } from '../../../environments/environment';
 import { AccessRole } from '../../models/me.model';
 import { Patient } from '../../models/patient.model';
 import { addDays, businessToday } from '../../shared/link.util';
-import { SEED_RULES, alertDto, appointment, checkInDto, deskPatient, followUp, patientMatch, providePermissions } from '../../testing/fixtures';
+import { SEED_RULES, alertDto, appointment, checkInDto, deskPatient, followUp, patientMatch, provideCollection, providePermissions } from '../../testing/fixtures';
 import { SHARED_DECLARATIONS } from '../../testing/shared-declarations';
 import { PatientsComponent } from './patients.component';
 import { I18nTestingModule } from '../../testing/i18n-testing.module';
@@ -40,7 +40,7 @@ describe('PatientsComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      providers: [providePermissions('ADMIN')],
+      providers: [providePermissions('ADMIN'), provideCollection(false, false)],
       imports: [I18nTestingModule.forLang(), HttpClientTestingModule, FormsModule, RouterTestingModule],
       declarations: [PatientsComponent, ...SHARED_DECLARATIONS]
     }).compileComponents();

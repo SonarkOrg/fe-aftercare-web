@@ -3,6 +3,7 @@ import { AlertRulesComponent } from '../components/settings/alert-rules/alert-ru
 import { AccessLogComponent } from '../components/settings/access-log/access-log.component';
 import { NotificationSettingsComponent } from '../components/settings/notification-settings/notification-settings.component';
 import { RetentionSettingsComponent } from '../components/settings/retention-settings/retention-settings.component';
+import { PrivacyGatesComponent } from '../components/settings/privacy-gates/privacy-gates.component';
 import { StaffDirectoryComponent } from '../components/settings/staff-directory/staff-directory.component';
 import { SettingsComponent } from '../components/settings/settings.component';
 import { AlertsComponent } from '../components/alerts/alerts.component';
@@ -151,7 +152,7 @@ describe('pseudo-locale: no text outside the dictionaries', () => {
   });
 
   it('settings, every tab', async () => {
-    const fixture = create(SettingsComponent, [StaffDirectoryComponent, AlertRulesComponent, NotificationSettingsComponent, RetentionSettingsComponent, AccessLogComponent]);
+    const fixture = create(SettingsComponent, [StaffDirectoryComponent, AlertRulesComponent, NotificationSettingsComponent, RetentionSettingsComponent, AccessLogComponent, PrivacyGatesComponent]);
     for (const tab of ['clinic', 'staff', 'notifications', 'rules', 'retention', 'access'] as const) {
       (fixture.componentInstance as SettingsComponent).tab = tab;
       await check(fixture, 'settings ' + tab);

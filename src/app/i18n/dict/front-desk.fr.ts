@@ -150,4 +150,5 @@ export const FRONT_DESK_FR: DictOf<typeof FRONT_DESK_EN> = {
   'fd.quick.required': 'Obligatoire.',
   'fd.quick.dobInvalid': 'Utilisez AAAA-MM-JJ, JJ/MM/AAAA ou JJMMAAAA ; la date ne peut pas être future.',
   'fd.quick.cardInvalid': 'Entrez 4 lettres et 8 chiffres.',
+  'fd.namCollectionOff': 'La clinique ne recueille pas le NAM. Cherchez par nom.',
 };

@@ -62,9 +62,9 @@ describe('NotificationSettingsComponent', () => {
     expect(q<HTMLInputElement>('#ns-mc-time').value).toBe('19:45');
   });
 
-  it('has the three cards with their texts', async () => {
+  it('has the four cards with their texts', async () => {
     await init();
-    expect(Array.from(el.querySelectorAll('.card__title--sm')).map(h => h.textContent)).toEqual(['Delivery channels', 'Patient reminders', 'Missed check-ins']);
+    expect(Array.from(el.querySelectorAll('.card__title--sm')).map(h => h.textContent)).toEqual(['Delivery channels', 'Patient reminders', 'Missed check-ins', 'Message wording']);
     expect(el.textContent).toContain('Patients receive messages only if their consent is recorded as granted.');
     expect(el.textContent).toContain('Reminders are sent only when the check-in or questionnaire is still missing, and never between 21:00 and 08:00.');
     expect(el.textContent).toContain('A second missed day in a row raises a high alert.');
@@ -129,11 +129,35 @@ describe('NotificationSettingsComponent', () => {
     expect(r.request.method).toBe('PUT');
     expect(r.request.body).toEqual({
       emailEnabled: true, smsEnabled: true, checkInReminderEnabled: true, checkInReminderTime: '17:30',
-      appointmentReminderEnabled: false, appointmentReminderHours: 36, missedCheckInEnabled: false, missedCheckInCutoff: '19:00'
+      appointmentReminderEnabled: false, appointmentReminderHours: 36, missedCheckInEnabled: false, missedCheckInCutoff: '19:00',
+      messageWording: 'NEUTRAL'
     });
     r.flush(notificationSettings({ ...r.request.body, updatedAt: '2026-10-14T15:00:00Z', updatedByName: 'Dev Admin' }));
     await settle();
     expect(q('[role=status]').textContent).toContain('Saved.');
+  });
+
+  it('offers the message wording as a radio group with NEUTRAL selected by default and a static example', async () => {
+    await init();
+    expect(q<HTMLInputElement>('#ns-wording-NEUTRAL').checked).toBeTrue();
+    expect(q<HTMLInputElement>('#ns-wording-STANDARD').checked).toBeFalse();
+    expect(q('label:has(#ns-wording-NEUTRAL)').textContent).toContain('Neutral (mentions no surgery or follow-up)');
+    expect(q('label:has(#ns-wording-STANDARD)').textContent).toContain('Standard (mentions the follow-up after surgery)');
+    expect(q('.wording-example').textContent).toContain('the clinic invites you to answer a few questions');
+    expect(el.textContent).toContain('Texts to be validated by the privacy officer.');
+    await toggle('#ns-wording-STANDARD');
+    expect(q('.wording-example').textContent).toContain('aftercare check-in link');
+  });
+
+  it('sends the chosen wording and shows the server value after the save', async () => {
+    await init();
+    await toggle('#ns-wording-STANDARD');
+    await save();
+    const r = http.expectOne(url);
+    expect(r.request.body.messageWording).toBe('STANDARD');
+    r.flush(notificationSettings({ messageWording: 'STANDARD' }));
+    await settle();
+    expect(q<HTMLInputElement>('#ns-wording-STANDARD').checked).toBeTrue();
   });
 
   it('refuses a reminder at or after the missed check-in cutoff, without a request', async () => {

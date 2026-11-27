@@ -4,6 +4,8 @@
   <div class="banner banner--error error-message" *ngIf="notFound"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ 'error.msg.appointmentNotFound' | t }}</span></div>
   <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
 
+  <div class="banner banner--info" id="revoke-notice" role="status" *ngIf="notice"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ notice }}</span></div>
+
   <ng-container *ngIf="appt as a">
     <section class="profile-hero profile-hero--sm" [attr.aria-label]="'page.appointment' | t">
       <app-avatar [id]="a.patientId" [initials]="initials(a.patientFirstName, a.patientLastName)" size="lg"></app-avatar>
@@ -44,6 +46,7 @@
         <button type="button" id="undo-arrival" class="btn btn--secondary" *ngIf="arrivalDay && a.arrivedAt" [disabled]="arrivalBusy" (click)="undoArrival()"><app-icon name="undo" [size]="16"></app-icon>{{ 'appts.undoArrival' | t }}</button>
         <a class="btn btn--secondary" id="edit-appt" *ngIf="open" [routerLink]="['/appointments', a.id, 'edit']">{{ 'common.edit' | t }}</a>
         <button type="button" id="delete-appt" class="btn btn--danger" *ngIf="a.status === 'SCHEDULED' && !a.intake && !a.intakeSubmittedAt && !a.arrivedAt" (click)="delete()">{{ 'common.delete' | t }}</button>
+        <button type="button" id="revoke-link" class="btn btn--ghost-danger" *ngIf="canRevokeLink" [disabled]="revokeBusy" (click)="revokeLink()">{{ 'accessLink.revoke' | t }}</button>
         <app-send-link *ngIf="canSendLink" kind="appointment" [targetId]="a.id" [patientId]="a.patientId" (sent)="onLinkSent(a.patientId)"></app-send-link>
       </div>
     </section>

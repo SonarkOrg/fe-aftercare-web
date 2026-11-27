@@ -28,7 +28,8 @@ export class ShellComponent implements OnInit, OnDestroy {
     { label: 'shell.nav.alerts', link: '/alerts', icon: 'bell', badge: 'alerts', permission: 'CLINICAL_READ' },
     { label: 'shell.nav.messages', link: '/messages', icon: 'message', badge: 'messages', permission: 'CLINICAL_READ' },
     { label: 'shell.nav.reports', link: '/reports', icon: 'bar-chart', permission: 'REPORTS_READ' },
-    { label: 'shell.nav.forms', link: '/questionnaires', icon: 'file', permission: 'FORMS_READ' }
+    { label: 'shell.nav.forms', link: '/questionnaires', icon: 'file', permission: 'FORMS_READ' },
+    { label: 'shell.nav.privacy', link: '/privacy', icon: 'shield', permission: 'AUDIT_READ' }
   ];
   /** The items this member may open (hidden, not disabled). */
   navItems: NavItem[] = [];

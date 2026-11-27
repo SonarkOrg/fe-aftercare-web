@@ -220,6 +220,15 @@ describe('DashboardComponent', () => {
     expect(el.querySelector('.row-menu a[href^="tel:"]')).not.toBeNull();
   });
 
+  it('missed rows of a patient without a phone offer no Call (never tel:undefined)', () => {
+    fixture.detectChanges();
+    flushFeeds(alerts, patients.map(p => ({ ...p, phone: null })));
+    openMenu('missed');
+    expect(el.querySelector('.row-menu .btn-call')).toBeNull();
+    expect(el.innerHTML).not.toContain('tel:undefined');
+    expect(el.querySelector('.attn[data-kind=missed] .row-menu a')).not.toBeNull();
+  });
+
   it('shows the empty states when nothing needs attention', () => {
     fixture.detectChanges();
     http.expectOne(`${api}/patients`).flush([person(3, 'Sophie', 'Lavoie', false)]);

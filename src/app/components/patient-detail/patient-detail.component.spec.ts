@@ -12,7 +12,7 @@ import { QuestionnaireFormComponent } from '../../fhir/questionnaire-form/questi
 import { CheckIn } from '../../models/follow-up.model';
 import { AccessLinkComponent } from '../../shared/access-link/access-link.component';
 import { addDays, businessToday } from '../../shared/link.util';
-import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, contactPrefs, deskPatient, followUp, medical, conversation, missedAlert, providePermissions } from '../../testing/fixtures';
+import { CLINIC, FULL_Q, JANE, alertDto, appointment, careTeamMember, contactPrefs, deskPatient, followUp, medical, conversation, missedAlert, provideCollection, providePermissions } from '../../testing/fixtures';
 import { AccessRole } from '../../models/me.model';
 import { MessageThreadComponent } from '../../shared/message-thread/message-thread.component';
 import { PatientAuditComponent } from '../patient-file/patient-audit/patient-audit.component';
@@ -58,7 +58,7 @@ describe('PatientDetailComponent', () => {
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
         QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
         PatientAuditComponent, PatientEditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
-      providers: [providePermissions('ADMIN'), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
+      providers: [providePermissions('ADMIN'), provideCollection(true, true), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PatientDetailComponent);
@@ -109,7 +109,7 @@ describe('PatientDetailComponent', () => {
       expect(meta.textContent!.trim()).toBe('');
       expect(meta.querySelector('a')).toBeNull();
       const values = Array.from(el.querySelectorAll('.demographics dd')).map(d => d.textContent!.trim());
-      expect(values).toEqual(['—', '—', '—', '—']);
+      expect(values).toEqual(['—', '—']); // e-mail and phone; gender and address rows exist only when there is a value
       expect(el.textContent).not.toContain('null');
       expect(el.textContent).not.toContain('undefined');
     });
@@ -121,11 +121,22 @@ describe('PatientDetailComponent', () => {
       expect(meta.querySelector('a')!.getAttribute('href')).toBe('mailto:zzz@example.com');
     });
 
+    it('shows no gender or address row when the server returned null for them (a field the clinic does not collect)', () => {
+      init({ patient: MINIMAL, medical: medical({ dateOfBirth: null }) });
+      expect(Array.from(el.querySelectorAll('.demographics dt')).map(d => d.textContent!.trim())).toEqual(['Email', 'Phone']);
+    });
+
+    it('shows the gender and address rows when there is a value', () => {
+      init({ patient: { ...MINIMAL, gender: 'x', address: { city: 'Laval', state: null, zip: null } }, medical: medical({ dateOfBirth: null }) });
+      const rows = Array.from(el.querySelectorAll('.demographics dd')).map(d => d.textContent!.trim());
+      expect(rows).toEqual(['—', '—', 'X', 'Laval']);
+    });
+
     it('shows only the city when there is no province, and the postal code after it', () => {
       init({ patient: { ...MINIMAL, address: { city: 'Laval', state: null, zip: 'H7A 1A1' } } });
       expect(el.querySelector('.profile-hero__meta')!.textContent).toContain('Laval');
       expect(el.querySelector('.profile-hero__meta')!.textContent).not.toContain(',');
-      expect(Array.from(el.querySelectorAll('.demographics dd')).map(d => d.textContent!.trim())[3]).toBe('Laval H7A 1A1');
+      expect(Array.from(el.querySelectorAll('.demographics dd')).map(d => d.textContent!.trim())[2]).toBe('Laval H7A 1A1');
     });
   });
 
@@ -282,6 +293,22 @@ describe('PatientDetailComponent', () => {
     req.flush({ followUp: followUp(), accessCode: code });
     flushAll({ followUps: [followUp()] }, false);
     expect((el.querySelector('.access-link input') as HTMLInputElement).value).toContain('/q/' + code);
+  });
+
+  it('PRIV-A-06: « Revoke link » is confirm-guarded, POSTs to the follow-up revoke endpoint and reports it', () => {
+    init({ followUps: [followUp()] });
+    const confirmSpy = spyOn(window, 'confirm').and.returnValue(false);
+    (el.querySelector('#revoke-follow-up-link') as HTMLButtonElement).click();
+    expect(confirmSpy).toHaveBeenCalledWith('The link will stop working at once. No new link will be sent.');
+    http.expectNone(`${api}/follow-ups/11/access-code/revoke`);
+    confirmSpy.and.returnValue(true);
+    (el.querySelector('#revoke-follow-up-link') as HTMLButtonElement).click();
+    const req = http.expectOne(`${api}/follow-ups/11/access-code/revoke`);
+    expect(req.request.method).toBe('POST');
+    req.flush({ revoked: 1 });
+    fixture.detectChanges();
+    expect(el.querySelector('#link-notice')!.textContent).toContain('Link revoked');
+    expect(el.querySelector('.access-link')).toBeNull();
   });
 
   it('Copy link calls the clipboard', async () => {
@@ -525,7 +552,7 @@ describe('PatientDetailComponent by access role', () => {
       declarations: [PatientDetailComponent, FollowUpFormComponent, AccessLinkComponent, AlertTableComponent,
         QuestionnaireFormComponent, PatientMedicalComponent, PatientContactsComponent, PatientTimelineComponent, PatientDocumentsComponent,
         PatientAuditComponent, PatientEditComponent, MessageThreadComponent, StubNotificationsComponent, ...SHARED_DECLARATIONS],
-      providers: [providePermissions(role, over), { provide: ActivatedRoute, useValue: { queryParamMap: queryParams$.asObservable(), snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
+      providers: [providePermissions(role, over), provideCollection(true, true), { provide: ActivatedRoute, useValue: { queryParamMap: queryParams$.asObservable(), snapshot: { paramMap: convertToParamMap({ id: '5' }), get queryParamMap() { return convertToParamMap(query); } } } }]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PatientDetailComponent);
@@ -666,7 +693,7 @@ describe('PatientDetailComponent by access role', () => {
     it('hides the trends, recent alerts, follow-up card, allergy chip and the clinical summary tiles', async () => {
       await mount('RECEPTION');
       flushReception();
-      for (const sel of ['.trends-card', '.recent-alerts', '.follow-up-card', '.allergy-chip', '#regenerate-link', '#close-follow-up', 'app-follow-up-form', 'app-send-link', '.profile-hero .chip']) {
+      for (const sel of ['.trends-card', '.recent-alerts', '.follow-up-card', '.allergy-chip', '#regenerate-link', '#revoke-follow-up-link', '#close-follow-up', 'app-follow-up-form', 'app-send-link', '.profile-hero .chip']) {
         expect(el.querySelector(sel)).withContext(sel).toBeNull();
       }
       expect(el.querySelectorAll('.kpis--summary .kpi').length).toBe(1); // next appointment only
@@ -745,7 +772,7 @@ describe('PatientDetailComponent by access role', () => {
     it('hides the write buttons from a member who can read but not write clinically', async () => {
       await mount('NURSE', {}, { permissions: ['PATIENT_READ', 'CLINICAL_READ', 'APPOINTMENT_READ'] });
       flushClinical({ followUps: [followUp()], careTeam: [careTeamMember()] });
-      for (const sel of ['#regenerate-link', '#close-follow-up', 'app-send-link', 'app-follow-up-form', '.care-team-card .card__link', '.profile-hero a.btn--accent']) {
+      for (const sel of ['#regenerate-link', '#revoke-follow-up-link', '#close-follow-up', 'app-send-link', 'app-follow-up-form', '.care-team-card .card__link', '.profile-hero a.btn--accent']) {
         expect(el.querySelector(sel)).withContext(sel).toBeNull();
       }
       expect(tabs()).toEqual(['Overview', 'Medical', 'Contacts', 'Timeline', 'Documents', 'Messages', 'Check-ins', 'Alerts', 'Appointments']);

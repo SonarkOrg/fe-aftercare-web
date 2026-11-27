@@ -131,6 +131,11 @@ export function staffActiveChip(active: boolean): ChipSpec {
   return active ? chip('good', 'common.active') : chip('neutral', 'common.inactive', '⊘');
 }
 
+/** PRIV-A-23: the person in charge of the protection of information. Neutral on purpose: a role marker, not a state. */
+export function privacyOfficerChip(): ChipSpec {
+  return chip('neutral', 'staff.chip.privacyOfficer');
+}
+
 export function linkedChip(linked: boolean): ChipSpec {
   return linked ? chip('info', 'common.linked') : chip('neutral', 'common.notLinked');
 }

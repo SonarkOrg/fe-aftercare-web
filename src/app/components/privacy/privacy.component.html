@@ -1,0 +1,15 @@
+<div class="page">
+  <section class="hero">
+    <div>
+      <h1 class="hero__title">{{ 'page.privacy' | t }}</h1>
+    </div>
+  </section>
+
+  <div class="tabs" role="tablist" [attr.aria-label]="'privacy.sections' | t">
+    <button type="button" role="tab" class="tab" id="ptab-log" aria-controls="ppanel-log" aria-selected="true" tabindex="0">{{ 'privacy.tab.log' | t }}</button>
+  </div>
+
+  <div class="tabpanel" id="ppanel-log" role="tabpanel" aria-labelledby="ptab-log" tabindex="0">
+    <app-access-log></app-access-log>
+  </div>
+</div>

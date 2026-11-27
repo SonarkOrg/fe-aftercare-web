@@ -4,6 +4,7 @@ import { Subscription, forkJoin, of } from 'rxjs';
 import { NotificationService } from '../../Services/Notification.service';
 import { AlertService } from '../../Services/Alert.service';
 import { AppointmentService } from '../../Services/Appointment.service';
+import { AccessLinkService } from '../../Services/AccessLink.service';
 import { FollowUpService } from '../../Services/FollowUp.service';
 import { MessageService } from '../../Services/Message.service';
 import { PatientService } from '../../Services/Patient.service';
@@ -67,6 +68,8 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   notFound = false;
   errorMessage: string | null = null;
   actionError: string | null = null;
+  /** Result of « Révoquer le lien » (role=status). */
+  linkNotice: string | null = null;
   accessCode: string | null = null;
   expanded = new Set<number>();
   defs: Record<number, FhirQuestionnaire> = {};
@@ -113,6 +116,7 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private patients: PatientService,
     private followUpService: FollowUpService,
+    private accessLinks: AccessLinkService,
     private alertService: AlertService,
     private appointmentService: AppointmentService,
     private definitions: QuestionnaireDefinitionService,
@@ -132,7 +136,13 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
   }
 
   genderLabel(g: string | null): string {
-    return g === 'male' ? this.i18n.t('patients.form.male') : g === 'female' ? this.i18n.t('patients.form.female') : (g ?? '');
+    switch (g) {
+      case 'male': return this.i18n.t('patients.form.male');
+      case 'female': return this.i18n.t('patients.form.female');
+      case 'x': return this.i18n.t('patients.form.genderX');
+      case 'undisclosed': return this.i18n.t('patients.form.genderUndisclosed');
+      default: return g ?? '';
+    }
   }
 
   /** The tabs this member may open (hidden, not disabled). */
@@ -547,6 +557,22 @@ export class PatientDetailComponent implements OnInit, OnDestroy {
       next: res => {
         this.accessCode = res.accessCode;
         this.reload();
+      },
+      error: err => (this.actionError = this.errors.text(err, 'pd.error.regenerate'))
+    });
+  }
+
+  /** PRIV-A-06: kill the follow-up link now, without sending a new one. */
+  revokeLink(f: FollowUp): void {
+    if (!window.confirm(this.i18n.t('accessLink.revokeConfirm'))) {
+      return;
+    }
+    this.actionError = null;
+    this.linkNotice = null;
+    this.accessLinks.revokeFollowUp(f.id).subscribe({
+      next: res => {
+        this.accessCode = null;
+        this.linkNotice = this.i18n.t(res.revoked > 1 ? 'accessLink.revokedCount' : 'accessLink.revoked', { n: res.revoked });
       },
       error: err => (this.actionError = this.errors.text(err, 'pd.error.regenerate'))
     });

@@ -1,6 +1,7 @@
 import { Provider } from '@angular/core';
 import { of } from 'rxjs';
 import { MeService } from '../Services/Me.service';
+import { SettingsService } from '../Services/Settings.service';
 import { Permissions } from '../auth/permissions.service';
 import { FhirElement, FhirItem, FhirQuestionnaire } from '../fhir/fhir.model';
 import { Alert } from '../models/alert.model';
@@ -217,14 +218,19 @@ export const SEED_RULES: RuleJson[] = [
 
 export const CLINIC: ClinicSettings = {
   name: 'Clinique Test', addressLine: '1 rue Principale', city: 'Montréal', province: 'QC', postalCode: 'H2X 1Y4', phone: '514-555-0100',
-  defaultLanguage: 'FR', notifySeverities: ['HIGH', 'MEDIUM'], updatedAt: null, updatedByName: null
+  defaultLanguage: 'FR', notifySeverities: ['HIGH', 'MEDIUM'], updatedAt: null, updatedByName: null, collectGender: false, collectAddress: false
 };
+
+/** Gender and address are collected only when the clinic says so (PRIV-A-17): the forms read clinic$ from SettingsService. */
+export function provideCollection(collectGender: boolean, collectAddress: boolean): Provider {
+  return { provide: SettingsService, useValue: { clinic$: of({ ...CLINIC, collectGender, collectAddress }) } };
+}
 
 const STAMP = { createdAt: '2026-10-01T14:00:00Z', createdByName: 'Dev Nurse', updatedAt: '2026-10-01T14:00:00Z', updatedByName: 'Dev Nurse' };
 
 export function medical(over: Partial<PatientMedical> = {}): PatientMedical {
   return {
-    patientId: 5, dateOfBirth: '1980-05-20', healthNumberMasked: '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u202212',
+    patientId: 5, dateOfBirth: '1980-05-20', healthNumberOnFile: true,
     allergies: [{ id: 1, substance: 'Penicillin', severity: 'SEVERE', reaction: 'Anaphylaxis', ...STAMP }],
     medications: [{ id: 2, name: 'Acetaminophen', dose: '500 mg', frequency: 'q6h', startDate: '2026-10-01', ...STAMP }],
     procedures: [{ id: 3, name: 'Appendectomy', performedOn: '2026-10-10', surgeonStaffId: null, surgeonName: 'Dr. Roy', ...STAMP }],
@@ -236,7 +242,7 @@ export function medical(over: Partial<PatientMedical> = {}): PatientMedical {
 export function staffMember(over: Partial<Staff> = {}): Staff {
   return {
     id: 1, displayName: 'Marie Nurse', email: 'marie@example.com', role: 'NURSE', accessRole: 'NURSE', auth0Subject: null, active: true,
-    createdAt: '2026-10-01T14:00:00Z', updatedAt: '2026-10-01T14:00:00Z', ...over
+    createdAt: '2026-10-01T14:00:00Z', updatedAt: '2026-10-01T14:00:00Z', privacyOfficer: false, ...over
   };
 }
 
@@ -362,7 +368,7 @@ export function notification(over: Partial<NotificationItem> = {}): Notification
 export function notificationSettings(over: Partial<NotificationSettings> = {}): NotificationSettings {
   return {
     emailEnabled: true, smsEnabled: false, emailProvider: 'LOG', smsProvider: 'LOG', checkInReminderEnabled: true, checkInReminderTime: '18:00',
-    appointmentReminderEnabled: true, appointmentReminderHours: 48, missedCheckInEnabled: true, missedCheckInCutoff: '20:00',
+    appointmentReminderEnabled: true, appointmentReminderHours: 48, missedCheckInEnabled: true, missedCheckInCutoff: '20:00', messageWording: 'NEUTRAL',
     updatedAt: null, updatedByName: null, ...over
   };
 }

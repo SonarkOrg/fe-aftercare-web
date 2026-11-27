@@ -19,7 +19,8 @@ export interface Diagnosis extends AuditStamp { id: number; description: string;
 export interface PatientMedical {
   patientId: number;
   dateOfBirth: string | null;
-  healthNumberMasked: string | null;
+  /** PRIV-A-01: no mask is stored or returned; the server only says whether a number is on file. */
+  healthNumberOnFile: boolean;
   /** Phase 1B: "YYYY-MM". */
   cardExpiry?: string | null;
   cardStatus?: CardStatus;
@@ -38,9 +39,9 @@ export interface DiagnosisRequest { description: string; icd10Code: string | nul
 export type MedicalList = 'allergies' | 'medications' | 'procedures' | 'diagnoses';
 
 export interface HealthNumberRequest { healthNumber: string }
-export interface HealthNumberMasked { healthNumberMasked: string }
+export interface HealthNumberStatus { healthNumberOnFile: boolean }
 export interface RevealRequest { reason: string }
-export interface HealthNumberReveal { healthNumber: string; healthNumberMasked: string; revealedAt: string }
+export interface HealthNumberReveal { healthNumber: string; revealedAt: string }
 
 export interface EmergencyContactRequest { name: string; relationship: string; phone: string; preferredLanguage: Language }
 export interface EmergencyContact extends AuditStamp {

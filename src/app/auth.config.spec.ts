@@ -67,6 +67,14 @@ describe('staffApiAllowedList', () => {
     }
   });
 
+  it('already covers the wave-2 privacy endpoints without a new entry (revocation, privacy switches)', () => {
+    for (const path of ['/follow-ups/3/access-code/revoke', '/appointments/4/access-code/revoke', '/patients/5/access-links/revoke',
+      '/settings/privacy-gates', '/settings/privacy-gates/NAM_COLLECTION']) {
+      expect(isStaffApiUrl(api + path)).withContext(path).toBeTrue();
+    }
+    expect(staffApiAllowedList.length).toBe(21);
+  });
+
   it('still never attaches the staff token to public or dev URLs, or to look-alikes of the new entries', () => {
     const root = api.replace(/\/api$/, '');
     for (const url of [`${api}/public/q/x`, `${api}/public/q/x/messages`, `${root}/dev/token?role=ADMIN`, `${root}/dev/token?sub=dev%7Cunlinked`,

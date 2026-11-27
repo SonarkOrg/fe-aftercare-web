@@ -111,7 +111,7 @@
                         <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.open' | t }}</a>
                       </ng-container>
                       <ng-container *ngSwitchCase="'missed'">
-                        <a role="menuitem" class="row-menu__item btn-call" [attr.href]="'tel:' + it.phone">{{ 'dashboard.menu.call' | t }}</a>
+                        <a role="menuitem" class="row-menu__item btn-call" *ngIf="it.phone" [attr.href]="'tel:' + it.phone">{{ 'dashboard.menu.call' | t }}</a>
                         <a role="menuitem" class="row-menu__item" [routerLink]="it.link">{{ 'dashboard.menu.openPatient' | t }}</a>
                       </ng-container>
                     </ng-container>

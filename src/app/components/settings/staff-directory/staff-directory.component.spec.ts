@@ -115,11 +115,38 @@ describe('StaffDirectoryComponent (access roles)', () => {
       q<HTMLFormElement>('.drawer form').dispatchEvent(new Event('submit'));
       const r = http.expectOne(`${api}/staff`);
       expect(r.request.method).toBe('POST');
-      expect(r.request.body).toEqual({ displayName: 'Isabelle Morin', email: null, role: 'NURSE', accessRole: 'RECEPTION', auth0Subject: null });
+      expect(r.request.body).toEqual({ displayName: 'Isabelle Morin', email: null, role: 'NURSE', accessRole: 'RECEPTION', auth0Subject: null, privacyOfficer: false });
       r.flush(staffMember({ id: 9, displayName: 'Isabelle Morin', accessRole: 'RECEPTION' }), { status: 201, statusText: 'Created' });
       await settle();
       expect(el.querySelector('.drawer')).toBeNull();
       expect(rowOf('Isabelle Morin').querySelector('app-role-badge')!.textContent).toContain('Reception');
+    });
+
+    it('shows the « Resp. vie privée » chip on the flagged member only, and the form has the checkbox with its help', async () => {
+      await init([...staff.slice(0, 3), staffMember({ id: 4, displayName: 'Paul Privacy', accessRole: 'NURSE', privacyOfficer: true })]);
+      expect(rowOf('Paul Privacy').querySelector('.privacy-officer-chip')!.textContent).toContain('Privacy officer');
+      expect(rowOf('Marie Nurse').querySelector('.privacy-officer-chip')).toBeNull();
+      await openMenu('Paul Privacy', 'edit');
+      const box = q<HTMLInputElement>('#st-privacy');
+      expect(box.type).toBe('checkbox');
+      expect(box.checked).toBeTrue();
+      expect(box.getAttribute('aria-describedby')).toBe('st-privacy-h');
+      expect(q('#st-privacy-h').textContent).toContain('Gives access to the access log');
+    });
+
+    it('sends privacyOfficer on save (true when ticked, false when the member is not flagged)', async () => {
+      await init();
+      await openMenu('Marie Nurse', 'edit');
+      expect(q<HTMLInputElement>('#st-privacy').checked).toBeFalse();
+      q<HTMLInputElement>('#st-privacy').click();
+      await settle();
+      q<HTMLFormElement>('.drawer form').dispatchEvent(new Event('submit'));
+      const r = http.expectOne(`${api}/staff/1`);
+      expect(r.request.method).toBe('PUT');
+      expect(r.request.body.privacyOfficer).toBeTrue();
+      r.flush(staffMember({ id: 1, displayName: 'Marie Nurse', accessRole: 'NURSE', privacyOfficer: true }));
+      await settle();
+      expect(rowOf('Marie Nurse').querySelector('.privacy-officer-chip')).not.toBeNull();
     });
 
     it('Edit pre-fills the current access role', async () => {

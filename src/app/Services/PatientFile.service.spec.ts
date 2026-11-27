@@ -37,7 +37,7 @@ describe('PatientFileService', () => {
 
   it('health number: set, clear and reveal', () => {
     svc.setHealthNumber(5, 'TREM 6854 1212').subscribe();
-    expectReq('PUT', `${base}/health-number`, { healthNumber: 'TREM 6854 1212' }).flush({ healthNumberMasked: 'x' });
+    expectReq('PUT', `${base}/health-number`, { healthNumber: 'TREM 6854 1212' }).flush({ healthNumberOnFile: true });
     svc.clearHealthNumber(5).subscribe();
     expectReq('DELETE', `${base}/health-number`).flush(null, { status: 204, statusText: 'No Content' });
     svc.revealHealthNumber(5, 'billing check').subscribe();

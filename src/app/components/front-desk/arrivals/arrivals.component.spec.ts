@@ -481,6 +481,22 @@ describe('ArrivalsComponent', () => {
       }
     });
 
+    it('409 NAM_COLLECTION_OFF (decision P1 not recorded): the box stays empty, the number is dropped and the desk is told to search by name', () => {
+      const f = setup();
+      type(f, NAM);
+      key(f, 'Enter');
+      const req = http.expectOne(r => r.method === 'POST' && r.url === `${API}/patients/search`);
+      req.flush({ status: 409, error: 'NAM_COLLECTION_OFF', message: 'Health numbers are not collected in this clinic', fieldErrors: {} },
+        { status: 409, statusText: 'Conflict' });
+      f.detectChanges();
+      expect(box(f).value).toBe('');
+      expect(el(f).textContent).toContain('This clinic does not record health numbers. Search by name.');
+      expect(f.componentInstance.pendingCard).toBeNull();
+      key(f, 'Enter'); // nothing left to send
+      http.expectNone(r => r.method === 'POST');
+      http.verify();
+    });
+
     it('a number typed with spaces or arriving inside a longer payload is recognised too', () => {
       const f = setup();
       type(f, 'roys 8552 2712');

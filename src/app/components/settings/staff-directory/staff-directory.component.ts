@@ -8,7 +8,7 @@ import { collate } from '../../../i18n/format';
 import { I18nService } from '../../../i18n/i18n.service';
 import { ACCESS_ROLES, AccessRole } from '../../../models/me.model';
 import { STAFF_ROLES, Staff, StaffRequest, StaffRole } from '../../../models/staff.model';
-import { ChipSpec, linkedChip, staffActiveChip } from '../../../shared/status';
+import { ChipSpec, linkedChip, privacyOfficerChip, staffActiveChip } from '../../../shared/status';
 
 export type StaffFilter = 'active' | 'inactive' | 'all';
 
@@ -20,6 +20,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   readonly roles = STAFF_ROLES;
   readonly accessRoles = ACCESS_ROLES;
   readonly inactiveChip: ChipSpec = staffActiveChip(false);
+  readonly privacyOfficerChip = privacyOfficerChip();
   readonly linked = linkedChip(true);
   readonly notLinked = linkedChip(false);
 
@@ -34,7 +35,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
 
   drawerOpen = false;
   editId: number | null = null;
-  form = { displayName: '', email: '', role: 'NURSE' as StaffRole, accessRole: 'NURSE' as AccessRole, auth0Subject: '' };
+  form = { displayName: '', email: '', role: 'NURSE' as StaffRole, accessRole: 'NURSE' as AccessRole, auth0Subject: '', privacyOfficer: false };
   errors: Record<string, string> = {};
   banner: string | null = null;
   saving = false;
@@ -121,7 +122,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
   openDrawer(s: Staff | null, trigger: HTMLElement | null): void {
     this.trigger = trigger ?? (document.activeElement as HTMLElement | null);
     this.editId = s?.id ?? null;
-    this.form = { displayName: s?.displayName ?? '', email: s?.email ?? '', role: s?.role ?? 'NURSE', accessRole: s?.accessRole ?? 'NURSE', auth0Subject: s?.auth0Subject ?? '' };
+    this.form = { displayName: s?.displayName ?? '', email: s?.email ?? '', role: s?.role ?? 'NURSE', accessRole: s?.accessRole ?? 'NURSE', auth0Subject: s?.auth0Subject ?? '', privacyOfficer: !!s?.privacyOfficer };
     this.errors = {};
     this.banner = null;
     this.drawerOpen = true;
@@ -173,7 +174,7 @@ export class StaffDirectoryComponent implements OnInit, OnDestroy {
     this.banner = null;
     const req: StaffRequest = {
       displayName: this.form.displayName.trim(), email: this.form.email.trim() || null, role: this.form.role, accessRole: this.form.accessRole,
-      auth0Subject: this.form.auth0Subject.trim() || null
+      auth0Subject: this.form.auth0Subject.trim() || null, privacyOfficer: this.form.privacyOfficer
     };
     const call = this.editId === null ? this.staff.create(req) : this.staff.update(this.editId, req);
     call.subscribe({

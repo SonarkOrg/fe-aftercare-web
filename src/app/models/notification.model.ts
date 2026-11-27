@@ -8,6 +8,9 @@ export type NotificationError = 'PROVIDER_ERROR' | 'PROVIDER_REJECTED' | 'INVALI
 export type ContactConsent = 'UNKNOWN' | 'GRANTED' | 'WITHDRAWN';
 export type EmailProvider = 'LOG' | 'SMTP' | 'OFF';
 export type SmsProvider = 'LOG' | 'TWILIO' | 'OFF';
+/** PRIV-A-17b: NEUTRAL (default) mentions neither surgery nor follow-up. */
+export type MessageWording = 'STANDARD' | 'NEUTRAL';
+export const MESSAGE_WORDINGS: MessageWording[] = ['NEUTRAL', 'STANDARD'];
 
 export interface ContactPreferences {
   patientId: number;
@@ -61,9 +64,12 @@ export interface NotificationSettingsRequest {
   missedCheckInEnabled: boolean;
   /** "HH:mm" */
   missedCheckInCutoff: string;
+  /** Absent = unchanged (the API will make it required with PRIV-A-17b). */
+  messageWording?: MessageWording;
 }
 
 export interface NotificationSettings extends NotificationSettingsRequest {
+  messageWording: MessageWording;
   emailProvider: EmailProvider;
   smsProvider: SmsProvider;
   updatedAt: string | null;

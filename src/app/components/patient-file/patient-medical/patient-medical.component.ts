@@ -229,9 +229,9 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
 
   /* ---------- health card expiry ---------- */
 
-  /** The status as the server computed it; an older answer without it is read from the mask. */
+  /** The status as the server computed it; an older answer without it is read from the on-file flag. */
   get cardStatus(): CardStatus {
-    return this.medical.cardStatus ?? (this.medical.healthNumberMasked ? 'UNKNOWN' : 'NONE');
+    return this.medical.cardStatus ?? (this.medical.healthNumberOnFile ? 'UNKNOWN' : 'NONE');
   }
 
   get cardChipSpec(): ChipSpec {
@@ -297,7 +297,7 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
         this.hnValue = '';
         // a number with no card state yet is a card on file with an unknown expiry
         const status = this.medical.cardStatus && this.medical.cardStatus !== 'NONE' ? this.medical.cardStatus : 'UNKNOWN';
-        this.medicalChange.emit({ ...this.medical, healthNumberMasked: r.healthNumberMasked, cardStatus: status });
+        this.medicalChange.emit({ ...this.medical, healthNumberOnFile: r.healthNumberOnFile, cardStatus: status });
       },
       error: err => {
         this.hnBusy = false;
@@ -314,7 +314,7 @@ export class PatientMedicalComponent implements OnChanges, OnDestroy {
         this.hnBusy = false;
         this.removeHn = false;
         this.hideRevealed();
-        this.medicalChange.emit({ ...this.medical, healthNumberMasked: null, cardStatus: 'NONE', cardExpiry: null, cardSeenAt: null });
+        this.medicalChange.emit({ ...this.medical, healthNumberOnFile: false, cardStatus: 'NONE', cardExpiry: null, cardSeenAt: null });
       },
       error: err => {
         this.hnBusy = false;

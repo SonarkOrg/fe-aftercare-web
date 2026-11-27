@@ -3,7 +3,7 @@ import { SettingsService } from '../../../Services/Settings.service';
 import { ApiErrorsService } from '../../../i18n/api-errors';
 import { I18nService } from '../../../i18n/i18n.service';
 import { apiErrorOf } from '../../../models/api-error.model';
-import { NotificationSettings, NotificationSettingsRequest } from '../../../models/notification.model';
+import { MESSAGE_WORDINGS, MessageWording, NotificationSettings, NotificationSettingsRequest } from '../../../models/notification.model';
 import { ChipSpec } from '../../../shared/status';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -26,8 +26,9 @@ export class NotificationSettingsComponent implements OnInit {
   current: NotificationSettings | null = null;
   form: NotificationSettingsRequest = {
     emailEnabled: false, smsEnabled: false, checkInReminderEnabled: false, checkInReminderTime: '18:00',
-    appointmentReminderEnabled: false, appointmentReminderHours: 48, missedCheckInEnabled: true, missedCheckInCutoff: '20:00'
+    appointmentReminderEnabled: false, appointmentReminderHours: 48, missedCheckInEnabled: true, missedCheckInCutoff: '20:00', messageWording: 'NEUTRAL'
   };
+  readonly wordings = MESSAGE_WORDINGS;
   loadError: string | null = null;
   saving = false;
   saved = false;
@@ -55,7 +56,8 @@ export class NotificationSettingsComponent implements OnInit {
       emailEnabled: s.emailProvider === 'OFF' ? false : s.emailEnabled, smsEnabled: s.smsProvider === 'OFF' ? false : s.smsEnabled,
       checkInReminderEnabled: s.checkInReminderEnabled, checkInReminderTime: s.checkInReminderTime,
       appointmentReminderEnabled: s.appointmentReminderEnabled, appointmentReminderHours: s.appointmentReminderHours,
-      missedCheckInEnabled: s.missedCheckInEnabled, missedCheckInCutoff: s.missedCheckInCutoff
+      missedCheckInEnabled: s.missedCheckInEnabled, missedCheckInCutoff: s.missedCheckInCutoff,
+      messageWording: s.messageWording ?? 'NEUTRAL'
     };
   }
 
@@ -77,6 +79,15 @@ export class NotificationSettingsComponent implements OnInit {
 
   touch(): void {
     this.saved = false;
+  }
+
+  /** The static example of the chosen wording (never rendered from the server: nothing new is fetched). */
+  exampleKey(w: MessageWording | undefined): 'settings.notif.wordingExampleNeutral' | 'settings.notif.wordingExampleStandard' {
+    return w !== 'STANDARD' ? 'settings.notif.wordingExampleNeutral' : 'settings.notif.wordingExampleStandard';
+  }
+
+  wordingLabelKey(w: MessageWording): 'settings.notif.wordingNeutral' | 'settings.notif.wordingStandard' {
+    return w === 'NEUTRAL' ? 'settings.notif.wordingNeutral' : 'settings.notif.wordingStandard';
   }
 
   /** Mirrors the server rules so most mistakes are caught before the request. */

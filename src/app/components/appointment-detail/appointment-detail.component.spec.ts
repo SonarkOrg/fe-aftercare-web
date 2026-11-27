@@ -118,7 +118,7 @@ describe('AppointmentDetailComponent', () => {
   for (const status of ['COMPLETED', 'CANCELLED', 'NO_SHOW'] as const) {
     it(`${status} shows no action buttons`, () => {
       init(appointmentDetail({ status }));
-      for (const id of ['mark-reviewed', 'cancel-appt', 'complete-appt', 'no-show-appt', 'edit-appt', 'delete-appt', 'regenerate-link']) {
+      for (const id of ['mark-reviewed', 'cancel-appt', 'complete-appt', 'no-show-appt', 'edit-appt', 'delete-appt', 'regenerate-link', 'revoke-link']) {
         expect(has(id)).withContext(id).toBeFalse();
       }
     });
@@ -162,6 +162,34 @@ describe('AppointmentDetailComponent', () => {
     http.expectOne(url).flush(appointmentDetail());
     fixture.detectChanges();
     expect((el.querySelector('.access-link input') as HTMLInputElement).value).toContain('/q/ZZZ');
+  });
+
+  it('PRIV-A-06: revoke asks first, POSTs without a body and says the link was revoked', () => {
+    init(appointmentDetail());
+    const confirm = spyOn(window, 'confirm').and.returnValue(true);
+    (el.querySelector('#revoke-link') as HTMLButtonElement).click();
+    expect(confirm).toHaveBeenCalledWith('The link will stop working at once. No new link will be sent.');
+    const req = http.expectOne(`${url}/access-code/revoke`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toBeNull();
+    req.flush({ revoked: 1 });
+    fixture.detectChanges();
+    expect(el.querySelector('#revoke-notice')!.textContent).toContain('Link revoked');
+    expect(el.querySelector('#revoke-notice')!.getAttribute('role')).toBe('status');
+  });
+
+  it('PRIV-A-06: declining the confirmation sends nothing; a server error shows the error banner', () => {
+    init(appointmentDetail());
+    const confirm = spyOn(window, 'confirm').and.returnValue(false);
+    (el.querySelector('#revoke-link') as HTMLButtonElement).click();
+    http.expectNone(`${url}/access-code/revoke`);
+    confirm.and.returnValue(true);
+    (el.querySelector('#revoke-link') as HTMLButtonElement).click();
+    http.expectOne(`${url}/access-code/revoke`).flush({ status: 500, error: 'INTERNAL_ERROR', message: 'x', fieldErrors: {} }, { status: 500, statusText: 'Server Error' });
+    http.expectOne(url).flush(appointmentDetail());
+    fixture.detectChanges();
+    expect(el.querySelector('#revoke-notice')).toBeNull();
+    expect(el.querySelector('.error-message')).not.toBeNull();
   });
 
   it('delete DELETEs and navigates to the list', () => {
@@ -292,7 +320,7 @@ describe('AppointmentDetailComponent by access role', () => {
 
   it('a member without APPOINTMENT_WRITE sees no actions and no Send link, and one without CLINICAL_WRITE no Mark reviewed', async () => {
     await mount('NURSE', appointmentDetail({ status: 'NEEDS_REVIEW', scheduledAt: future() }), { permissions: ['APPOINTMENT_READ', 'CLINICAL_READ'] });
-    for (const sel of ['#mark-reviewed', '#cancel-appt', '#complete-appt', '#no-show-appt', '#edit-appt', '#delete-appt', 'app-send-link', '#regenerate-link']) {
+    for (const sel of ['#mark-reviewed', '#cancel-appt', '#complete-appt', '#no-show-appt', '#edit-appt', '#delete-appt', 'app-send-link', '#regenerate-link', '#revoke-link']) {
       expect(has(sel)).withContext(sel).toBeFalse();
     }
   });

@@ -16,7 +16,7 @@ describe('PatientMedicalComponent', () => {
   let http: HttpTestingController;
   let el: HTMLElement;
   const base = `${environment.apiUrl}/patients/5`;
-  const MASKED = '•••• •••• ••12';
+  const ON_FILE = 'Health number on file';
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -72,7 +72,8 @@ describe('PatientMedicalComponent', () => {
       expect(chipText()).toContain('Card on file');
       expect(row.querySelector('.chip--good')).not.toBeNull();
       expect(row.textContent).toContain('Card seen on 14 Oct 2026');
-      expect(q('.ramq-value').textContent).toBe(MASKED); // the mask is shown exactly as returned
+      expect(q('.ramq-value').textContent).toBe(ON_FILE); // no mask exists: only that a number is on file
+      expect(q('.ramq-value').textContent).not.toContain('•');
     });
 
     for (const [status, tone, word] of [['EXPIRING', 'warning', 'Card expiring soon'], ['EXPIRED', 'critical', 'Card expired'], ['UNKNOWN', 'info', 'Card expiry unknown']] as const) {
@@ -90,14 +91,14 @@ describe('PatientMedicalComponent', () => {
     });
 
     it('shows no expiry text and the neutral « No card on file » chip when there is no number', () => {
-      withCard({ healthNumberMasked: null, cardExpiry: null, cardStatus: 'NONE', cardSeenAt: null });
+      withCard({ healthNumberOnFile: false, cardExpiry: null, cardStatus: 'NONE', cardSeenAt: null });
       expect(q('.card-row').querySelector('.chip--neutral')).not.toBeNull();
       expect(el.querySelector('.card-expiry')).toBeNull();
       expect(el.querySelector('.edit-card')).toBeNull();
     });
 
     it('stays out of an answer that has no card members and no number', () => {
-      component.medical = medical({ healthNumberMasked: null });
+      component.medical = medical({ healthNumberOnFile: false });
       fixture.detectChanges();
       expect(el.querySelector('.card-row')).toBeNull();
     });
@@ -171,7 +172,7 @@ describe('PatientMedicalComponent', () => {
       await click('.edit-hn');
       await type('#hn-input', 'TREM68541212');
       await click('.save-hn');
-      http.expectOne(`${base}/health-number`).flush({ healthNumberMasked: MASKED });
+      http.expectOne(`${base}/health-number`).flush({ healthNumberOnFile: true });
       await settle();
       expect(component.medical.cardStatus).toBe('UNKNOWN');
       expect(chipText()).toContain('Card expiry unknown');
@@ -179,15 +180,15 @@ describe('PatientMedicalComponent', () => {
   });
 
   describe('identity', () => {
-    it('shows the masked health number, the date of birth and the age', async () => {
-      expect(q('.ramq-value').textContent).toBe(MASKED);
+    it('shows « Health number on file », the date of birth and the age', async () => {
+      expect(q('.ramq-value').textContent).toBe(ON_FILE);
       expect(el.querySelector('.ramq-value--open')).toBeNull();
       expect(q('.identity-card').textContent).toContain('20 May 1980');
       expect(q('.identity-card').textContent).toMatch(/\d+ y/);
     });
 
     it('says so when there is no health number, and offers Add', async () => {
-      component.medical = medical({ healthNumberMasked: null });
+      component.medical = medical({ healthNumberOnFile: false });
       fixture.detectChanges();
       expect(q('.identity-card').textContent).toContain('None on file');
       expect(el.querySelector('.reveal-btn')).toBeNull();
@@ -215,7 +216,7 @@ describe('PatientMedicalComponent', () => {
       const r = http.expectOne(`${base}/health-number/reveal`);
       expect(r.request.method).toBe('POST');
       expect(r.request.body).toEqual({ reason: 'billing check' });
-      r.flush({ healthNumber: 'TREM68541212', healthNumberMasked: MASKED, revealedAt: '2026-10-15T14:00:00Z' });
+      r.flush({ healthNumber: 'TREM68541212', revealedAt: '2026-10-15T14:00:00Z' });
       fixture.detectChanges();
       expect(q('.ramq-value--open').textContent).toBe('TREM 6854 1212');
       expect(q('.ramq-visible').textContent).toContain('Visible for 30 s');
@@ -229,7 +230,7 @@ describe('PatientMedicalComponent', () => {
       expect(el.textContent).not.toContain('TREM 6854 1212');
       expect(el.textContent).not.toContain('68541212');
       expect(component.revealed).toBeNull();
-      expect(q('.ramq-value').textContent).toBe(MASKED);
+      expect(q('.ramq-value').textContent).toBe(ON_FILE);
     });
 
     describe('focus', () => {
@@ -241,7 +242,7 @@ describe('PatientMedicalComponent', () => {
         await click('.reveal-btn');
         await type('#reveal-reason', 'billing check');
         await click('.confirm-reveal');
-        http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', healthNumberMasked: MASKED, revealedAt: 'x' });
+        http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', revealedAt: 'x' });
         await settle();
         await tick();
         expect(document.activeElement).toBe(q('.hide-btn'));
@@ -261,7 +262,7 @@ describe('PatientMedicalComponent', () => {
         await click('.reveal-btn');
         await type('#reveal-reason', 'billing check');
         await click('.confirm-reveal');
-        http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', healthNumberMasked: MASKED, revealedAt: 'x' });
+        http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', revealedAt: 'x' });
         await settle();
         await click('.hide-btn');
         await tick();
@@ -274,7 +275,7 @@ describe('PatientMedicalComponent', () => {
       await click('.reveal-btn');
       await type('#reveal-reason', 'billing check');
       await click('.confirm-reveal');
-      http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', healthNumberMasked: MASKED, revealedAt: 'x' });
+      http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', revealedAt: 'x' });
       fixture.detectChanges();
       expect(el.textContent).toContain('TREM 6854 1212');
       component.active = false;
@@ -292,7 +293,7 @@ describe('PatientMedicalComponent', () => {
       await click('.reveal-btn');
       await type('#reveal-reason', 'billing check');
       await click('.confirm-reveal');
-      http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', healthNumberMasked: MASKED, revealedAt: 'x' });
+      http.expectOne(`${base}/health-number/reveal`).flush({ healthNumber: 'TREM68541212', revealedAt: 'x' });
       fixture.detectChanges();
       fixture.destroy();
       expect(component.revealed).toBeNull();
@@ -333,9 +334,9 @@ describe('PatientMedicalComponent', () => {
       const r = http.expectOne(`${base}/health-number`);
       expect(r.request.method).toBe('PUT');
       expect(r.request.body).toEqual({ healthNumber: 'tabc 0101 0101' });
-      r.flush({ healthNumberMasked: 'TABC •••• ••01' });
+      r.flush({ healthNumberOnFile: true });
       fixture.detectChanges();
-      expect(q('.ramq-value').textContent).toBe('TABC •••• ••01');
+      expect(q('.ramq-value').textContent).toBe(ON_FILE);
       expect(el.querySelector('.hn-form')).toBeNull();
     });
 

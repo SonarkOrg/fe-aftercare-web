@@ -2,6 +2,7 @@ import { ContactPreferences } from '../../../models/notification.model';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { take } from 'rxjs';
 import { Permissions } from '../../../auth/permissions.service';
+import { AccessLinkService } from '../../../Services/AccessLink.service';
 import { PatientFileService } from '../../../Services/PatientFile.service';
 import { SettingsService } from '../../../Services/Settings.service';
 import { StaffService } from '../../../Services/Staff.service';
@@ -45,11 +46,33 @@ export class PatientContactsComponent implements OnInit {
   assignError: string | null = null;
   assigning = false;
   actionError: string | null = null;
+  /** PRIV-A-06: « Révoquer tous les liens du patient » asks first, then reports how many links it killed. */
+  revokingAll = false;
+  revokeBusy = false;
+  linkNotice: string | null = null;
 
   readonly roles = STAFF_ROLES;
   readonly inactiveChip: ChipSpec = staffActiveChip(false);
 
-  constructor(private files: PatientFileService, private staffService: StaffService, private settings: SettingsService, public permissions: Permissions, private i18n: I18nService, private errors: ApiErrorsService) {}
+  constructor(private files: PatientFileService, private accessLinks: AccessLinkService, private staffService: StaffService, private settings: SettingsService, public permissions: Permissions, private i18n: I18nService, private errors: ApiErrorsService) {}
+
+  confirmRevokeAll(): void {
+    this.revokeBusy = true;
+    this.actionError = null;
+    this.linkNotice = null;
+    this.accessLinks.revokeAllForPatient(this.patientId).subscribe({
+      next: res => {
+        this.revokeBusy = false;
+        this.revokingAll = false;
+        this.linkNotice = this.i18n.t('accessLink.revokedCount', { n: res.revoked });
+      },
+      error: err => {
+        this.revokeBusy = false;
+        this.revokingAll = false;
+        this.actionError = this.errors.text(err, 'pd.error.regenerate');
+      }
+    });
+  }
 
   menuItems(): { key: string; label: string }[] {
     return [{ key: 'edit', label: this.i18n.t('common.edit') }, { key: 'remove', label: this.i18n.t('common.remove') }];

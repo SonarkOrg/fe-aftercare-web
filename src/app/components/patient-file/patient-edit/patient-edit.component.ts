@@ -1,5 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Inject, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { take } from 'rxjs';
+import { SettingsService } from '../../../Services/Settings.service';
 import { NotificationService } from '../../../Services/Notification.service';
 import { PatientFileService } from '../../../Services/PatientFile.service';
 import { ApiErrorsService } from '../../../i18n/api-errors';
@@ -62,10 +64,18 @@ export class PatientEditComponent implements OnInit, OnDestroy {
     private notifications: NotificationService,
     private apiErrors: ApiErrorsService,
     private i18n: I18nService,
+    private settings: SettingsService,
     @Inject(DOCUMENT) private doc: Document
   ) {}
 
+  /** Gender and address are edited only when the clinic collects them (PRIV-A-17); hidden until the settings are known. */
+  collect = { gender: false, address: false };
+
   ngOnInit(): void {
+    this.settings.clinic$.pipe(take(1)).subscribe({
+      next: c => (this.collect = { gender: !!c.collectGender, address: !!c.collectAddress }),
+      error: () => { /* stays hidden */ }
+    });
     const p = this.patient;
     this.form = {
       firstName: p.firstName, lastName: p.lastName, email: p.email ?? '', phone: p.phone ?? '', gender: p.gender ?? '',
@@ -161,14 +171,18 @@ export class PatientEditComponent implements OnInit, OnDestroy {
     const contactChanged = this.contactChanged;
     // full replace on the server: everything not sent is cleared, so send the whole patient with only the edits applied
     const blank = (v: string): string | null => v.trim() || null;
+    // a field the form does not show is sent back exactly as the server gave it: null while the clinic does not collect it
+    // (the server nulls it on output and refuses a value), the stored value when the settings failed to load or changed since
+    // this tab read them — so a save can never erase a gender or an address nobody saw (review fix)
     const city = blank(f.city);
     const state = blank(f.state);
     const zip = blank(f.zip);
     const body: Patient = {
       id: this.patient.id,
-      firstName: f.firstName.trim(), lastName: f.lastName.trim(), email: blank(f.email), phone: blank(f.phone), gender: blank(f.gender),
+      firstName: f.firstName.trim(), lastName: f.lastName.trim(), email: blank(f.email), phone: blank(f.phone),
+      gender: this.collect.gender ? blank(f.gender) : this.patient.gender ?? null,
       dateOfBirth: f.dateOfBirth.trim() || null,
-      address: city || state || zip ? { city, state, zip } : null
+      address: this.collect.address ? (city || state || zip ? { city, state, zip } : null) : this.patient.address ?? null
     };
     this.saving = true;
     this.files.updatePatient(this.patient.id!, body).subscribe({

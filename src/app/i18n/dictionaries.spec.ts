@@ -56,6 +56,7 @@ const SAME_IN_BOTH = new Set([
   '{label}, {count}', '%', '≥{value}', '—', 'URL', 'Profession', 'SMTP', 'Twilio',
   '{count} patient', '{count} patients', 'patients', // the plural words are the same in both languages
   'Questionnaire', 'Document', 'Notification', 'Actions', 'Allergies', 'Conversations', 'Province', 'Mode', // same word in both languages
+  'X', // the third gender value is the letter X in both languages (PRIV-A-17)
 ]);
 
 describe('dictionaries', () => {

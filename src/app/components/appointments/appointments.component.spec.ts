@@ -199,6 +199,26 @@ describe('AppointmentsComponent', () => {
     expect(el.querySelector('.btn-newlink')).toBeNull();
   });
 
+  it('PRIV-A-06: the board offers « Revoke link » for an open appointment with a questionnaire, asks first, and not for a walk-in', () => {
+    fixture.detectChanges();
+    flush('2026-10-14', '2026-10-14', [
+      appointment({ id: 5, scheduledAt: '2026-10-14T09:00:00', status: 'SCHEDULED' }),
+      appointment({ id: 7, scheduledAt: '2026-10-14T10:00:00', status: 'SCHEDULED', walkIn: true, questionnaireDefinitionId: null, questionnaireUrl: null, questionnaireVersion: null })
+    ]);
+    expect(el.querySelector('#revoke-link-7')).toBeNull();
+    const confirmSpy = spyOn(window, 'confirm').and.returnValue(false);
+    click('revoke-link-5');
+    expect(confirmSpy).toHaveBeenCalledWith('The link will stop working at once. No new link will be sent.');
+    http.expectNone(`${api}/5/access-code/revoke`);
+    confirmSpy.and.returnValue(true);
+    click('revoke-link-5');
+    const req = http.expectOne(`${api}/5/access-code/revoke`);
+    expect(req.request.method).toBe('POST');
+    req.flush({ revoked: 1 });
+    fixture.detectChanges();
+    expect(el.querySelector('#revoke-notice')!.textContent).toContain('Link revoked');
+  });
+
   it('omits a redacted (null) specialty in the board, the list and the week grid', async () => {
     const redacted = [
       appointment({ id: 1, scheduledAt: '2026-10-14T08:30:00', status: 'NEEDS_REVIEW', specialty: null }),

@@ -2,6 +2,7 @@ import { NotificationService } from '../../Services/Notification.service';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AppointmentService } from '../../Services/Appointment.service';
+import { AccessLinkService } from '../../Services/AccessLink.service';
 import { ArrivalService } from '../../Services/Arrival.service';
 import { QuestionnaireDefinitionService } from '../../Services/QuestionnaireDefinition.service';
 import { FhirQuestionnaire } from '../../fhir/fhir.model';
@@ -32,12 +33,16 @@ export class AppointmentDetailComponent implements OnInit {
   /** Who noted the arrival: known right after this page recorded it (the detail DTO carries no name in 1A). */
   arrivedByName: string | null = null;
   arrivalBusy = false;
+  /** Result of « Révoquer le lien » (role=status). */
+  notice: string | null = null;
+  revokeBusy = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private appointments: AppointmentService,
     private arrivals: ArrivalService,
+    private accessLinks: AccessLinkService,
     private definitions: QuestionnaireDefinitionService,
     private titles: PageTitleService,
     private notifications: NotificationService,
@@ -181,6 +186,32 @@ export class AppointmentDetailComponent implements OnInit {
         this.load();
       },
       error: err => this.fail(err)
+    });
+  }
+
+  /** A walk-in has no link; a closed appointment's link no longer opens anything. */
+  get canRevokeLink(): boolean {
+    return this.open && this.appt !== null && this.hasQuestionnaire(this.appt);
+  }
+
+  /** PRIV-A-06: kills the link at once, sends nothing new. Idempotent on the server. */
+  revokeLink(): void {
+    if (!window.confirm(this.i18n.t('accessLink.revokeConfirm'))) {
+      return;
+    }
+    this.errorMessage = null;
+    this.notice = null;
+    this.revokeBusy = true;
+    this.accessLinks.revokeAppointment(this.id).subscribe({
+      next: res => {
+        this.revokeBusy = false;
+        this.accessCode = null;
+        this.notice = this.i18n.t(res.revoked > 1 ? 'accessLink.revokedCount' : 'accessLink.revoked', { n: res.revoked });
+      },
+      error: err => {
+        this.revokeBusy = false;
+        this.fail(err);
+      }
     });
   }
 

@@ -10,7 +10,8 @@ export type ActivityKind = 'NOTE_ADDED' | 'CHECK_IN_SUBMITTED'
   | 'FOLLOW_UP_STARTED' | 'FOLLOW_UP_CLOSED'
   | 'DOCUMENT_UPLOADED' | 'DOCUMENT_DELETED'
   | 'MESSAGE_FROM_PATIENT' | 'MESSAGE_TO_PATIENT'
-  | 'APPOINTMENT_ARRIVED' | 'APPOINTMENT_ARRIVAL_UNDONE';
+  | 'APPOINTMENT_ARRIVED' | 'APPOINTMENT_ARRIVAL_UNDONE'
+  | 'ACCESS_LINK_REVOKED';
 export type ActorType = 'STAFF' | 'PATIENT' | 'SYSTEM';
 
 export interface NoteCreateRequest { body: string; notedAt: string | null }

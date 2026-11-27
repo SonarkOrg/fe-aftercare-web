@@ -118,10 +118,12 @@
               <p class="mono form-url">{{ f.questionnaireUrl }}|{{ f.questionnaireVersion }}</p>
               <div class="btn-row" *appCan="'CLINICAL_WRITE'">
                 <button type="button" id="regenerate-link" class="btn btn--secondary" *ngIf="f.status === 'ACTIVE'" (click)="regenerate(f)">{{ 'pd.regenerate' | t }}</button>
+                <button type="button" id="revoke-follow-up-link" class="btn btn--ghost-danger" *ngIf="f.status === 'ACTIVE'" (click)="revokeLink(f)">{{ 'accessLink.revoke' | t }}</button>
                 <ng-container *ngIf="f.status === 'ACTIVE'"><app-send-link kind="follow-up" [targetId]="f.id" [patientId]="patientId" (sent)="onLinkSent()"></app-send-link></ng-container>
                 <button type="button" id="close-follow-up" class="btn btn--ghost-danger" (click)="close(f)">{{ 'pd.closeFollowUp' | t }}</button>
               </div>
             </ng-container>
+            <div class="banner banner--info" id="link-notice" role="status" *ngIf="linkNotice"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ linkNotice }}</span></div>
             <p *ngIf="!current">{{ 'status.reason.noFollowUp' | t }}.</p>
             <app-access-link *ngIf="accessCode" [code]="accessCode"></app-access-link>
             <div *ngIf="canEnroll && permissions.can('CLINICAL_WRITE')" class="enroll">
@@ -135,8 +137,8 @@
             <dl class="kv">
               <dt>{{ 'pd.email' | t }}</dt><dd>{{ patient.email || '—' }}</dd>
               <dt>{{ 'pd.phone' | t }}</dt><dd>{{ patient.phone || '—' }}</dd>
-              <dt>{{ 'pd.gender' | t }}</dt><dd>{{ genderLabel(patient.gender) || '—' }}</dd>
-              <dt>{{ 'pd.city' | t }}</dt><dd>{{ addressLine }}</dd>
+              <ng-container *ngIf="patient.gender"><dt>{{ 'pd.gender' | t }}</dt><dd>{{ genderLabel(patient.gender) }}</dd></ng-container>
+              <ng-container *ngIf="patient.address"><dt>{{ 'pd.city' | t }}</dt><dd>{{ addressLine }}</dd></ng-container>
             </dl>
           </section>
 

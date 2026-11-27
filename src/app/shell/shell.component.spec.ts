@@ -14,7 +14,7 @@ import { DevStaffAuth } from '../auth/dev-staff-auth';
 import { Permissions } from '../auth/permissions.service';
 import { StaffAuth } from '../auth/staff-auth';
 import { AccessRole } from '../models/me.model';
-import { providePermissions } from '../testing/fixtures';
+import { me, providePermissions } from '../testing/fixtures';
 import { RoleBadgeComponent } from '../shared/role-badge/role-badge.component';
 import { IconComponent } from '../shared/icon/icon.component';
 import { LanguageSwitchComponent } from '../i18n/language-switch/language-switch.component';
@@ -69,9 +69,9 @@ describe('ShellComponent', () => {
     fixture.detectChanges();
   };
 
-  it('links to the seven staff sections in the top bar, Messages and Reports included', () => {
-    expect(links().map(a => a.getAttribute('href'))).toEqual(['/dashboard', '/patients', '/appointments', '/alerts', '/messages', '/reports', '/questionnaires']);
-    expect(links().map(a => a.textContent!.trim())).toEqual(['Dashboard', 'Patients', 'Appointments', 'Alerts', 'Messages', 'Reports', 'Forms']);
+  it('links to the staff sections in the top bar, Messages, Reports and (AUDIT_READ) Privacy included', () => {
+    expect(links().map(a => a.getAttribute('href'))).toEqual(['/dashboard', '/patients', '/appointments', '/alerts', '/messages', '/reports', '/questionnaires', '/privacy']);
+    expect(links().map(a => a.textContent!.trim())).toEqual(['Dashboard', 'Patients', 'Appointments', 'Alerts', 'Messages', 'Reports', 'Forms', 'Privacy']);
     expect(el.querySelector('nav.top-nav')!.getAttribute('aria-label')).toBe('Main');
   });
 
@@ -143,11 +143,11 @@ describe('ShellComponent', () => {
     expect(el.querySelector('#top-menu .chip--warning')!.textContent).toContain('Dev auth');
   });
 
-  it('the menu holds the seven links plus Settings last, search and log out; logout calls StaffAuth.logout', () => {
+  it('the menu holds the eight links plus Settings last, search and log out; logout calls StaffAuth.logout', () => {
     openMenu();
     const items = Array.from(el.querySelectorAll<HTMLAnchorElement>('#top-menu .menu-nav__item'));
-    expect(items.length).toBe(8);
-    expect(items[7].getAttribute('href')).toBe('/settings');
+    expect(items.length).toBe(9);
+    expect(items[8].getAttribute('href')).toBe('/settings');
     (el.querySelector('#top-menu .logout') as HTMLButtonElement).click();
     expect(auth.logout).toHaveBeenCalled();
   });
@@ -241,7 +241,7 @@ describe('ShellComponent by access role', () => {
 
   /** What each role must see in the top bar: exactly this, in this order. */
   const NAV: Record<AccessRole, string[]> = {
-    ADMIN: ['Dashboard', 'Patients', 'Appointments', 'Alerts', 'Messages', 'Reports', 'Forms'],
+    ADMIN: ['Dashboard', 'Patients', 'Appointments', 'Alerts', 'Messages', 'Reports', 'Forms', 'Privacy'],
     PHYSICIAN: ['Dashboard', 'Patients', 'Appointments', 'Alerts', 'Messages', 'Reports', 'Forms'],
     NURSE: ['Dashboard', 'Patients', 'Appointments', 'Alerts', 'Messages', 'Reports', 'Forms'],
     RECEPTION: ['Dashboard', 'Patients', 'Appointments', 'Forms']
@@ -293,6 +293,19 @@ describe('ShellComponent by access role', () => {
       expect(el.querySelector('#top-menu app-role-badge')).not.toBeNull();
     });
   }
+
+  it('a NURSE or a RECEPTION holding the privacy-officer grant (AUDIT_READ) gets the Privacy item, and still no Settings', () => {
+    for (const role of ['NURSE', 'RECEPTION'] as AccessRole[]) {
+      TestBed.resetTestingModule();
+      setup(role, [providePermissions(role, { permissions: [...me(role).permissions, 'AUDIT_READ'] })]);
+      drain();
+      fixture.detectChanges();
+      expect(nav()).withContext(role).toEqual([...NAV[role], 'Privacy']);
+      expect(el.querySelector('.settings-btn')).withContext(role).toBeNull();
+      http.verify();
+      fixture.destroy();
+    }
+  });
 
   it('RECEPTION makes no alert or unread-count request', () => {
     setup('RECEPTION');

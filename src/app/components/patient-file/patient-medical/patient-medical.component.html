@@ -22,8 +22,8 @@
             <dt>{{ 'pf.medical.ramq' | t }}</dt>
             <dd>
               <ng-container *ngIf="!editHn">
-                <ng-container *ngIf="medical.healthNumberMasked; else noHn">
-                  <span class="mono ramq-value" *ngIf="!revealed">{{ medical.healthNumberMasked }}</span>
+                <ng-container *ngIf="medical.healthNumberOnFile; else noHn">
+                  <span class="ramq-value" *ngIf="!revealed">{{ 'pf.medical.hnOnFile' | t }}</span>
                   <span class="mono ramq-value ramq-value--open" *ngIf="revealed" aria-live="polite">{{ revealedText }}</span>
                   <span class="helper-line ramq-visible" *ngIf="revealed" role="status"><span aria-hidden="true">✓</span> {{ 'pf.medical.visible30' | t }}</span>
                   <span class="btn-row ramq-actions">
@@ -69,14 +69,14 @@
               <app-confirm-inline *ngIf="removeHn" [question]="'pf.medical.removeHn' | t" [busy]="hnBusy" (confirmed)="confirmRemoveHn()" (cancelled)="removeHn = false"></app-confirm-inline>
             </dd>
           </div>
-          <div class="span-all card-row" *ngIf="medical.healthNumberMasked || medical.cardStatus">
+          <div class="span-all card-row" *ngIf="medical.healthNumberOnFile || medical.cardStatus">
             <dt>{{ 'pf.medical.card' | t }}</dt>
             <dd>
               <ng-container *ngIf="!editCard">
                 <app-status-chip [spec]="cardChipSpec"></app-status-chip>
                 <span class="card-expiry" *ngIf="cardExpiryText as txt">{{ txt }}</span>
                 <span class="helper-line card-seen" *ngIf="cardSeenText as seen">{{ seen }}</span>
-                <ng-container *appCan="'HEALTH_CARD_CAPTURE'"><button type="button" class="btn btn--ghost btn--sm edit-card" *ngIf="medical.healthNumberMasked" [attr.aria-label]="'pf.medical.cardEdit' | t" (click)="openEditCard()"><app-icon name="edit" [size]="14"></app-icon><span>{{ 'common.edit' | t }}</span></button></ng-container>
+                <ng-container *appCan="'HEALTH_CARD_CAPTURE'"><button type="button" class="btn btn--ghost btn--sm edit-card" *ngIf="medical.healthNumberOnFile" [attr.aria-label]="'pf.medical.cardEdit' | t" (click)="openEditCard()"><app-icon name="edit" [size]="14"></app-icon><span>{{ 'common.edit' | t }}</span></button></ng-container>
               </ng-container>
               <form class="inline-form card-form" *ngIf="editCard" (ngSubmit)="saveCard()">
                 <label class="sr-only" for="card-expiry-input">{{ 'pf.medical.cardExpiryLabel' | t }}</label>

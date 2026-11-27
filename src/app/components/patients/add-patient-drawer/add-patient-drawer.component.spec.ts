@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { environment } from '../../../../environments/environment';
 import { addDays, businessToday } from '../../../shared/link.util';
-import { deskPatient, patientMatch, providePermissions } from '../../../testing/fixtures';
+import { deskPatient, patientMatch, provideCollection, providePermissions } from '../../../testing/fixtures';
 import { I18nTestingModule } from '../../../testing/i18n-testing.module';
 import { AddPatientDrawerComponent } from './add-patient-drawer.component';
 
@@ -21,7 +21,7 @@ describe('AddPatientDrawerComponent', () => {
     closed = 0;
     used = [];
     await TestBed.configureTestingModule({
-      providers: [providePermissions('RECEPTION')],
+      providers: [providePermissions('RECEPTION'), provideCollection(true, true)],
       imports: [I18nTestingModule.forLang(), HttpClientTestingModule, AddPatientDrawerComponent]
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
@@ -106,7 +106,7 @@ describe('AddPatientDrawerComponent', () => {
     await fill('new-lastName', 'Seul');
     expect(submitBtn().disabled).toBeFalse();
     expect(Array.from(el.querySelectorAll('.drawer [required]')).map(e => e.id)).toEqual(['new-firstName', 'new-lastName']);
-    expect(Array.from(el.querySelectorAll<HTMLOptionElement>('#new-gender option')).map(o => o.value)).toEqual(['', 'male', 'female']);
+    expect(Array.from(el.querySelectorAll<HTMLOptionElement>('#new-gender option')).map(o => o.value)).toEqual(['', 'female', 'male', 'x', 'undisclosed']);
     submit();
     expect(component.saving).toBeTrue();
     const post = http.expectOne(`${base}/register`);
@@ -274,5 +274,70 @@ describe('AddPatientDrawerComponent', () => {
       expect(el.querySelector('.dup-candidates')).toBeNull();
       expect(el.querySelector('.drawer .error-message')).not.toBeNull();
     });
+  });
+});
+
+describe('AddPatientDrawerComponent when the clinic collects neither gender nor address (PRIV-A-17)', () => {
+  let fixture: ComponentFixture<AddPatientDrawerComponent>;
+  let http: HttpTestingController;
+  let el: HTMLElement;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      providers: [providePermissions('RECEPTION'), provideCollection(false, false)],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, AddPatientDrawerComponent]
+    }).compileComponents();
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(AddPatientDrawerComponent);
+    el = fixture.nativeElement;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+  afterEach(() => {
+    http.verify();
+    fixture.destroy();
+  });
+
+  it('shows no gender or address field, marks e-mail and phone optional, and sends only the two names', async () => {
+    expect(el.querySelector('#new-gender')).toBeNull();
+    expect(el.querySelector('#new-city')).toBeNull();
+    expect(el.querySelector('#new-state')).toBeNull();
+    expect(el.querySelector('#new-zip')).toBeNull();
+    expect(el.querySelector('label[for=new-email]')!.textContent).toContain('optional');
+    expect(el.querySelector('label[for=new-phone]')!.textContent).toContain('optional');
+    const first = el.querySelector<HTMLInputElement>('#new-firstName')!;
+    first.value = 'Zzz-Test';
+    first.dispatchEvent(new Event('input', { bubbles: true }));
+    const last = el.querySelector<HTMLInputElement>('#new-lastName')!;
+    last.value = 'Seul';
+    last.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    // even a value left in the model (e.g. typed before the settings arrived) is never sent
+    fixture.componentInstance.patient.gender = 'female';
+    fixture.componentInstance.patient.address = { city: 'Laval', state: null, zip: null };
+    (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    const post = http.expectOne(`${environment.apiUrl}/patients/register`);
+    expect(post.request.body).toEqual({ firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, dateOfBirth: null, address: null });
+    post.flush({ id: 9, firstName: 'Zzz-Test', lastName: 'Seul', email: null, phone: null, gender: null, address: null });
+  });
+});
+
+describe('AddPatientDrawerComponent when the clinic collects only the address', () => {
+  it('shows the three address fields but no gender', async () => {
+    await TestBed.configureTestingModule({
+      providers: [providePermissions('RECEPTION'), provideCollection(false, true)],
+      imports: [I18nTestingModule.forLang(), HttpClientTestingModule, AddPatientDrawerComponent]
+    }).compileComponents();
+    const f = TestBed.createComponent(AddPatientDrawerComponent);
+    f.detectChanges();
+    await f.whenStable();
+    f.detectChanges();
+    const el: HTMLElement = f.nativeElement;
+    expect(el.querySelector('#new-gender')).toBeNull();
+    expect(el.querySelector('#new-city')).not.toBeNull();
+    expect((el.querySelector('#new-city') as HTMLInputElement).required).toBeFalse();
+    f.destroy();
   });
 });

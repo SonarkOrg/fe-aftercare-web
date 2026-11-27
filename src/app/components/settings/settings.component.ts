@@ -15,7 +15,7 @@ export const SETTINGS_TABS: { key: SettingsTab; label: TKey }[] = [
   { key: 'rules', label: 'settings.tab.rules' }, { key: 'retention', label: 'settings.tab.retention' }, { key: 'access', label: 'settings.tab.access' }
 ];
 
-interface ClinicForm { name: string; addressLine: string; city: string; province: string; postalCode: string; phone: string; defaultLanguage: Language }
+interface ClinicForm { name: string; addressLine: string; city: string; province: string; postalCode: string; phone: string; defaultLanguage: Language; collectGender: boolean; collectAddress: boolean }
 
 @Component({
   selector: 'app-settings',
@@ -25,7 +25,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   readonly tabs = SETTINGS_TABS;
   tab: SettingsTab = 'clinic';
   current: ClinicSettings | null = null;
-  form: ClinicForm = { name: '', addressLine: '', city: '', province: 'QC', postalCode: '', phone: '', defaultLanguage: 'FR' };
+  form: ClinicForm = { name: '', addressLine: '', city: '', province: 'QC', postalCode: '', phone: '', defaultLanguage: 'FR', collectGender: false, collectAddress: false };
   loadError = false;
   saving = false;
   saved = false;
@@ -60,7 +60,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         if (!this.formTouched) {
           this.form = {
             name: c.name, addressLine: c.addressLine ?? '', city: c.city ?? '', province: c.province, postalCode: c.postalCode ?? '',
-            phone: c.phone ?? '', defaultLanguage: c.defaultLanguage
+            phone: c.phone ?? '', defaultLanguage: c.defaultLanguage, collectGender: !!c.collectGender, collectAddress: !!c.collectAddress
           };
         }
       },
@@ -104,7 +104,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
     const opt = (v: string) => v.trim() || null;
     return {
       name: f.name.trim(), addressLine: opt(f.addressLine), city: opt(f.city), province: f.province.trim().toUpperCase(),
-      postalCode: opt(f.postalCode), phone: opt(f.phone), defaultLanguage: f.defaultLanguage, notifySeverities: severities
+      postalCode: opt(f.postalCode), phone: opt(f.phone), defaultLanguage: f.defaultLanguage, notifySeverities: severities,
+      collectGender: f.collectGender, collectAddress: f.collectAddress
     };
   }
 

@@ -38,7 +38,9 @@ export const ERROR_CODE_KEYS: Record<string, TKey> = {
   POSSIBLE_DUPLICATE: 'error.code.POSSIBLE_DUPLICATE',
   HEALTH_NUMBER_IN_USE: 'error.code.HEALTH_NUMBER_IN_USE',
   HEALTH_NUMBER_MISMATCH: 'error.code.HEALTH_NUMBER_MISMATCH',
-  SECOND_PERSON_REQUIRED: 'error.code.SECOND_PERSON_REQUIRED'
+  SECOND_PERSON_REQUIRED: 'error.code.SECOND_PERSON_REQUIRED',
+  NAM_COLLECTION_OFF: 'error.code.NAM_COLLECTION_OFF',
+  NOT_IMPLEMENTED: 'error.code.NOT_IMPLEMENTED'
 };
 
 // Must match the backend's fixed messages; when the BE adds one, add it here (unknown ones fall back to the code key).
@@ -107,7 +109,12 @@ export const FIELD_MESSAGE_KEYS: Record<string, TKey> = {
   'query|query, dateOfBirth, phoneDigits or healthNumber is required': 'error.field.searchRequired',
   'sharedCardReason|allowed only for a child under one year': 'error.field.sharedCardUnder1',
   // "*" = any field: the server refuses NAM-shaped text in names and clinician fields (spec 3.1.12)
-  '*|looks like a health number': 'error.field.looksLikeHealthNumber'
+  '*|looks like a health number': 'error.field.looksLikeHealthNumber',
+  // PRIV-A-17: the clinic does not collect gender or address
+  'gender|is not collected by this clinic': 'error.field.notCollected',
+  'address|is not collected by this clinic': 'error.field.notCollected',
+  // PRIV-A-40: a privacy switch is turned on only with a decision reference
+  'decisionRef|is required to enable a privacy gate': 'error.field.decisionRequired'
 };
 
 interface FieldPattern { re: RegExp; key: TKey; params: (m: RegExpExecArray) => Params }

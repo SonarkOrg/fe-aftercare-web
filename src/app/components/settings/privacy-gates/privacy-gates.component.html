@@ -1,0 +1,30 @@
+<section class="card privacy-gates" aria-labelledby="gates-title">
+  <div class="card__header"><h2 id="gates-title" class="card__title--sm">{{ 'settings.gates.title' | t }}</h2></div>
+  <p class="helper-line"><span aria-hidden="true">ℹ</span> {{ 'settings.gates.help' | t }}</p>
+  <div class="banner banner--error" role="alert" *ngIf="loadError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ loadError }} <button type="button" class="btn btn--ghost btn--sm" (click)="load()">{{ 'common.retry' | t }}</button></span></div>
+
+  <ng-container *ngIf="loaded">
+    <div class="gate-row" *ngFor="let k of keys" [attr.data-gate]="k">
+      <div class="gate-row__head">
+        <span class="gate-row__label" [id]="'gate-label-' + k">{{ labels[k] | t }}</span>
+        <strong class="gate-row__status" [class.gate-row__status--on]="enabled(k)">{{ (enabled(k) ? 'settings.gates.on' : 'settings.gates.off') | t }}</strong>
+      </div>
+
+      <ng-container *ngIf="enabled(k); else turnOn">
+        <p class="gate-row__ref"><span class="muted">{{ 'settings.gates.refShown' | t }}</span> {{ gates[k]?.decisionRef }}</p>
+        <p class="muted gate-row__by" *ngIf="decidedBy(k) as by">{{ by }}</p>
+        <button type="button" class="btn btn--secondary gate-disable" [disabled]="busy !== null" (click)="disable(k)">{{ 'settings.gates.disable' | t }}</button>
+      </ng-container>
+      <ng-template #turnOn>
+        <p class="muted gate-row__by" *ngIf="decidedBy(k) as by">{{ by }}</p>
+        <div class="form-group">
+          <label [for]="'gate-ref-' + k">{{ 'settings.gates.ref' | t }}</label>
+          <input [id]="'gate-ref-' + k" [name]="'ref-' + k" type="text" maxlength="200" autocomplete="off" [(ngModel)]="refs[k]" [attr.aria-invalid]="!!errors[k]"
+                 [attr.aria-describedby]="errors[k] ? 'gate-err-' + k : null" (keydown.enter)="$event.preventDefault(); enable(k)">
+        </div>
+        <button type="button" class="btn btn--accent gate-enable" [disabled]="!canEnable(k)" (click)="enable(k)">{{ 'settings.gates.enable' | t }}</button>
+      </ng-template>
+      <span class="field-error" role="alert" [id]="'gate-err-' + k" *ngIf="errors[k]">{{ errors[k] }}</span>
+    </div>
+  </ng-container>
+</section>

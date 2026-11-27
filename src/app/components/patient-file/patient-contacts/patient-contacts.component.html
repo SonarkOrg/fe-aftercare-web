@@ -1,5 +1,10 @@
 <div class="banner banner--error" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ actionError }}</span></div>
 <div class="btn-row edit-row" *appCan="'PATIENT_WRITE'"><button type="button" class="btn btn--secondary btn--sm edit-details-contacts" #editBtn (click)="editDetails.emit(editBtn)">{{ 'pf.edit.action' | t }}</button></div>
+<div class="banner banner--info" id="link-notice" role="status" *ngIf="linkNotice"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ linkNotice }}</span></div>
+<div class="btn-row revoke-row" *appCan="'PATIENT_WRITE'">
+  <button type="button" class="btn btn--ghost-danger btn--sm revoke-all-links" *ngIf="!revokingAll" (click)="revokingAll = true">{{ 'accessLink.revokeAll' | t }}</button>
+  <app-confirm-inline *ngIf="revokingAll" class="revoke-all-confirm" [question]="'accessLink.revokeConfirm' | t" [confirmLabel]="'accessLink.revoke' | t" [busy]="revokeBusy" (confirmed)="confirmRevokeAll()" (cancelled)="revokingAll = false"></app-confirm-inline>
+</div>
 <app-patient-notifications [patientId]="patientId" (saved)="prefsSaved.emit($event)"></app-patient-notifications>
 <div class="grid-2">
   <section class="card card--list contacts-card">

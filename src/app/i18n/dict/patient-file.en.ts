@@ -10,6 +10,7 @@ export const PATIENT_FILE_EN = {
   'pf.medical.visible30': 'Visible for 30 s',
   'pf.medical.reveal': 'Reveal',
   'pf.medical.noHn': 'None on file',
+  'pf.medical.hnOnFile': 'Health number on file',
   'pf.medical.reasonForViewing': 'Reason for viewing',
   'pf.medical.reasonHelp': '3 to 200 characters. Every reveal is recorded in the access log.',
   'pf.medical.hnLabel': 'Health insurance number',

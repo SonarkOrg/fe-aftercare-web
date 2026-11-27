@@ -27,6 +27,7 @@
   <div class="banner banner--error error-message" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ errorMessage }}</span></div>
   <div class="banner banner--error error-message" role="alert" *ngIf="actionError"><span class="banner__glyph" aria-hidden="true">▲</span><span><strong>{{ 'common.errorLabel' | t }}</strong> {{ actionError }}</span></div>
   <p class="sr-only" aria-live="polite">{{ live }}</p>
+  <div class="banner banner--info" id="revoke-notice" *ngIf="notice"><span class="banner__glyph" aria-hidden="true">ℹ</span><span>{{ notice }}</span></div>
 
   <div class="card metrics" *ngIf="loading && !metrics" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--tile"></div></div>
   <section class="card metrics" *ngIf="metrics as m" aria-labelledby="metrics-title">
@@ -138,6 +139,7 @@
         <a class="btn btn--ghost btn--sm" [routerLink]="['/appointments', a.id]">{{ 'dashboard.menu.open' | t }}</a>
       </ng-container>
       <ng-container *appCan="'APPOINTMENT_WRITE'">
+        <button type="button" class="btn btn--ghost-danger btn--sm btn-revoke-link" [id]="'revoke-link-' + a.id" *ngIf="canRevokeLink(a)" (click)="revokeLink(a)">{{ 'accessLink.revoke' | t }}</button>
         <button type="button" class="btn btn--secondary btn--sm btn-arrive" [id]="'arrive-' + a.id" *ngIf="canArrive(a)" [disabled]="isBusy(a)" (click)="arrive(a)">{{ 'appts.arrive' | t }}</button>
         <button type="button" class="btn btn--ghost btn--sm btn-undo-arrival" [id]="'undo-arrival-' + a.id" *ngIf="canUndoArrival(a)" [disabled]="isBusy(a)" (click)="undoArrival(a)"><app-icon name="undo" [size]="16"></app-icon>{{ 'appts.undoArrival' | t }}</button>
       </ng-container>

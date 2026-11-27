@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   Allergy, AllergyRequest, CareTeamAssignRequest, CareTeamMember, Diagnosis, DiagnosisRequest, EmergencyContact,
-  EmergencyContactRequest, HealthNumberMasked, HealthNumberReveal, Medication, MedicationRequest, MedicalList, PatientMedical,
+  EmergencyContactRequest, HealthNumberReveal, HealthNumberStatus, Medication, MedicationRequest, MedicalList, PatientMedical,
   Procedure, ProcedureRequest
 } from '../models/medical.model';
 import { Patient } from '../models/patient.model';
@@ -31,8 +31,8 @@ export class PatientFileService {
     return this.http.get<PatientMedical>(`${this.base}/${id}/medical`);
   }
 
-  setHealthNumber(id: number, healthNumber: string): Observable<HealthNumberMasked> {
-    return this.http.put<HealthNumberMasked>(`${this.base}/${id}/health-number`, { healthNumber });
+  setHealthNumber(id: number, healthNumber: string): Observable<HealthNumberStatus> {
+    return this.http.put<HealthNumberStatus>(`${this.base}/${id}/health-number`, { healthNumber });
   }
 
   clearHealthNumber(id: number): Observable<void> {

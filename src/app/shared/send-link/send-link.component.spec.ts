@@ -5,7 +5,8 @@ import { By } from '@angular/platform-browser';
 import { RouterTestingModule } from '@angular/router/testing';
 import { environment } from '../../../environments/environment';
 import { NotificationItem } from '../../models/notification.model';
-import { contactPrefs, notification } from '../../testing/fixtures';
+import { Permissions } from '../../auth/permissions.service';
+import { contactPrefs, me, notification } from '../../testing/fixtures';
 import { SendLinkComponent } from './send-link.component';
 import { I18nTestingModule } from '../../testing/i18n-testing.module';
 
@@ -152,10 +153,18 @@ describe('SendLinkComponent', () => {
       expect(errorText()).toBe('▲The patient has no valid address for this channel.');
     });
 
-    it('LINK_UNAVAILABLE', () => {
+    it('LINK_UNAVAILABLE (a clinician can create a new link)', () => {
+      TestBed.inject(Permissions).seed(me('NURSE'));
       openMenu();
       fail(url, 'LINK_UNAVAILABLE', 409);
       expect(errorText()).toBe('▲Generate a new link first, then send it.');
+    });
+
+    it('PRIV-A-06: LINK_UNAVAILABLE for the front desk says the link was revoked and who can create a new one', () => {
+      TestBed.inject(Permissions).seed(me('RECEPTION'));
+      openMenu();
+      fail(url, 'LINK_UNAVAILABLE', 409);
+      expect(errorText()).toBe('▲Link revoked — a clinician can create a new one');
     });
 
     it('NOTIFICATION_LIMIT shows the translated code text, not the server message', () => {

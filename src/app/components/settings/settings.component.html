@@ -30,8 +30,16 @@
           <select id="c-lang" name="defaultLanguage" [(ngModel)]="form.defaultLanguage" (ngModelChange)="touch()"><option value="FR" lang="fr-CA">Français</option><option value="EN" lang="en-CA">English</option></select>
         </div>
       </div>
+      <fieldset class="collect-group">
+        <legend>{{ 'settings.clinic.collectLegend' | t }}</legend>
+        <div class="toggle-row"><label for="c-collect-gender">{{ 'settings.clinic.collectGender' | t }}</label><input id="c-collect-gender" name="collectGender" type="checkbox" [(ngModel)]="form.collectGender" (ngModelChange)="touch()" aria-describedby="c-collect-help"></div>
+        <div class="toggle-row"><label for="c-collect-address">{{ 'settings.clinic.collectAddress' | t }}</label><input id="c-collect-address" name="collectAddress" type="checkbox" [(ngModel)]="form.collectAddress" (ngModelChange)="touch()" aria-describedby="c-collect-help"></div>
+        <p class="helper-line" id="c-collect-help"><span aria-hidden="true">ℹ</span> {{ 'settings.clinic.collectHelp' | t }}</p>
+        <span class="field-error" *ngIf="errors['collectGender']">{{ errors['collectGender'] }}</span>
+      </fieldset>
       <button type="submit" class="btn btn--accent save-clinic" [disabled]="!current || saving">{{ (saving ? 'common.saving' : 'common.save') | t }}</button>
     </form>
+    <app-privacy-gates></app-privacy-gates>
   </div>
 
   <!-- Staff -->
@@ -58,7 +66,11 @@
 
   <!-- Access log -->
   <div class="tabpanel" id="spanel-access" role="tabpanel" aria-labelledby="stab-access" tabindex="0" [hidden]="tab !== 'access'">
-    <app-access-log *ngIf="tab === 'access'"></app-access-log>
+    <section class="card access-moved" aria-labelledby="access-moved-title">
+      <div class="card__header"><h2 id="access-moved-title" class="card__title--sm">{{ 'settings.tab.access' | t }}</h2></div>
+      <p class="access-moved__text">{{ 'settings.access.moved' | t }}</p>
+      <a class="btn btn--accent access-moved__link" routerLink="/privacy">{{ 'page.privacy' | t }}</a>
+    </section>
   </div>
 
   <!-- Alert rules -->

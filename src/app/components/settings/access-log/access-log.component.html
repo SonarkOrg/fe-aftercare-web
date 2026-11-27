@@ -27,19 +27,19 @@
 
 <div class="banner banner--error" role="alert" *ngIf="errorMessage"><span class="banner__glyph" aria-hidden="true">▲</span><span>{{ errorMessage }} <button type="button" class="btn btn--ghost btn--sm retry" (click)="retry()">{{ 'common.retry' | t }}</button></span></div>
 <div *ngIf="loading" aria-busy="true"><span class="sr-only">{{ 'common.loading' | t }}</span><div class="skeleton skeleton--row"></div></div>
-<section class="table-card audit-table" *ngIf="!loading && events.length > 0">
+<section class="table-card audit-table audit-table--stack" *ngIf="!loading && events.length > 0">
   <div class="table-scroll">
     <table class="table">
       <caption class="sr-only">{{ 'pd.tab.audit' | t }}</caption>
       <thead><tr><th scope="col">{{ 'pf.audit.when' | t }}</th><th scope="col">{{ 'actorSelect.label' | t }}</th><th scope="col">{{ 'pf.audit.action' | t }}</th><th scope="col">{{ 'settings.log.resource' | t }}</th><th scope="col">{{ 'common.patient' | t }}</th><th scope="col">{{ 'pf.audit.detail' | t }}</th></tr></thead>
       <tbody>
         <tr *ngFor="let e of events">
-          <td class="num">{{ when(e.occurredAt) }}</td>
-          <td>{{ e.actorName || e.actorSub }}</td>
-          <td>{{ e.action | enumLabel:'auditAction' }}</td>
-          <td>{{ item(e) }}</td>
-          <td><a *ngIf="e.patientId !== null; else noPatient" class="patient-link" [routerLink]="['/patients', e.patientId]" [queryParams]="{ tab: 'audit' }">#{{ e.patientId }}</a><ng-template #noPatient>—</ng-template></td>
-          <td><span *ngIf="e.detail; else noDetail" class="mono" lang="en">{{ e.detail }}</span><ng-template #noDetail>—</ng-template></td>
+          <td class="num" [attr.data-label]="'pf.audit.when' | t">{{ when(e.occurredAt) }}</td>
+          <td class="al-actor" [attr.data-label]="'actorSelect.label' | t">{{ e.actorName || e.actorSub }}</td>
+          <td class="al-action" [attr.data-label]="'pf.audit.action' | t">{{ e.action | enumLabel:'auditAction' }}</td>
+          <td [attr.data-label]="'settings.log.resource' | t">{{ item(e) }}</td>
+          <td [attr.data-label]="'common.patient' | t"><a *ngIf="e.patientId !== null; else noPatient" class="patient-link" [routerLink]="['/patients', e.patientId]" [queryParams]="{ tab: 'audit' }">#{{ e.patientId }}</a><ng-template #noPatient>—</ng-template></td>
+          <td [attr.data-label]="'pf.audit.detail' | t"><span *ngIf="e.detail; else noDetail" class="mono" lang="en">{{ e.detail }}</span><ng-template #noDetail>—</ng-template></td>
         </tr>
       </tbody>
     </table>

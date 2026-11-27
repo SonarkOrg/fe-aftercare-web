@@ -1,6 +1,8 @@
 import { DOCUMENT, CommonModule } from '@angular/common';
 import { Component, ElementRef, EventEmitter, HostListener, Inject, OnInit, Output, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { take } from 'rxjs';
+import { SettingsService } from '../../../Services/Settings.service';
 import { PatientService } from '../../../Services/Patient.service';
 import { PatientDeskService } from '../../../Services/PatientDesk.service';
 import { ApiErrorsService } from '../../../i18n/api-errors';
@@ -61,10 +63,18 @@ export class AddPatientDrawerComponent implements OnInit {
     private desk: PatientDeskService,
     private errors: ApiErrorsService,
     private i18n: I18nService,
+    private settings: SettingsService,
     @Inject(DOCUMENT) private doc: Document
   ) {}
 
+  /** Gender and address are asked only when the clinic switched them on (PRIV-A-17); hidden until the settings are known. */
+  collect = { gender: false, address: false };
+
   ngOnInit(): void {
+    this.settings.clinic$.pipe(take(1)).subscribe({
+      next: c => (this.collect = { gender: !!c.collectGender, address: !!c.collectAddress }),
+      error: () => { /* stays hidden */ }
+    });
     setTimeout(() => (this.doc.getElementById('new-firstName') as HTMLElement | null)?.focus());
   }
 
@@ -107,12 +117,12 @@ export class AddPatientDrawerComponent implements OnInit {
 
   private body(): Patient {
     const p = this.patient;
-    const city = blankToNull(p.address?.city);
-    const state = blankToNull(p.address?.state);
-    const zip = blankToNull(p.address?.zip);
+    const city = this.collect.address ? blankToNull(p.address?.city) : null;
+    const state = this.collect.address ? blankToNull(p.address?.state) : null;
+    const zip = this.collect.address ? blankToNull(p.address?.zip) : null;
     return {
       firstName: p.firstName.trim(), lastName: p.lastName.trim(), email: blankToNull(p.email), phone: blankToNull(p.phone),
-      gender: blankToNull(p.gender), dateOfBirth: p.dateOfBirth || null,
+      gender: this.collect.gender ? blankToNull(p.gender) : null, dateOfBirth: p.dateOfBirth || null,
       address: city || state || zip ? { city, state, zip } : null
     };
   }

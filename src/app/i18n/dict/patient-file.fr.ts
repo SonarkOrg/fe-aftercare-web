@@ -13,6 +13,7 @@ export const PATIENT_FILE_FR: DictOf<typeof PATIENT_FILE_EN> = {
   'pf.medical.visible30': 'Affiché pendant 30\u00a0s',
   'pf.medical.reveal': 'Afficher',
   'pf.medical.noHn': 'Aucun au dossier',
+  'pf.medical.hnOnFile': 'NAM au dossier',
   'pf.medical.reasonForViewing': 'Motif de l\'affichage du NAM',
   'pf.medical.reasonHelp': '3 à 200 caractères. Chaque affichage est consigné dans le journal des accès.',
   'pf.medical.hnLabel': 'Numéro d\'assurance maladie',
